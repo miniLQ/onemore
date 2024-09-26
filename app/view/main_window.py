@@ -1,4 +1,6 @@
 # coding: utf-8
+from pathlib import Path
+
 from PyQt6.QtCore import Qt, QSize, QUrl, QPoint
 from PyQt6.QtGui import QIcon, QColor
 from PyQt6.QtWidgets import QApplication
@@ -30,24 +32,107 @@ class Widget(QFrame):
         self.hBoxLayout.addWidget(self.label, 1, Qt.AlignmentFlag.AlignCenter)
         self.setObjectName(text.replace(' ', '-'))
 
+class TabInterface(QFrame):
+    """ Tab interface """
+
+    def __init__(self, text: str, icon, objectName, parent=None):
+        super().__init__(parent=parent)
+        # use big image
+        icon = Path(icon)
+        icon = icon.parent / f"{icon.stem}_big{icon.suffix}"
+
+        self.iconWidget = IconWidget(str(icon), self)
+        self.label = SubtitleLabel(text, self)
+        self.iconWidget.setFixedSize(120, 120)
+
+        self.vBoxLayout = QVBoxLayout(self)
+        self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.vBoxLayout.setSpacing(30)
+        self.vBoxLayout.addWidget(self.iconWidget, 0, Qt.AlignmentFlag.AlignCenter)
+        self.vBoxLayout.addWidget(self.label, 0, Qt.AlignmentFlag.AlignCenter)
+        setFont(self.label, 24)
+
+        self.setObjectName(objectName)
+
+class CustomTitleBar(MSFluentTitleBar):
+    """ Title bar with icon and title """
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        # add buttons
+        #self.toolButtonLayout = QHBoxLayout()
+        #color = QColor(206, 206, 206) if isDarkTheme() else QColor(96, 96, 96)
+        #self.searchButton = TransparentToolButton(FIF.SEARCH_MIRROR.icon(color=color), self)
+        #self.forwardButton = TransparentToolButton(FIF.RIGHT_ARROW.icon(color=color), self)
+        #self.backButton = TransparentToolButton(FIF.LEFT_ARROW.icon(color=color), self)
+
+        #self.forwardButton.setDisabled(True)
+        #self.toolButtonLayout.setContentsMargins(20, 0, 20, 0)
+        #self.toolButtonLayout.setSpacing(15)
+        #self.toolButtonLayout.addWidget(self.searchButton)
+        #self.toolButtonLayout.addWidget(self.backButton)
+        #self.toolButtonLayout.addWidget(self.forwardButton)
+        #self.hBoxLayout.insertLayout(4, self.toolButtonLayout)
+
+        # add tab bar
+        self.tabBar = TabBar(self)
+
+        # 设置标签是否可移动
+        self.tabBar.setMovable(True)
+        # 设置标签的最大宽度
+        self.tabBar.setTabMaximumWidth(100)
+        # 设置标签的阴影
+        self.tabBar.setTabShadowEnabled(True)
+        # 设置标签选择后的颜色
+        self.tabBar.setTabSelectedBackgroundColor(QColor(255, 255, 255, 125), QColor(255, 255, 255, 50))
+        # 设置标签是否可以滚动
+        self.tabBar.setScrollable(True)
+        # 设置标签的关闭按钮显示模式
+        self.tabBar.setCloseButtonDisplayMode(TabCloseButtonDisplayMode.ON_HOVER)
+
+        # 设置标签关闭的信号处理
+        self.tabBar.tabCloseRequested.connect(self.tabBar.removeTab)
+        # 设置标签切换的信号处理
+        self.tabBar.currentChanged.connect(lambda i: print(self.tabBar.tabText(i)))
+        
+        self.hBoxLayout.insertWidget(4, self.tabBar, 1)
+        self.hBoxLayout.setStretch(5, 0)
+
+        # add avatar
+        #self.avatar = TransparentDropDownToolButton('resource/shoko.png', self)
+        #self.avatar.setIconSize(QSize(26, 26))
+        #self.avatar.setFixedHeight(30)
+        #self.hBoxLayout.insertWidget(7, self.avatar, 0, Qt.AlignmentFlag.AlignRight)
+        #self.hBoxLayout.insertSpacing(8, 20)
+
+    def canDrag(self, pos: QPoint):
+        if not super().canDrag(pos):
+            return False
+
+        pos.setX(pos.x() - self.tabBar.x())
+        return not self.tabBar.tabRegion().contains(pos)
+
 class MainWindow(MSFluentWindow):
 
     def __init__(self):
         super().__init__()
-        self.initWindow()
+
+        self.setTitleBar(CustomTitleBar(self))
+        self.tabBar = self.titleBar.tabBar  # type: TabBar
 
         # TODO: create sub interface
-        # self.homeInterface = HomeInterface(self)
         self.settingInterface = SettingInterface(self)
         self.homeInterface = QStackedWidget(self, objectName='homeInterface')
-        self.mtkInterface = MtkInterface(self)
         self.qcomInterface = Widget('Qcom Tools', self)
+        self.mtkInterface = MtkInterface(self)
 
 
         self.connectSignalToSlot()
 
         # add items to navigation interface
         self.initNavigation()
+        self.initWindow()
 
     def connectSignalToSlot(self):
         signalBus.micaEnableChanged.connect(self.setMicaEffectEnabled)
@@ -66,12 +151,18 @@ class MainWindow(MSFluentWindow):
         # add custom widget to bottom
         self.addSubInterface(
             self.settingInterface, Icon.SETTINGS, self.tr('Settings'), Icon.SETTINGS_FILLED, NavigationItemPosition.BOTTOM)
+        
+        # add tab
+        #self.addTab('Heart', 'As long as you love me', icon='resource/Heart.png')
 
-        self.splashScreen.finish()
+        #self.tabBar.currentChanged.connect(self.onTabChanged)
+        #self.tabBar.tabAddRequested.connect(self.onTabAddRequested)
+
+        #self.splashScreen.finish()
 
     def initWindow(self):
-        self.resize(960, 780)
-        self.setMinimumWidth(760)
+        self.resize(1100, 750)
+        #self.setMinimumWidth(760)
         self.setWindowIcon(QIcon(':/app/images/logo.png'))
         self.setWindowTitle('OneMore')
 
@@ -79,17 +170,33 @@ class MainWindow(MSFluentWindow):
         self.setMicaEffectEnabled(cfg.get(cfg.micaEnabled))
 
         # create splash screen
-        self.splashScreen = SplashScreen(self.windowIcon(), self)
-        self.splashScreen.setIconSize(QSize(106, 106))
-        self.splashScreen.raise_()
+        #self.splashScreen = SplashScreen(self.windowIcon(), self)
+        #self.splashScreen.setIconSize(QSize(106, 106))
+        #self.splashScreen.raise_()
 
         desktop = QApplication.primaryScreen().availableGeometry()
         w, h = desktop.width(), desktop.height()
         self.move(w//2 - self.width()//2, h//2 - self.height()//2)
         self.show()
-        QApplication.processEvents()
+        #QApplication.processEvents()
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
         if hasattr(self, 'splashScreen'):
             self.splashScreen.resize(self.size())
+    
+    def onTabChanged(self, index: int):
+        objectName = self.tabBar.currentTab().routeKey()
+        self.homeInterface.setCurrentWidget(self.homeInterface.findChild(TabInterface, objectName))
+        self.stackedWidget.setCurrentWidget(self.homeInterface)
+
+    def onTabAddRequested(self):
+        text = f'硝子酱一级棒卡哇伊×{self.tabBar.count()}'
+        self.addTab(text, text, 'resource/Smiling_with_heart.png')
+
+    def addTab(self, routeKey, text, icon):
+        print(f'add tab {routeKey} {text} {icon}')
+        self.tabBar.addTab(routeKey, text, icon)
+
+        # tab左对齐
+        self.homeInterface.addWidget(TabInterface(text, icon, routeKey, self))

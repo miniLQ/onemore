@@ -12,6 +12,7 @@ from PyQt6.QtGui import QDesktopServices, QFont
 from PyQt6.QtWidgets import QWidget, QLabel, QFileDialog
 
 import sys
+import random
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, QPoint, QSize, QUrl, QRect, QPropertyAnimation
@@ -42,6 +43,8 @@ from ..common.setting import HELP_URL, FEEDBACK_URL, AUTHOR, VERSION, YEAR
 from ..common.signal_bus import signalBus
 from ..common.style_sheet import StyleSheet
 
+from .mtk_subinterface.AeeExtractorSubinterface import AeeExtractorSubinterface
+
 TOOL1_UNIQUE_NAME = "AeeExtractor"
 TOOL2_UNIQUE_NAME = "TOOL2"
 TOOL3_UNIQUE_NAME = "TOOL3"
@@ -50,12 +53,34 @@ TOOL5_UNIQUE_NAME = "TOOL5"
 TOOL6_UNIQUE_NAME = "TOOL6"
 TOOL7_UNIQUE_NAME = "TOOL7"
 
+class TabInterface(QFrame):
+    """ Tab interface """
+
+    def __init__(self, text: str, icon, objectName, parent=None):
+        super().__init__(parent=parent)
+        # use big image
+        icon = Path(icon)
+        icon = icon.parent / f"{icon.stem}_big{icon.suffix}"
+
+        self.iconWidget = IconWidget(str(icon), self)
+        self.label = SubtitleLabel(text, self)
+        self.iconWidget.setFixedSize(120, 120)
+
+        self.vBoxLayout = QVBoxLayout(self)
+        self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.vBoxLayout.setSpacing(30)
+        self.vBoxLayout.addWidget(self.iconWidget, 0, Qt.AlignmentFlag.AlignCenter)
+        self.vBoxLayout.addWidget(self.label, 0, Qt.AlignmentFlag.AlignCenter)
+        setFont(self.label, 24)
+
+        self.setObjectName(objectName)
+
 class AppCard(CardWidget):
     """ App card """
 
-    def __init__(self, icon, title, content, parent=None, UniqueName=None, interface=None):
+    def __init__(self, icon, title, content, parent=None, UniqueName=None, rootWindow=None):
         super().__init__(parent=parent)
-        self.interface = interface
+        self.rootWindow = rootWindow
         self.UniqueName = UniqueName
         self.iconWidget = IconWidget(icon)
         self.titleLabel = BodyLabel(title, self)
@@ -107,6 +132,15 @@ class AppCard(CardWidget):
         if self.UniqueName == TOOL1_UNIQUE_NAME:
             # 打开AeeExtractor
             # 创建一个标签页
+            # 生成一个7位的guid随机数
+            ramdomNum = random.randint(1000000, 9999999)
+            self.rootWindow.addTab("AeeExtractor {}".format(ramdomNum), "AeeExtractor {}".format(ramdomNum), 'resource/Smiling_with_heart.png')
+            
+            # 切换到homeinterface
+            self.rootWindow.switchTo(self.rootWindow.homeInterface)
+            # 切换到新建的tab
+            self.rootWindow.tabBar.setCurrentTab(routeKey="AeeExtractor {}".format(ramdomNum))
+            #aeeextractorsubinterface = AeeExtractorSubinterface()
             pass
         elif self.UniqueName == TOOL2_UNIQUE_NAME:
             # 打开Tool2
@@ -135,7 +169,7 @@ class MtkInterface(ScrollArea):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-
+        self.parent = parent
         self.scrollAreaWidgetContents = QWidget()
         # 垂直布局
         self.expandLayout = ExpandLayout(self.scrollAreaWidgetContents)
@@ -154,6 +188,8 @@ class MtkInterface(ScrollArea):
         # self.vBoxLayout.setContentsMargins(50, 100, 50, 100)
         # self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        self.parent.tabBar.currentChanged.connect(self.parent.onTabChanged)
+        #self.parent.tabBar.tabAddRequested.connect(self.parent.onTabAddRequested)
 
         self.__initWidget()
 
@@ -168,7 +204,7 @@ class MtkInterface(ScrollArea):
 
 
     def addCard(self, icon, title, content, UniqueName):
-        card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, interface=self)
+        card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, rootWindow=self.parent)
         
         # 将card组件加入到设置好的滚动布局中
         self.expandLayout.addWidget(card)
