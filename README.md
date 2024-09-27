@@ -1,5 +1,5 @@
-# Fluent Window Skeleton
-Fluent window skeleton of [QFluentWidgets](https://github.com/zhiyiYo/PyQt-Fluent-Widgets) components library.
+# OneMore
+A tool contains some useful tools. More than one!
 
 # Structure
 ```

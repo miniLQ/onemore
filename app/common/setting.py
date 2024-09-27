@@ -9,9 +9,9 @@ YEAR = 2024
 AUTHOR = "iliuqi"
 VERSION = "v0.0.1"
 APP_NAME = "OneMore"
-HELP_URL = "https://qfluentwidgets.com"
-REPO_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets"
-FEEDBACK_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets/issues"
+HELP_URL = "https://github.com/miniLQ/onemore/issues"
+REPO_URL = "https://github.com/miniLQ/onemore"
+FEEDBACK_URL = "https://github.com/miniLQ/onemore/issues"
 DOC_URL = "https://qfluentwidgets.com/"
 
 CONFIG_FOLDER = Path('AppData').absolute()

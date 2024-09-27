@@ -169,7 +169,7 @@ class DescriptionCard(HeaderCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.descriptionLabel = BodyLabel(
-            'Aee Extractor 是MTK平台开发提供给研发人员进行Ramdump的解析使用的一个工具。本软件直接集成aee extractor，无需直接下载，直接选择dump文件进行解析即可！', self)
+            'Aee Extractor 是MTK平台开发提供给研发人员进行Ramdump的解析使用的一个工具。\n本软件直接集成aee extractor，无需直接下载，直接选择dump文件进行解析即可！', self)
 
         self.descriptionLabel.setWordWrap(True)
         self.viewLayout.addWidget(self.descriptionLabel)
