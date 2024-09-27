@@ -56,6 +56,7 @@ class AppInfoCard(SimpleCardWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.parent = parent
         self.iconLabel = ImageLabel(":/qfluentwidgets/images/logo.png", self)
         self.iconLabel.setBorderRadius(8, 8, 8, 8)
         self.iconLabel.scaledToWidth(120)
@@ -98,8 +99,7 @@ class AppInfoCard(SimpleCardWidget):
         self.topLayout = QHBoxLayout()
         self.statisticsLayout = QHBoxLayout()
         self.buttonLayout = QHBoxLayout()
-        self.bottomLayout = QHBoxLayout()
-        
+
         self.initLayout()
         self.setBorderRadius(8)
 
@@ -144,9 +144,6 @@ class AppInfoCard(SimpleCardWidget):
         self.buttonLayout.addWidget(self.tagButton2, 1, Qt.AlignmentFlag.AlignLeft)
         #self.buttonLayout.addWidget(self.shareButton, 0, Qt.AlignmentFlag.AlignRight)
         
-        self.vBoxLayout.addSpacing(20)
-        self.vBoxLayout.addLayout(self.bottomLayout)
-        self.bottomLayout.setContentsMargins(0, 0, 0, 0)
 
     def installButtonClicked(self):
         if self.installButtonStateTooltip == '已执行':
@@ -161,7 +158,8 @@ class AppInfoCard(SimpleCardWidget):
             # 设置点击后不允许再次点击
             self.installButton.setDisabled(True)
             # set position 在右下角
-            self.bottomLayout.addWidget(self.installButtonStateTooltip, 0, Qt.AlignmentFlag.AlignRight)
+            self.parent.vBoxLayout.addSpacing(12)
+            self.parent.vBoxLayout.addWidget(self.installButtonStateTooltip, 3, Qt.AlignmentFlag.AlignBottom|Qt.AlignmentFlag.AlignRight)
             
             self.installButtonStateTooltip.show()
 
@@ -313,12 +311,12 @@ class AeeExtractorCardsInfo(ScrollArea):
         self.setWidgetResizable(True)
         self.setObjectName(routeKey)
 
-        self.vBoxLayout.setSpacing(10)
+        self.vBoxLayout.setSpacing(25)
         self.vBoxLayout.setContentsMargins(0, 0, 10, 30)
         self.vBoxLayout.addWidget(self.appCard, 0, Qt.AlignmentFlag.AlignTop)
         #self.vBoxLayout.addWidget(self.galleryCard, 0, Qt.AlignmentFlag.AlignTop)
-        self.vBoxLayout.addWidget(self.descriptionCard, 0, Qt.AlignmentFlag.AlignTop)
-        self.vBoxLayout.addWidget(self.settingCard, 1, Qt.AlignmentFlag.AlignTop)
+        self.vBoxLayout.addWidget(self.descriptionCard, 1, Qt.AlignmentFlag.AlignTop)
+        self.vBoxLayout.addWidget(self.settingCard, 2, Qt.AlignmentFlag.AlignTop)
 
         #self.vBoxLayout.addWidget(self.systemCard, 0, Qt.AlignmentFlag.AlignTop)
 
