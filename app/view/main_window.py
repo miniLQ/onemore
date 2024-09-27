@@ -134,6 +134,8 @@ class MainWindow(MSFluentWindow):
         self.initNavigation()
         self.initWindow()
 
+        self.splashScreen.finish()
+
     def connectSignalToSlot(self):
         signalBus.micaEnableChanged.connect(self.setMicaEffectEnabled)
 
@@ -158,8 +160,6 @@ class MainWindow(MSFluentWindow):
         #self.tabBar.currentChanged.connect(self.onTabChanged)
         #self.tabBar.tabAddRequested.connect(self.onTabAddRequested)
 
-        #self.splashScreen.finish()
-
     def initWindow(self):
         self.resize(1100, 750)
         #self.setMinimumWidth(760)
@@ -170,15 +170,15 @@ class MainWindow(MSFluentWindow):
         self.setMicaEffectEnabled(cfg.get(cfg.micaEnabled))
 
         # create splash screen
-        #self.splashScreen = SplashScreen(self.windowIcon(), self)
-        #self.splashScreen.setIconSize(QSize(106, 106))
-        #self.splashScreen.raise_()
+        self.splashScreen = SplashScreen(self.windowIcon(), self)
+        self.splashScreen.setIconSize(QSize(106, 106))
+        self.splashScreen.raise_()
 
         desktop = QApplication.primaryScreen().availableGeometry()
         w, h = desktop.width(), desktop.height()
         self.move(w//2 - self.width()//2, h//2 - self.height()//2)
         self.show()
-        #QApplication.processEvents()
+        QApplication.processEvents()
 
     def resizeEvent(self, e):
         super().resizeEvent(e)

@@ -43,7 +43,7 @@ from ..common.setting import HELP_URL, FEEDBACK_URL, AUTHOR, VERSION, YEAR
 from ..common.signal_bus import signalBus
 from ..common.style_sheet import StyleSheet
 
-from .mtk_subinterface.AeeExtractorSubinterface import AeeExtractorSubinterface
+from .mtk_subinterface.AeeExtractorinterface import AeeExtractorInterface
 
 TOOL1_UNIQUE_NAME = "AeeExtractor"
 TOOL2_UNIQUE_NAME = "TOOL2"
@@ -78,9 +78,9 @@ class TabInterface(QFrame):
 class AppCard(CardWidget):
     """ App card """
 
-    def __init__(self, icon, title, content, parent=None, UniqueName=None, rootWindow=None):
+    def __init__(self, icon, title, content, parent=None, UniqueName=None, mainWindow=None):
         super().__init__(parent=parent)
-        self.rootWindow = rootWindow
+        self.mainWindow = mainWindow
         self.UniqueName = UniqueName
         self.iconWidget = IconWidget(icon)
         self.titleLabel = BodyLabel(title, self)
@@ -134,16 +134,27 @@ class AppCard(CardWidget):
             # 创建一个标签页
             # 生成一个7位的guid随机数
             ramdomNum = random.randint(1000000, 9999999)
-            self.rootWindow.addTab("AeeExtractor {}".format(ramdomNum), "AeeExtractor {}".format(ramdomNum), 'resource/Smiling_with_heart.png')
-            
+            routekey = "Aee Extractor {}".format(ramdomNum)
+            self.AeeExtractorInterface = AeeExtractorInterface(mainWindow=self.mainWindow)
+            self.AeeExtractorInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+
             # 切换到homeinterface
-            self.rootWindow.switchTo(self.rootWindow.homeInterface)
+            #self.mainWindow.switchTo(self.mainWindow.homeInterface)
             # 切换到新建的tab
-            self.rootWindow.tabBar.setCurrentTab(routeKey="AeeExtractor {}".format(ramdomNum))
+            #print("routekey:{}".format(routekey))
+            #self.mainWindow.tabBar.setCurrentTab(routeKey=routekey)
             #aeeextractorsubinterface = AeeExtractorSubinterface()
             pass
         elif self.UniqueName == TOOL2_UNIQUE_NAME:
             # 打开Tool2
+            # ramdomNum = random.randint(1000000, 9999999)
+            # self.mainWindow.addTab("Test Tool 2 {}".format(ramdomNum), "Test Tool 2 {}".format(ramdomNum), 'resource/Smiling_with_heart.png')
+            
+            # # 切换到homeinterface
+            # self.mainWindow.switchTo(self.mainWindow.homeInterface)
+            # # 切换到新建的tab
+            # self.mainWindow.tabBar.setCurrentTab(routeKey="Test Tool 2 {}".format(ramdomNum))
+            # #aeeextractorsubinterface = AeeExtractorSubinterface()
             pass
         elif self.UniqueName == TOOL3_UNIQUE_NAME:
             # 打开Tool3
@@ -188,7 +199,7 @@ class MtkInterface(ScrollArea):
         # self.vBoxLayout.setContentsMargins(50, 100, 50, 100)
         # self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.parent.tabBar.currentChanged.connect(self.parent.onTabChanged)
+        #self.parent.tabBar.currentChanged.connect(self.parent.onTabChanged)
         #self.parent.tabBar.tabAddRequested.connect(self.parent.onTabAddRequested)
 
         self.__initWidget()
@@ -204,7 +215,7 @@ class MtkInterface(ScrollArea):
 
 
     def addCard(self, icon, title, content, UniqueName):
-        card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, rootWindow=self.parent)
+        card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, mainWindow=self.parent)
         
         # 将card组件加入到设置好的滚动布局中
         self.expandLayout.addWidget(card)

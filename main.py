@@ -10,6 +10,8 @@ from qfluentwidgets import FluentTranslator
 from app.common.config import cfg
 from app.view.register_window import RegisterWindow
 
+# 设置根目录
+ROOTPATH = os.path.dirname(os.path.abspath(__file__))
 
 # enable dpi scale
 if cfg.get(cfg.dpiScale) != "Auto":
