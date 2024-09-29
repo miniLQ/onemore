@@ -15,10 +15,14 @@ from qfluentwidgets import (NavigationItemPosition, MessageBox, MSFluentTitleBar
 
 from .setting_interface import SettingInterface
 from .mtk_interface import MtkInterface
+from .qcom_interface import QcomInterface
 from ..common.config import cfg
 from ..common.icon import Icon
 from ..common.signal_bus import signalBus
 from ..common import resource
+
+from .qcom_subinterface.LinuxRamdumpParserinterface import LinuxRamdumpParserCardsInfo
+from .mtk_subinterface.AeeExtractorinterface import AeeExtractorCardsInfo
 
 class Widget(QFrame):
 
@@ -121,10 +125,13 @@ class MainWindow(MSFluentWindow):
         self.setTitleBar(CustomTitleBar(self))
         self.tabBar = self.titleBar.tabBar  # type: TabBar
 
+                
+        self.tabBar.currentChanged.connect(self.onTabChanged)
+
         # TODO: create sub interface
         self.settingInterface = SettingInterface(self)
         self.homeInterface = QStackedWidget(self, objectName='homeInterface')
-        self.qcomInterface = Widget('Qcom Tools', self)
+        self.qcomInterface = QcomInterface(self)
         self.mtkInterface = MtkInterface(self)
 
 
@@ -157,8 +164,8 @@ class MainWindow(MSFluentWindow):
         # add tab
         #self.addTab('Heart', 'As long as you love me', icon='resource/Heart.png')
 
-        #self.tabBar.currentChanged.connect(self.onTabChanged)
-        #self.tabBar.tabAddRequested.connect(self.onTabAddRequested)
+        self.tabBar.currentChanged.connect(self.onTabChanged)
+        self.tabBar.tabAddRequested.connect(self.onTabAddRequested)
 
     def initWindow(self):
         self.resize(1100, 750)
@@ -187,8 +194,19 @@ class MainWindow(MSFluentWindow):
     
     def onTabChanged(self, index: int):
         objectName = self.tabBar.currentTab().routeKey()
-        self.homeInterface.setCurrentWidget(self.homeInterface.findChild(TabInterface, objectName))
+        print("[LIUQI] onTabChanged: ", objectName)
+        print("[LIUQI] index:", index)
+        if "Linux Ramdump" in objectName:
+            print("[LIUQI] child find: {}".format(self.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName)))
+            self.homeInterface.setCurrentWidget(self.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
+        elif "Aee Extractor" in objectName:
+            print("[LIUQI] child find: {}".format(self.homeInterface.findChild(AeeExtractorCardsInfo, objectName)))
+            self.homeInterface.setCurrentWidget(self.homeInterface.findChild(AeeExtractorCardsInfo, objectName))
+        else:
+            self.homeInterface.setCurrentWidget(self.homeInterface.findChild(TabInterface, objectName))
+
         self.stackedWidget.setCurrentWidget(self.homeInterface)
+        self.tabBar.setCurrentIndex(index)
 
     def onTabAddRequested(self):
         text = f'硝子酱一级棒卡哇伊×{self.tabBar.count()}'

@@ -61,7 +61,7 @@ class AppInfoCard(SimpleCardWidget):
         self.iconLabel.setBorderRadius(8, 8, 8, 8)
         self.iconLabel.scaledToWidth(120)
 
-        self.nameLabel = TitleLabel('Aee Extractor', self)
+        self.nameLabel = TitleLabel('Linux Ramdump Parser', self)
 
         #self.installButton = PrimaryPushButton('执行', self)
         #self.installButton.clicked.connect(self.installButtonClicked)
@@ -77,10 +77,10 @@ class AppInfoCard(SimpleCardWidget):
         #self.commentWidget = StatisticsWidget('评论数', '3K', self)
 
         self.descriptionLabel = BodyLabel(
-            'Aee Extractor 是MTK平台开发提供给研发人员进行Ramdump的解析使用的一个工具', self)
+            'Linux Ramdump Parser 是高通平台开发提供给研发人员进行Ramdump的解析使用的一个工具', self)
         self.descriptionLabel.setWordWrap(True)
 
-        self.tagButton = PillPushButton('MTK', self)
+        self.tagButton = PillPushButton('QCOM', self)
         self.tagButton.setCheckable(False)
         setFont(self.tagButton, 12)
         self.tagButton.setFixedSize(80, 32)
@@ -168,7 +168,7 @@ class DescriptionCard(HeaderCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.descriptionLabel = BodyLabel(
-            'Aee Extractor 是MTK平台开发提供给研发人员进行Ramdump的解析使用的一个工具。本软件直接集成aee extractor，无需直接下载，直接选择dump文件进行解析即可！', self)
+            'Linux Ramdump Parser 是高通平台开发提供给研发人员进行Ramdump的解析使用的一个工具。本软件暂时不直接集成，需手动下载工具放置在软件的tools目录下', self)
 
         self.descriptionLabel.setWordWrap(True)
         self.viewLayout.addWidget(self.descriptionLabel)
@@ -185,6 +185,7 @@ class SettinsCard(GroupHeaderCardWidget):
         # 选择按钮以及输入框部件
         self.chooseButton = PushButton("选择")
         self.fileLineEdit = LineEdit()
+        self.vmlinuxButton = PushButton("选择")
 
         # 显示终端部件
         self.comboBox = ComboBox()
@@ -194,6 +195,7 @@ class SettinsCard(GroupHeaderCardWidget):
 
         # 设置部件的固定宽度
         self.chooseButton.setFixedWidth(120)
+        self.vmlinuxButton.setFixedWidth(120)
         self.fileLineEdit.setFixedWidth(320)
 
         self.lineEdit.setFixedWidth(320)
@@ -218,6 +220,7 @@ class SettinsCard(GroupHeaderCardWidget):
 
 
         self.addGroup("{}/images/Rocket.svg".format(resource_path), "Ramdump目录", "选择Ramdump的存放目录", self.chooseButton)
+        self.addGroup("{}/images/Rocket.svg".format(resource_path), "vmlinux文件", "选择vmlinux文件路径", self.vmlinuxButton)
         self.addGroup("{}/images/Joystick.svg".format(resource_path), "运行终端", "设置是否显示命令行终端", self.comboBox)
         self.addGroup("{}/images/Python.svg".format(resource_path), "入口脚本", "选择软件的入口脚本", self.lineEdit)
         self.vBoxLayout.addLayout(self.bottomLayout)
@@ -310,8 +313,8 @@ class LightBox(QWidget):
         self.opacityAni.finished.disconnect()
         self.hide()
 
-class AeeExtractorCardsInfo(ScrollArea):
-    """ AEE Extractor Subinterface """
+class LinuxRamdumpParserCardsInfo(ScrollArea):
+    """ Linux Ramdump Parser Subinterface """
 
     def __init__(self, parent=None, routeKey=None):
         super().__init__(parent=parent)
@@ -356,7 +359,7 @@ class AeeExtractorCardsInfo(ScrollArea):
         self.lightBox.resize(self.size())
 
 
-class AeeExtractorInterface:
+class LinuxRamdumpParserInterface:
     def __init__(self, parent=None, mainWindow=None):
         self.parent = parent
         self.mainWindow = mainWindow
@@ -365,12 +368,12 @@ class AeeExtractorInterface:
         #self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
 
     def addTab(self, routeKey, text, icon):
-        print(f'[LIUQI]add tab {routeKey} {text} {icon}')
+        print(f'[LIUQI] add tab {routeKey} {text} {icon}')
         self.mainWindow.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
-        self.mainWindow.homeInterface.addWidget(AeeExtractorCardsInfo(routeKey=routeKey))
-        self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(AeeExtractorCardsInfo, routeKey))
+        self.mainWindow.homeInterface.addWidget(LinuxRamdumpParserCardsInfo(routeKey=routeKey))
+        self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, routeKey))
         self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
         self.mainWindow.tabBar.setCurrentIndex(self.mainWindow.tabBar.count() - 1)
 
@@ -381,8 +384,8 @@ class AeeExtractorInterface:
     #     objectName = self.mainWindow.tabBar.currentTab().routeKey()
     #     print("[LIUQI1] ObjectName: ", objectName)
     #     print("[LIUQI1] index: ", index)
-    #     print("[LIUQI1] CurrentWidget: ", self.mainWindow.homeInterface.findChild(AeeExtractorCardsInfo, objectName))
-    #     self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(AeeExtractorCardsInfo, objectName))
+    #     print("[LIUQI1] CurrentWidget: ", self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
+    #     self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
     #     self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
     #     self.mainWindow.tabBar.setCurrentIndex(index)
     #     print("[LIUQI1] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())
