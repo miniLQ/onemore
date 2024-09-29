@@ -15,7 +15,7 @@ from qfluentwidgets import (CardWidget, setTheme, Theme, IconWidget, BodyLabel, 
                             HeaderCardWidget, InfoBarIcon, HyperlinkLabel, HorizontalFlipView,
                             PrimaryPushButton, TitleLabel, PillPushButton, setFont, ScrollArea,
                             VerticalSeparator, MSFluentWindow, NavigationItemPosition, GroupHeaderCardWidget,
-                            ComboBox, SearchLineEdit, SubtitleLabel, StateToolTip)
+                            ComboBox, SearchLineEdit, SubtitleLabel, StateToolTip, LineEdit)
 
 from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
@@ -63,14 +63,14 @@ class AppInfoCard(SimpleCardWidget):
 
         self.nameLabel = TitleLabel('Aee Extractor', self)
 
-        self.installButton = PrimaryPushButton('执行', self)
-        self.installButton.clicked.connect(self.installButtonClicked)
-        self.installButtonStateTooltip = None
+        #self.installButton = PrimaryPushButton('执行', self)
+        #self.installButton.clicked.connect(self.installButtonClicked)
+        #self.installButtonStateTooltip = None
 
         #self.companyLabel = HyperlinkLabel(
         #    QUrl('https://qfluentwidgets.com'), 'Shokokawaii Inc.', self)
         self.companyLabel = CaptionLabel('@Designed by iliuqi.', self)
-        self.installButton.setFixedWidth(160)
+        #self.installButton.setFixedWidth(160)
 
         #self.scoreWidget = StatisticsWidget('平均', '5.0', self)
         #self.separator = VerticalSeparator(self)
@@ -116,7 +116,7 @@ class AppInfoCard(SimpleCardWidget):
         self.vBoxLayout.addLayout(self.topLayout)
         self.topLayout.setContentsMargins(0, 0, 0, 0)
         self.topLayout.addWidget(self.nameLabel)
-        self.topLayout.addWidget(self.installButton, 0, Qt.AlignmentFlag.AlignRight)
+        #self.topLayout.addWidget(self.installButton, 0, Qt.AlignmentFlag.AlignRight)
 
         # company label
         self.vBoxLayout.addSpacing(3)
@@ -143,25 +143,24 @@ class AppInfoCard(SimpleCardWidget):
         self.buttonLayout.addWidget(self.tagButton, 0, Qt.AlignmentFlag.AlignLeft)
         self.buttonLayout.addWidget(self.tagButton2, 1, Qt.AlignmentFlag.AlignLeft)
         #self.buttonLayout.addWidget(self.shareButton, 0, Qt.AlignmentFlag.AlignRight)
-        
 
-    def installButtonClicked(self):
-        if self.installButtonStateTooltip == '已执行':
-            self.installButtonStateTooltip.setContent('已解析完成')
-            self.installButtonStateTooltip.setState(True)
-            self.installButton.setEnabled(True)
-            self.installButtonStateTooltip = None
-        else:
-            self.installButtonStateTooltip = StateToolTip(
-               '正在解析中', '请耐心等待哦~~', self 
-            )
-            # 设置点击后不允许再次点击
-            self.installButton.setDisabled(True)
-            # set position 在右下角
-            self.parent.vBoxLayout.addSpacing(12)
-            self.parent.vBoxLayout.addWidget(self.installButtonStateTooltip, 3, Qt.AlignmentFlag.AlignBottom|Qt.AlignmentFlag.AlignRight)
+    # def installButtonClicked(self):
+    #     if self.installButtonStateTooltip == '已执行':
+    #         self.installButtonStateTooltip.setContent('已解析完成')
+    #         self.installButtonStateTooltip.setState(True)
+    #         self.installButton.setEnabled(True)
+    #         self.installButtonStateTooltip = None
+    #     else:
+    #         self.installButtonStateTooltip = StateToolTip(
+    #            '正在解析中', '请耐心等待哦~~', self 
+    #         )
+    #         # 设置点击后不允许再次点击
+    #         self.installButton.setDisabled(True)
+    #         # set position 在右下角
+    #         self.parent.vBoxLayout.addSpacing(12)
+    #         self.parent.vBoxLayout.addWidget(self.installButtonStateTooltip, 3, Qt.AlignmentFlag.AlignBottom|Qt.AlignmentFlag.AlignRight)
             
-            self.installButtonStateTooltip.show()
+    #         self.installButtonStateTooltip.show()
 
 class DescriptionCard(HeaderCardWidget):
     """ Description card """
@@ -169,7 +168,7 @@ class DescriptionCard(HeaderCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.descriptionLabel = BodyLabel(
-            'Aee Extractor 是MTK平台开发提供给研发人员进行Ramdump的解析使用的一个工具。\n本软件直接集成aee extractor，无需直接下载，直接选择dump文件进行解析即可！', self)
+            'Aee Extractor 是MTK平台开发提供给研发人员进行Ramdump的解析使用的一个工具。本软件直接集成aee extractor，无需直接下载，直接选择dump文件进行解析即可！', self)
 
         self.descriptionLabel.setWordWrap(True)
         self.viewLayout.addWidget(self.descriptionLabel)
@@ -183,20 +182,45 @@ class SettinsCard(GroupHeaderCardWidget):
         self.setTitle("基本设置")
         self.setBorderRadius(8)
 
+        # 选择按钮以及输入框部件
         self.chooseButton = PushButton("选择")
-        self.comboBox = ComboBox()
-        #self.lineEdit = SearchLineEdit()
+        self.fileLineEdit = LineEdit()
 
+        # 显示终端部件
+        self.comboBox = ComboBox()
+
+        # 入口脚本部件
+        self.lineEdit = LineEdit()
+
+        # 设置部件的固定宽度
         self.chooseButton.setFixedWidth(120)
-        #self.lineEdit.setFixedWidth(320)
+        self.fileLineEdit.setFixedWidth(320)
+
+        self.lineEdit.setFixedWidth(320)
         self.comboBox.setFixedWidth(320)
         self.comboBox.addItems(["始终显示", "始终隐藏"])
-        #self.lineEdit.setPlaceholderText("输入入口脚本的路径")
+        self.lineEdit.setPlaceholderText("输入入口脚本的路径")
+
+        # 底部运行按钮以及提示
+        self.hintIcon = IconWidget(InfoBarIcon.INFORMATION)
+        self.hintLabel = BodyLabel("点击运行按钮开始解析")
+        self.runButton = PrimaryPushButton(FluentIcon.PLAY_SOLID, "运行")
+        self.bottomLayout = QHBoxLayout()
+        # 设置底部工具栏布局
+        self.hintIcon.setFixedSize(16, 16)
+        self.bottomLayout.setSpacing(10)
+        self.bottomLayout.setContentsMargins(24, 15, 24, 20)
+        self.bottomLayout.addWidget(self.hintIcon, 0, Qt.AlignmentFlag.AlignLeft)
+        self.bottomLayout.addWidget(self.hintLabel, 0, Qt.AlignmentFlag.AlignLeft)
+        self.bottomLayout.addStretch(1)
+        self.bottomLayout.addWidget(self.runButton, 0, Qt.AlignmentFlag.AlignRight)
+        self.bottomLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
 
         self.addGroup("{}/images/Rocket.svg".format(resource_path), "Ramdump目录", "选择Ramdump的存放目录", self.chooseButton)
         self.addGroup("{}/images/Joystick.svg".format(resource_path), "运行终端", "设置是否显示命令行终端", self.comboBox)
-        #self.addGroup("{}/images/Python.svg".format(resource_path), "入口脚本", "选择软件的入口脚本", self.lineEdit)
-
+        self.addGroup("{}/images/Python.svg".format(resource_path), "入口脚本", "选择软件的入口脚本", self.lineEdit)
+        self.vBoxLayout.addLayout(self.bottomLayout)
 
 
 class LightBox(QWidget):
