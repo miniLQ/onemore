@@ -5,19 +5,27 @@ import sys
 from pathlib import Path
 import os
 
+import time
+
 from PyQt6.QtCore import Qt, QPoint, QSize, QUrl, QRect, QPropertyAnimation
 from PyQt6.QtGui import QIcon, QFont, QColor, QPainter
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QGraphicsOpacityEffect
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QGraphicsOpacityEffect,QFileDialog
 
 from qfluentwidgets import (CardWidget, setTheme, Theme, IconWidget, BodyLabel, CaptionLabel, PushButton,
                             TransparentToolButton, FluentIcon, RoundMenu, Action, ElevatedCardWidget,
                             ImageLabel, isDarkTheme, FlowLayout, MSFluentTitleBar, SimpleCardWidget,
-                            HeaderCardWidget, InfoBarIcon, HyperlinkLabel, HorizontalFlipView,
+                            HeaderCardWidget, InfoBarIcon, HyperlinkLabel, HorizontalFlipView, EditableComboBox,
                             PrimaryPushButton, TitleLabel, PillPushButton, setFont, ScrollArea,
                             VerticalSeparator, MSFluentWindow, NavigationItemPosition, GroupHeaderCardWidget,
-                            ComboBox, SearchLineEdit, SubtitleLabel, StateToolTip, LineEdit)
+                            ComboBox, SearchLineEdit, SubtitleLabel, StateToolTip, LineEdit, Flyout)
 
 from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
+
+from code.sadp import run_parse
+from app.common.config import ROOTPATH
+import asyncio
+
+GNU_TOOLS_PATH = os.path.join(ROOTPATH, 'tools', 'gnu-tools')
 
 # 获取当前文件的路径
 current_path = Path(__file__).resolve().parent
@@ -182,13 +190,27 @@ class SettinsCard(GroupHeaderCardWidget):
         self.setTitle("基本设置")
         self.setBorderRadius(8)
 
+        # 初始化参数
+        self.dumpfile = ""
+        self.vmlinuxfile = ""
+
+        # 设置状态提示
+        #self.stateTooltip = None
+
         # 选择按钮以及输入框部件
         self.chooseButton = PushButton("选择")
-        self.fileLineEdit = LineEdit()
+        #self.fileLineEdit = LineEdit()
         self.vmlinuxButton = PushButton("选择")
 
+        # 设置Button的点击事件
+        self.chooseButton.clicked.connect(self.chooseButtonClicked)
+        self.vmlinuxButton.clicked.connect(self.vmlinuxButtonClicked)
+
         # 显示终端部件
-        self.comboBox = ComboBox()
+        #self.comboBox = ComboBox()
+        
+        # 平台选择部件
+        self.platformComboBox = EditableComboBox()
 
         # 入口脚本部件
         self.lineEdit = LineEdit()
@@ -196,18 +218,34 @@ class SettinsCard(GroupHeaderCardWidget):
         # 设置部件的固定宽度
         self.chooseButton.setFixedWidth(120)
         self.vmlinuxButton.setFixedWidth(120)
-        self.fileLineEdit.setFixedWidth(320)
+        #self.fileLineEdit.setFixedWidth(320)
 
         self.lineEdit.setFixedWidth(320)
-        self.comboBox.setFixedWidth(320)
-        self.comboBox.addItems(["始终显示", "始终隐藏"])
-        self.lineEdit.setPlaceholderText("输入入口脚本的路径")
+        #self.comboBox.setFixedWidth(120)
+        #self.comboBox.addItems(["始终显示", "始终隐藏"])
+        # 设置comboBox的选择点击事件
+        #self.comboBox.currentIndexChanged.connect(self.comboBoxClicked)
+
+        self.platformComboBox.setPlaceholderText("选择平台")
+        # TODO: 从配置文件中读取平台信息
+        items = ['khaje', 'parrot', 'pitti']
+        self.platformComboBox.setFixedWidth(120)
+        # 设置默认值
+        self.platformComboBox.setCurrentIndex(-1)
+    
+        self.platformComboBox.addItems(items)
+        # 设置platformComboBox的编辑事件
+        #self.platformComboBox.currentTextChanged.connect(print)
+        self.platformComboBox.currentIndexChanged.connect(self.platformComboBoxClicked)
+
+        self.lineEdit.setPlaceholderText("请输入额外的解析参数")
 
         # 底部运行按钮以及提示
         self.hintIcon = IconWidget(InfoBarIcon.INFORMATION)
         self.hintLabel = BodyLabel("点击运行按钮开始解析")
         self.runButton = PrimaryPushButton(FluentIcon.PLAY_SOLID, "运行")
         self.bottomLayout = QHBoxLayout()
+
         # 设置底部工具栏布局
         self.hintIcon.setFixedSize(16, 16)
         self.bottomLayout.setSpacing(10)
@@ -219,11 +257,159 @@ class SettinsCard(GroupHeaderCardWidget):
         self.bottomLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
 
-        self.addGroup("{}/images/Rocket.svg".format(resource_path), "Ramdump目录", "选择Ramdump的存放目录", self.chooseButton)
-        self.addGroup("{}/images/Rocket.svg".format(resource_path), "vmlinux文件", "选择vmlinux文件路径", self.vmlinuxButton)
-        self.addGroup("{}/images/Joystick.svg".format(resource_path), "运行终端", "设置是否显示命令行终端", self.comboBox)
-        self.addGroup("{}/images/Python.svg".format(resource_path), "入口脚本", "选择软件的入口脚本", self.lineEdit)
+        self.ramdumpGroup = self.addGroup("{}/images/Rocket.svg".format(resource_path), "Ramdump目录", "选择Ramdump的存放目录", self.chooseButton)
+        self.vmlinuxGroup = self.addGroup("{}/images/jsdesign.svg".format(resource_path), "vmlinux文件", "选择vmlinux文件路径", self.vmlinuxButton)
+        self.addGroup("{}/images/Joystick.svg".format(resource_path), "Platform", "选择基线平台", self.platformComboBox)
+        #self.addGroup("{}/images/Joystick.svg".format(resource_path), "运行终端", "设置是否显示命令行终端", self.comboBox)
+        self.addGroup("{}/images/Python.svg".format(resource_path), "额外参数", "请输入额外的解析参数", self.lineEdit)
         self.vBoxLayout.addLayout(self.bottomLayout)
+
+        # 设置运行按钮的点击事件
+        self.runButton.clicked.connect(self.runButtonClicked)
+
+    def chooseButtonClicked(self):
+        print("Choose Button Clicked")
+        # 弹出windows文件选择框
+        self.dumpdir = QFileDialog.getExistingDirectory(self, "选择文件夹")
+        # 打印选择的文件路径
+        print("Choose Dump Directory: ", self.dumpdir)
+        
+        if self.dumpdir == "":
+            self.chooseButton.setText("选择")
+        else:
+            # 设置chooseButton的文字显示已选择
+            self.chooseButton.setText("已选择")
+
+        # 更新lineEdit的内容
+        self.ramdumpGroup.setContent(self.dumpdir)
+
+
+    def vmlinuxButtonClicked(self):
+        print("vmlinux Button Clicked")
+        # 弹出windows文件选择框
+        self.vmlinuxfile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.txt)")
+        # 打印选择的文件路径
+        print("Choose Vmlinux File: ", self.vmlinuxfile)
+
+        if self.vmlinuxfile == "":
+            # 设置vmlinuxButton的文字显示已选择
+            self.vmlinuxButton.setText("选择")
+        else:
+            self.vmlinuxButton.setText("已选择")
+        
+        # 更新lineEdit的内容
+        self.vmlinuxGroup.setContent(self.vmlinuxfile)
+
+    def comboBoxClicked(self, index):
+        print("ComboBox Clicked: ", index)
+        # 打印当前选择的值
+        print("Current Index: ", self.comboBox.currentText())
+
+    def platformComboBoxClicked(self, index):
+        print("Platform ComboBox Clicked: ", index)
+        # 打印当前选择的值
+        print("Current Index: ", self.platformComboBox.currentText())
+
+    def showNoSelectFileFlyout(self):
+        Flyout.create(
+            icon=InfoBarIcon.ERROR,
+            title='Vmlinux or Dump file is not selected',
+            content="请先选择vmlinux文件和dump文件",
+            target=self.runButton,
+            parent=self.window()
+        )
+    
+    def showFileStyleErrorFlyout(self):
+        Flyout.create(
+            icon=InfoBarIcon.ERROR,
+            title='Vmlinux file style error',
+            content="vmlinux文件名不为vmlinux, 请检查后再执行",
+            target=self.runButton,
+            parent=self.window()
+        )
+
+    def showZipFileTypeErrorFlyout(self):
+        Flyout.create(
+            icon=InfoBarIcon.ERROR,
+            title='Dump file type error',
+            content="压缩包请先行解压，请检查后再执行",
+            target=self.runButton,
+            parent=self.window()
+        )
+
+    async def run_process(self, command, shell):
+        process = await asyncio.create_subprocess_shell(
+            command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+            while True:
+                line = await process.stdout.readline()
+                if not line:
+                    break
+                print(f"{line.decode().strip()}")
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            await process.wait()
+            print(f"Process return code: {process.returncode}")
+
+    def runButtonClicked(self):
+        print("Run Button Clicked")
+        # 获取chooseButton/ vmlinuxButton/ comboBox/ platformComboBox/ lineEdit的值
+        print("Dump directory: ", self.dumpdir)
+        print("Vmlinux file: ", self.vmlinuxfile)
+        print("platform: ", self.platformComboBox.currentText())
+        print("extend parameters: ", self.lineEdit.text())
+        #print("Display terminal: ", self.comboBox.currentText())
+
+        # if self.comboBox.currentText() == "始终显示":
+        #     print("Display terminal")
+        #     shell = True
+        # else:
+        #     shell = False
+
+        if self.dumpdir == "" or self.vmlinuxfile == "":
+            self.showNoSelectFileFlyout()
+        # elif self.dumpfile.endswith('.zip') == True or self.dumpfile.endswith('.rar') == True:
+        #     self.showZipFileTypeErrorFlyout()
+        # 如果vmlinuxfile的文件名不为vmlinux
+        elif os.path.basename(self.vmlinuxfile) != "vmlinux":
+            # 提示vmlinux文件名不为vmlinux
+            self.showFileStyleErrorFlyout()
+        else:
+            # self.stateTooltip = StateToolTip('正在解析', '客官请耐心等待哦~~', self)
+            # self.stateTooltip.move(700, 20)
+            # self.stateTooltip.show()
+
+            # runbuton按钮设置为不可点击
+            # self.runButton.setDisabled(True)
+
+            time.sleep(3)
+
+            # TODO: 执行解析命令
+            #p = run_parse(dumpdir=self.dumpdir, vmlinuxfile=self.vmlinuxfile, platform=self.platformComboBox.currentText(), extendParams=self.lineEdit.text(), shell=shell)
+            ramdump_parse_tool_path = os.path.join(ROOTPATH, 'tools', 'linux-ramdump-parser-v2')
+            gdb64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'gdb.exe')
+            nm64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-nm.exe')
+            objdump64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-objdump.exe')
+            output_path = os.path.join(self.dumpdir, 'parser_output')
+
+            command = 'python {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(ramdump_parse_tool_path,
+                    self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, output_path, self.platformComboBox.currentText(), self.lineEdit.text())
+
+            print(f"Run parse with command: {command}")
+            
+            os.system("start cmd.exe /K {}".format(command))
+
+            #asyncio.run(self.run_process(command, shell))
+
+        print("Run Button Finished")
+        # self.stateTooltip.setContent('解析完成')
+        # self.stateTooltip.setState(True)
+        # self.runButton.setEnabled(True)
+        # self.stateTooltip.show()
 
 
 class LightBox(QWidget):

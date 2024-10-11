@@ -10,6 +10,7 @@ class StyleSheet(StyleSheetBase, Enum):
     # TODO: Add your qss here
     
     SETTING_INTERFACE = "setting_interface"
+    HOME_INTERFACE = "home_interface"
 
     def path(self, theme=Theme.AUTO):
         theme = qconfig.theme if theme == Theme.AUTO else theme

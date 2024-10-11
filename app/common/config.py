@@ -1,7 +1,7 @@
 # coding:utf-8
 import sys
 from enum import Enum
-
+import os
 from PyQt6.QtCore import QLocale
 from qfluentwidgets import (qconfig, QConfig, ConfigItem, OptionsConfigItem, BoolValidator,
                             OptionsValidator, Theme, FolderValidator, ConfigSerializer)
@@ -30,6 +30,9 @@ class LanguageSerializer(ConfigSerializer):
 def isWin11():
     return sys.platform == 'win32' and sys.getwindowsversion().build >= 22000
 
+currentPath = os.path.dirname(os.path.abspath(__file__))
+# rootpath为currentpath的上两级目录
+ROOTPATH = os.path.dirname(os.path.dirname(currentPath))
 
 class Config(QConfig):
     """ Config of application """
@@ -50,6 +53,20 @@ class Config(QConfig):
 
     # software update
     checkUpdateAtStartUp = ConfigItem("Update", "CheckUpdateAtStartUp", True, BoolValidator())
+
+    rootPath = ConfigItem("RootPath", "RootPath", ROOTPATH, FolderValidator())
+
+YEAR = 2024
+AUTHOR = "iliuqi"
+VERSION = "0.0.1"
+HELP_URL = "https://qfluentwidgets.com"
+REPO_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets"
+EXAMPLE_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets/tree/PyQt6/examples"
+FEEDBACK_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets/issues"
+RELEASE_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets/releases/latest"
+ZH_SUPPORT_URL = "https://qfluentwidgets.com/zh/price/"
+EN_SUPPORT_URL = "https://qfluentwidgets.com/price/"
+
 
 
 cfg = Config()

@@ -12,6 +12,7 @@ from app.view.register_window import RegisterWindow
 
 # 设置根目录
 ROOTPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(ROOTPATH)
 
 # enable dpi scale
 if cfg.get(cfg.dpiScale) != "Auto":
