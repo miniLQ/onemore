@@ -1,13 +1,12 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from qfluentwidgets import CardWidget
 import sys
 from pathlib import Path
 import os
+import subprocess
 
-import time
-
-from PyQt6.QtCore import Qt, QPoint, QSize, QUrl, QRect, QPropertyAnimation
+from PyQt6.QtCore import Qt, QPoint, QSize, QUrl, QRect, QPropertyAnimation, pyqtSignal, QObject
 from PyQt6.QtGui import QIcon, QFont, QColor, QPainter
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QGraphicsOpacityEffect,QFileDialog
 
@@ -23,7 +22,6 @@ from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from code.sadp import run_parse
 from app.common.config import ROOTPATH
-import asyncio
 
 GNU_TOOLS_PATH = os.path.join(ROOTPATH, 'tools', 'gnu-tools')
 
@@ -170,6 +168,38 @@ class AppInfoCard(SimpleCardWidget):
             
     #         self.installButtonStateTooltip.show()
 
+class  Worker(QThread):
+    signal = pyqtSignal(str)
+
+    def __init__(self, command, shell=True):
+        super().__init__()
+        self.command = command
+        self.shell = shell
+
+    def run(self):
+        print("Worker Thread ID: ", QThread.currentThreadId())
+        print(f"Run command: {self.command}")
+
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+        if self.shell == True:
+            command = "start cmd /c {}".format(self.command)
+        else:
+            command = self.command
+        
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        
+        while True:
+            line = process.stdout.readline()
+            if not line:
+                break
+            print(line.decode('gbk').strip())
+
+        self.signal.emit("SUCCESS")
+        #self.signal.emit("ERROR")
+
+
 class DescriptionCard(HeaderCardWidget):
     """ Description card """
 
@@ -185,8 +215,11 @@ class DescriptionCard(HeaderCardWidget):
 
 class SettinsCard(GroupHeaderCardWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, parentvBoxLayout=None):
         super().__init__(parent)
+        
+        self.parentvBoxLayout = parentvBoxLayout
+
         self.setTitle("基本设置")
         self.setBorderRadius(8)
 
@@ -195,7 +228,8 @@ class SettinsCard(GroupHeaderCardWidget):
         self.vmlinuxfile = ""
 
         # 设置状态提示
-        #self.stateTooltip = None
+        self.stateTooltip = None
+        self.bottomStateLayout = QHBoxLayout()
 
         # 选择按钮以及输入框部件
         self.chooseButton = PushButton("选择")
@@ -207,7 +241,7 @@ class SettinsCard(GroupHeaderCardWidget):
         self.vmlinuxButton.clicked.connect(self.vmlinuxButtonClicked)
 
         # 显示终端部件
-        #self.comboBox = ComboBox()
+        self.comboBox = ComboBox()
         
         # 平台选择部件
         self.platformComboBox = EditableComboBox()
@@ -221,10 +255,10 @@ class SettinsCard(GroupHeaderCardWidget):
         #self.fileLineEdit.setFixedWidth(320)
 
         self.lineEdit.setFixedWidth(320)
-        #self.comboBox.setFixedWidth(120)
-        #self.comboBox.addItems(["始终显示", "始终隐藏"])
+        self.comboBox.setFixedWidth(120)
+        self.comboBox.addItems(["始终显示", "始终隐藏"])
         # 设置comboBox的选择点击事件
-        #self.comboBox.currentIndexChanged.connect(self.comboBoxClicked)
+        self.comboBox.currentIndexChanged.connect(self.comboBoxClicked)
 
         self.platformComboBox.setPlaceholderText("选择平台")
         # TODO: 从配置文件中读取平台信息
@@ -256,11 +290,17 @@ class SettinsCard(GroupHeaderCardWidget):
         self.bottomLayout.addWidget(self.runButton, 0, Qt.AlignmentFlag.AlignRight)
         self.bottomLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
+        # 设置底部状态布局
+        self.bottomStateLayout.setSpacing(10)
+        self.bottomStateLayout.setContentsMargins(24, 15, 24, 20)
+        self.bottomStateLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self.bottomStateLayout.addStretch(1)
+
 
         self.ramdumpGroup = self.addGroup("{}/images/Rocket.svg".format(resource_path), "Ramdump目录", "选择Ramdump的存放目录", self.chooseButton)
         self.vmlinuxGroup = self.addGroup("{}/images/jsdesign.svg".format(resource_path), "vmlinux文件", "选择vmlinux文件路径", self.vmlinuxButton)
         self.addGroup("{}/images/Joystick.svg".format(resource_path), "Platform", "选择基线平台", self.platformComboBox)
-        #self.addGroup("{}/images/Joystick.svg".format(resource_path), "运行终端", "设置是否显示命令行终端", self.comboBox)
+        self.addGroup("{}/images/Joystick.svg".format(resource_path), "运行终端", "设置是否显示命令行终端", self.comboBox)
         self.addGroup("{}/images/Python.svg".format(resource_path), "额外参数", "请输入额外的解析参数", self.lineEdit)
         self.vBoxLayout.addLayout(self.bottomLayout)
 
@@ -337,23 +377,29 @@ class SettinsCard(GroupHeaderCardWidget):
             parent=self.window()
         )
 
-    async def run_process(self, command, shell):
-        process = await asyncio.create_subprocess_shell(
-            command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        try:
-            while True:
-                line = await process.stdout.readline()
-                if not line:
-                    break
-                print(f"{line.decode().strip()}")
-        except Exception as e:
-            print(f"Error: {e}")
-        finally:
-            await process.wait()
-            print(f"Process return code: {process.returncode}")
+
+    def customSignalHandler(self, value):
+        # 接收到解析命令结束的信号
+        print(f"Custom signal handler: {value}")
+        if value == "SUCCESS":
+            self.stateTooltip.setContent('解析完成')
+            self.stateTooltip.setState(True)
+            self.runButton.setEnabled(True)
+            self.stateTooltip.show()
+        elif value == "ERROR":
+            self.stateTooltip.setContent('解析失败')
+            self.stateTooltip.setState(False)
+            self.runButton.setEnabled(True)
+            self.stateTooltip.show()
+        else:
+            print(value)
+
+
+    def start_task(self, command, shell):
+        print("Start task")
+        self.worker = Worker(command, shell=shell)
+        self.worker.signal.connect(self.customSignalHandler)
+        self.worker.start()
 
     def runButtonClicked(self):
         print("Run Button Clicked")
@@ -362,13 +408,13 @@ class SettinsCard(GroupHeaderCardWidget):
         print("Vmlinux file: ", self.vmlinuxfile)
         print("platform: ", self.platformComboBox.currentText())
         print("extend parameters: ", self.lineEdit.text())
-        #print("Display terminal: ", self.comboBox.currentText())
 
-        # if self.comboBox.currentText() == "始终显示":
-        #     print("Display terminal")
-        #     shell = True
-        # else:
-        #     shell = False
+        if self.comboBox.currentText() == "始终显示":
+            shell = True
+        else:
+            shell = False
+
+        print("Display terminal: ", shell)
 
         if self.dumpdir == "" or self.vmlinuxfile == "":
             self.showNoSelectFileFlyout()
@@ -379,17 +425,17 @@ class SettinsCard(GroupHeaderCardWidget):
             # 提示vmlinux文件名不为vmlinux
             self.showFileStyleErrorFlyout()
         else:
-            # self.stateTooltip = StateToolTip('正在解析', '客官请耐心等待哦~~', self)
-            # self.stateTooltip.move(700, 20)
-            # self.stateTooltip.show()
+            self.stateTooltip = StateToolTip('正在解析', '客官请耐心等待哦~~', self)
+            # 状态提示放到中心位置
+            self.bottomStateLayout.addWidget(self.stateTooltip, 0, Qt.AlignmentFlag.AlignRight)
+            self.vBoxLayout.addLayout(self.bottomStateLayout)
+            # 显示状态提示
+            self.stateTooltip.show()
 
             # runbuton按钮设置为不可点击
-            # self.runButton.setDisabled(True)
+            self.runButton.setDisabled(True)
 
-            time.sleep(3)
-
-            # TODO: 执行解析命令
-            #p = run_parse(dumpdir=self.dumpdir, vmlinuxfile=self.vmlinuxfile, platform=self.platformComboBox.currentText(), extendParams=self.lineEdit.text(), shell=shell)
+            print(f"Run parse with GNU tools path: {GNU_TOOLS_PATH}")
             ramdump_parse_tool_path = os.path.join(ROOTPATH, 'tools', 'linux-ramdump-parser-v2')
             gdb64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'gdb.exe')
             nm64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-nm.exe')
@@ -397,20 +443,10 @@ class SettinsCard(GroupHeaderCardWidget):
             output_path = os.path.join(self.dumpdir, 'parser_output')
 
             command = 'python {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(ramdump_parse_tool_path,
-                    self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, output_path, self.platformComboBox.currentText(), self.lineEdit.text())
-
-            print(f"Run parse with command: {command}")
-            
-            os.system("start cmd.exe /K {}".format(command))
-
-            #asyncio.run(self.run_process(command, shell))
-
-        print("Run Button Finished")
-        # self.stateTooltip.setContent('解析完成')
-        # self.stateTooltip.setState(True)
-        # self.runButton.setEnabled(True)
-        # self.stateTooltip.show()
-
+                        self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, output_path, self.platformComboBox.currentText(), self.lineEdit.text())
+        
+            self.start_task(command, shell)
+    
 
 class LightBox(QWidget):
     """ Light box """
@@ -513,7 +549,7 @@ class LinuxRamdumpParserCardsInfo(ScrollArea):
         self.appCard = AppInfoCard(parent=self)
         #self.galleryCard = GalleryCard(self)
         self.descriptionCard = DescriptionCard(self)
-        self.settingCard = SettinsCard(self)
+        self.settingCard = SettinsCard(self, parentvBoxLayout=self.vBoxLayout)
         #self.systemCard = SystemRequirementCard(self)
 
         self.lightBox = LightBox(self)
