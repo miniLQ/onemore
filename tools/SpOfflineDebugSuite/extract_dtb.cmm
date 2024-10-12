@@ -1,0 +1,262 @@
+; --------------------------------------------------------------------------------
+; @Title: Script to extract the device tree blob to a file
+; @Description:
+;   This is a standard Linux Awareness Script.
+;   This script extracts the device tree blob to a file
+;   Usage: DO extract_dtb <filename> [<address>] [/MACHINE <name>]
+;          DO extract_dtb /DIALOG
+;
+; @Keywords: Linux dtb dts blob devicetree
+; @Author: kjmal AME
+; @Copyright: (C) 1989-2021 Lauterbach GmbH, licensed for use with TRACE32(R) only
+; --------------------------------------------------------------------------------
+; $Id$
+
+PRIVATE &sParam1 &sParam2
+PRIVATE &sFilename &pAddress &nMachineId &sMachineName &bDialog
+ENTRY &sParam1 %LINE &sParam2
+
+; Check parameters
+GOSUB parseCmdline "&sParam1" "&sParam2"
+RETURNVALUES &sFilename &pAddress &nMachineId &sMachineName &bDialog
+
+IF STATE.RUN()
+  Break
+
+IF (&bDialog)
+(
+  GOSUB dtbDialog "&sFilename" "&nMachineId" "&sMachineName"
+)
+ELSE
+(
+  IF "&pAddress"==""
+  (
+    GOSUB getAddress "&nMachineId"
+    RETURNVALUES &pAddress
+  )
+  IF ADDRESS.OFFSET(&pAddress)==0xffffffff
+  (
+    PRINT "ERROR: Cannot detect start of device tree blob!"
+    ENDDO 1.
+  )
+
+  IF Data.Long(&pAddress)!=0xEDFE0DD0
+  (
+    PRINT "ERROR: cannot detect device tree blob at &pAddress"
+    ENDDO
+  )
+
+  PRIVATE &nSize
+  &nSize=Data.Long.BigEndian(&pAddress+0x4)-1.
+
+  Data.SAVE.Binary "&sFilename" &pAddress++&nSize
+)
+
+ENDDO 0.
+
+getAddress: ;(machineid)
+(
+  PRIVATE &sSymbolPath &pAddress
+  PARAMETERS &nMachineId
+  GOSUB getSymbolPath "" "" "initial_boot_params" "&nMachineId"
+  RETURNVALUES &sSymbolPath
+  IF !sYmbol.EXIST(&sSymbolPath)
+  (
+    &pAddress=A:0xffffffff
+  )
+  ELSE
+  (
+    &pAddress=Var.ADDRESS(&sSymbolPath)
+    &pAddress=&pAddress-ADDRESS.OFFSET(&pAddress)+Var.Value(&sSymbolPath)
+  )
+  RETURN "&pAddress"
+)
+
+; --------------------------------------------------------------------------------
+;            Dialog interface
+; --------------------------------------------------------------------------------
+
+dtbDialog: ;(filename, machineid, machine)
+(
+  PMACRO.LOCK
+  (
+    PRIVATE &sPpfDlg
+    PARAMETERS &sFilename &nMachineId &sMachineNameDlg
+    &sPpfDlg=OS.PPF()
+    DIALOG.view
+    (&+
+      HEADER "Extract Blob To File..."
+      POS 0. 0. 24. 5.
+      BOX "file name"
+      POS 1. 1. 22. 1.
+file: DEFHOTEDIT "./devicetree.dtb"
+      (&-
+        IF DIALOG.STRing(file)!=""
+          DIALOG.Enable bok
+        ELSE
+          DIALOG.Disable bok
+      )
+      POS 0. 2. 24. 0.
+      BOX "address"
+      POS 1. 3. 22. 1.
+addr: EDIT "" ""
+      POS 2. 5. 8.
+bok:  DEFBUTTON "Ok"
+      (
+        PRIVATE &sExtractDtbScript &sMachineName
+        &sExtractDtbScript="&sPpfDlg"
+        &sMachineName="&sMachineNameDlg"
+        (&-
+          PRIVATE &sFile &sAddr
+          &sAddr=DIALOG.STRing(addr)
+          &sFile=DIALOG.STRing(file)
+          IF ("&sMachineName"=="")
+            DO "&sExtractDtbScript" "&sFile" &sAddr
+          ELSE
+            DO "&sExtractDtbScript" "&sFile" &sAddr /MACHINE &sMachineName
+          DIALOG.END
+          ENDDO
+        )
+      )
+      POS 14. 5. 8.
+      BUTTON "Cancel"
+      (&-
+        DIALOG.END
+        ENDDO
+      )
+    )
+    PRIVATE &sAddress
+    IF ("&sFilename"!="")
+      DIALOG.Set file "&sFilename"
+    GOSUB getAddress "&nMachineId"
+    RETURNVALUES &sAddress
+    DIALOG.SET addr "&sAddress"
+  )
+  PMACRO.UNLOCK
+  RETURN
+)
+
+; --------------------------------------------------------------------------------
+;         Subroutine: parse script parameters
+; --------------------------------------------------------------------------------
+
+parseCmdline: ;(string, string)
+(
+  PRIVATE &sFilename &pAddress &sMachineName &nMachineId &bDialog
+  PRIVATE &sKey &i &sValue
+  PARAMETERS &sArgFile &sArgs
+  &sArgFile=STRing.Replace("&sArgFile","""","",0.)
+  &i=0.
+  &sMachineName=""
+  &nMachineId=""
+  &bDialog=FALSE()
+  &sArgs=STRing.TRIM("&sArgs")
+  RePeaT
+  (
+    &sArgs=STRing.Replace("&sArgs","  "," ",0.)
+  )
+  WHILE STRing.SCAN("&sArgs","  ",0.)!=-1.
+  RePeaT
+  (
+    IF (&i==0.)
+      &sKey="&sArgFile"
+    ELSE
+      &sKey=STRING.SPLIT("&sArgs"," ",&i-1.)
+
+    IF (&i==1.)&&("&sFilename"!="")&&STRing.ComPare("&sKey","*?:0x?*")
+    (
+      &pAddress=&sKey+0x0
+    )
+    ELSE IF (&i==1.)&&("&sFilename"!="")&&STRing.ComPare("&sKey","0x?*")
+    (
+      &pAddress=D:&sKey
+    )
+    ELSE IF STRing.LoWeR("&sKey")=="/machine"
+    (
+      &i=&i+1.
+      &sMachineName=STRing.SPLIT("&sArgs"," ",&i-1.)
+      IF ("&sMachineName"=="")
+      (
+        PRINT %ERROR "Syntax error: missing machine parameter"
+        ENDDO 1.
+      )
+      IF TASK.MACHINEID("&sMachineName")==0x1f
+      (
+        PRINT %ERROR "Syntax error: illegal machine parameter"
+        ENDDO 1.
+      )
+      &nMachineId=TASK.MACHINEID("&sMachineName")
+    )
+    ELSE IF STRing.LoWeR("&sKey")=="/dialog"
+    (
+      &bDialog=TRUE()
+    )
+    ELSE IF (&i==0.)&&("&sKey"!="")
+    (
+      &sFilename="&sKey"
+    )
+    ELSE IF ("&sKey"!="")||(&i==0.)
+    (
+      PRINT %ERROR "Syntax error: unknown key"
+      GOSUB printUsage
+      ENDDO 1.
+    )
+    &i=&i+1.
+  )
+  WHILE ("&sKey"!="")
+  RETURN "&sFilename" "&pAddress" "&nMachineId" "&sMachineName" "&bDialog"
+)
+
+; --------------------------------------------------------------------------------
+
+printUsage: ;()
+(
+  ; no parameter given -> print usage
+  PRINT "Usage: ""DO extract_dtb <filename> [<address>] [/MACHINE <name>]"""
+  PRINT "       ""DO extract_dtb /DIALOG"""
+  ENDDO
+)
+
+; --------------------------------------------------------------------------------
+
+getSymbolPath: ;(program, module, name, [machine])
+(
+  PRIVATE &sPath
+  PARAMETERS &sProgram &sModule &sName &nMachine
+  &sPath=""
+  IF "&nMachine"!=""
+  (
+    // module not yet supported...
+    IF "&sModule"!="*"
+      &sModule=""
+    SPRINTF &sPath "\\\%u\\%s" &nMachine "&sProgram"
+    IF STRing.CHAR("&sName",0.)==0x2e ; 'dot?'
+      SPRINTF &sPath "%s\%s" "&sPath" "&sName"
+    ELSE IF "&sName"!=""
+      SPRINTF &sPath "%s\%s\%s" "&sPath" "&sModule" "&sName"
+  )
+  ELSE
+  (
+    IF STRing.CHAR("&sName",0.)==0x2e ; 'dot?'
+    (
+      SPRINTF &sPath "\\%s\%s" "&sProgram" "&sName"
+    )
+    ELSE IF ("&sProgram"!="")&&("&sModule"=="")&&("&sName"=="")
+    (
+      SPRINTF &sPath "\\%s" "&sProgram"
+    )
+    ELSE IF ("&sProgram"=="")&&("&sModule"!="")&&("&sName"!="")
+    (
+      SPRINTF &sPath "\%s\%s" "&sModule" "&sName"
+    )
+    ELSE IF ("&sProgram"=="")&&("&sModule"=="")&&("&sName"!="")
+    (
+      SPRINTF &sPath "%s" "&sName"
+    )
+    ELSE
+    (
+      SPRINTF &sPath "\\%s\%s\%s" "&sProgram" "&sModule" "&sName"
+    )
+  )
+  RETURN "&sPath"
+)

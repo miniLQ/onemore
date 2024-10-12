@@ -26,6 +26,7 @@ from ..common.logging import logger
 from .qcom_subinterface.LinuxRamdumpParserinterface import LinuxRamdumpParserCardsInfo
 from .mtk_subinterface.AeeExtractorinterface import AeeExtractorCardsInfo
 from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorCardsInfo
+from .mtk_subinterface.NeKeAnalyze import NeKeAnalyzeCardsInfo
 
 class Widget(QFrame):
 
@@ -226,6 +227,9 @@ class MainWindow(MSFluentWindow):
         elif "Android Image Unpack" in objectName:
             logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName)))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName))
+        elif "NE/KE-Analyze" in objectName:
+            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName)))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName))
         else:
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
 
@@ -247,4 +251,3 @@ class MainWindow(MSFluentWindow):
         self.tabBar.removeTab(index)
         self.showInterface.removeWidget(self.showInterface.widget(index))
         self.showInterface.setCurrentIndex(0)
-        

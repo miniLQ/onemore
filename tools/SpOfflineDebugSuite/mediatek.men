@@ -1,0 +1,2705 @@
+if !str.compare(sys.cpu(),"RV32")
+(
+	add
+	menu
+	(
+		popup "&Mediatek"
+		(
+			default
+			popup "[:objects]Display &Schedule"
+			(
+				menuitem "[:objects]Dump Tasks"
+				(
+					dialog.view
+					(
+						header "Dump Tasks"
+						pos 1. 0. 22. 1.
+myMsg:					dyntext "save to running_tasks.log"
+						pos 1. 1. 20. 3.
+						box "state"
+						pos 3. 2. 15. 1.
+STATEMASK:				pulldown "running,disk sleep,all" "gosub changestate"
+						pos 2. 4. 7. 1.
+						defbutton "Ok" "gosub savetof"
+						pos 14. 4. 7. 1.
+						button "Cancel" "dialog.end"
+					)
+					end
+changestate:
+					&statemask=dialog.string(STATEMASK)
+					if "&statemask"=="running"
+						dialog.set myMsg "save to running_tasks.log"
+					else if "&statemask"=="disk sleep"
+						dialog.set myMsg "save to disk_sleep_tasks.log"
+					else
+						dialog.set myMsg "save to all_tasks.log"
+					return
+savetof:			local &magic &statemask &stateval
+					v.newlocal struct task_struct* \ttask
+					&statemask=dialog.string(STATEMASK)
+					if "&statemask"=="running"
+					(
+						&statemask=0xFFFFFFFF
+						&stateval=0
+						printer.open ~~~~/running_tasks.log
+					)
+					else if "&statemask"=="disk sleep"
+					(
+						&statemask=2
+						&stateval=2
+						printer.open ~~~~/disk_sleep_tasks.log
+					)
+					else
+					(
+						&statemask=0
+						&stateval=0
+						printer.open ~~~~/all_tasks.log
+					)
+					area.c myarea 60. 3.
+					area.clear myarea
+					&magic=task.proc.list(0)
+					while &magic!=0
+					(
+						&task=task.proc.tcb(&magic)
+						v.a \ttask=&task
+						v.if (((\ttask->state)&&statemask)==&stateval)
+						(
+							area.clear myarea
+							print ""
+							print "cpu=" %d v.value(((struct thread_info*)\ttask->stack)->cpu) " pid=" %d v.value(\ttask->pid) " tgid=" %d v.value(\ttask->tgid) " name=" task.proc.NAME(&magic)
+							wp.area.view myarea
+							wp.f /task &magic /nv
+						)
+						&magic=task.proc.list(&magic)
+					)
+					printer.close
+					area.close myarea
+					dialog.end
+					return
+				)
+				menuitem "[:objects]Display &Cur rq"
+				(
+					v.newlocal struct rq* \pRq
+					local &RqCpu &TskCpu &RunningNr &Val &SchedClk
+					private &OnlineMask &IsOnline
+					&RqCpu=core()
+					v.a \pRq=(uintptr_t)&runqueues+__per_cpu_offset[&RqCpu]
+					&RunningNr=v.value(\pRq->nr_running)
+					if &RqCpu==0
+						&RunningNr=&RunningNr+1
+					if v.exist(cpu_online_mask)
+						&OnlineMask=v.value(cpu_online_mask->bits[0])&(1<<&RqCpu)
+					if v.exist(__cpu_online_mask)
+						&OnlineMask=v.value(__cpu_online_mask.bits[0])&(1<<&RqCpu)
+					if &OnlineMask!=0
+						&IsOnline="Online"
+					else
+						&IsOnline="Offline"
+					area.c rqarea
+					area.clear rqarea
+					print "cpu" %d &RqCpu ": &IsOnline"
+					print "running=" %color.red %d &RunningNr
+					print %cont "(cfs=" %d v.value(\pRq->cfs.nr_running) " + rq=" %d v.value(\pRq->rt.rt_nr_running) " + dl=" %d v.value(\pRq->dl.dl_nr_running) ")"
+					if v.exist(\pRq->load.weight)
+						print "load=" %d v.value(\pRq->load.weight)
+					gosub NSEC_HIGH v.value(\pRq->clock)
+					&SchedClk=&Val
+					print "clock=" %color.red %d &SchedClk/1000.
+					print ""
+					gosub DISP_RQTASKS
+					area.view rqarea
+					end
+DISP_RQTASKS:
+					if &RunningNr==0
+						return
+					v.newlocal struct task_struct* \tsk
+					private &magic &task &Cnt &Prio &ExecTime
+					&Cnt=&RunningNr
+					print %color.maroon "  task_name         pid  prio  tree-key   switchs   wait-sum   wait-time   exec-time"
+					&magic=task.proc.list(0)
+					while &magic!=0
+					(
+						&task=task.proc.tcb(&magic)
+						v.a \tsk=&task
+						if v.exist(\tsk->cpu)
+							&TskCpu=v.value(\tsk->cpu)
+						else
+							&TskCpu=v.value(((struct thread_info*)\tsk->stack)->cpu)
+						v.if !\tsk->on_rq||&TskCpu!=&RqCpu
+							goto RQTSK_END
+						&ExecTime=0
+						v.if \pRq->curr==\tsk
+						(
+							print %color.red "R "
+							gosub NSEC_HIGH v.value(\tsk->sched_info.last_arrival)
+							if &Val!=0
+								&ExecTime=&SchedClk-&Val
+						)
+						else
+							print "  "
+						v.if \tsk->policy==1||\tsk->policy==2
+							&Prio=v.value(\tsk->rt_priority)
+						else
+							&Prio=v.value(\tsk->normal_prio)
+						print %cont format.str(v.str(\tsk->comm),15.,' ') " " format.d(5.,v.value(\tsk->pid)) " " format.d(5.,&Prio)
+						gosub NSEC_HIGH v.value(\tsk->se.vruntime)
+						print %cont " " format.d(9.,&Val) " " format.d(9.,v.value((long long)(\tsk->nvcsw+\tsk->nivcsw)))
+						gosub NSEC_HIGH v.value(\tsk->sched_info.run_delay)
+						print %cont " " format.d(9.,&Val/1000.) "s "
+						gosub NSEC_HIGH v.value(\tsk->sched_info.last_queued)
+						if &Val!=0
+							&Val=&SchedClk-&Val
+						print %cont %color.red format.d(9.,&Val) "ms " %color.black format.d(9.,&ExecTime) "ms"
+						&Cnt=&Cnt-1
+						if &Cnt==0
+							return
+RQTSK_END:				&magic=task.proc.list(&magic)
+					)
+					return
+NSEC_HIGH:
+					entry &Val
+					if &Val<0
+						&Val=-(-&Val/1000000.)
+					else
+						&Val=&Val/1000000.
+					return
+				)
+			)
+			popup "[:objects]Display &MemInfo"
+			(
+				menuitem "[:objects]Display MemInfo"
+				(
+					local &BufferNr &SwapCachedNr &ToBeUnusedNr &Val
+					private &i &Val2 &WMarkLow &Available &ActiveAnon &InactiveAnon &ActiveFile &InactiveFile &SlubRec &SlubUnRec
+					area.c meminfoarea 70. 30.
+					area.clear meminfoarea
+					gosub SWAP_CACHED_NR
+					gosub BLOCK_DEV_NR
+					&ToBeUnusedNr=0
+					if y.exist(nr_swapfiles)
+					(
+						&i=0
+						v.while &i<nr_swapfiles
+						(
+							v.if (swap_info[&i]->flags&3)==1
+								&ToBeUnusedNr=&ToBeUnusedNr+v.value(swap_info[&i]->inuse_pages)
+							&i=&i+1
+						)
+					)
+					&WMarkLow=0
+					&i=0
+					v.while &i<contig_page_data.nr_zones
+					(
+						if !y.isvariable(totalram_pages)
+						    &WMarkLow=&WMarkLow+v.value(contig_page_data.node_zones[&i]._watermark[1])
+						else
+						    &WMarkLow=&WMarkLow+v.value(contig_page_data.node_zones[&i].watermark[1])
+						&i=&i+1
+					)
+					gosub GLOBAL_PAGE_STATE NR_FREE_PAGES
+					if y.exist(vm_zone_stat)
+						&Available=&Val-v.value(totalreserve_pages)
+					else
+						&Available=&Val-&WMarkLow
+					gosub GLOBAL_PAGE_STATE NR_ACTIVE_FILE
+					&Val2=&Val
+					gosub GLOBAL_PAGE_STATE NR_INACTIVE_FILE
+					&Val=&Val2+&Val
+					&Val2=&Val/2.
+					if &Val2>&WMarkLow
+						&Available=&Available+&Val-&WMarkLow
+					else
+						&Available=&Available+&Val-&Val2
+                                       if !y.isvariable(totalram_pages)
+					    gosub GLOBAL_PAGE_STATE NR_SLAB_UNRECLAIMABLE_B
+					else
+					    gosub GLOBAL_PAGE_STATE NR_SLAB_UNRECLAIMABLE
+					&SlubUnRec=&Val
+					if !y.isvariable(totalram_pages)
+					    gosub GLOBAL_PAGE_STATE NR_SLAB_RECLAIMABLE_B
+					else
+					    gosub GLOBAL_PAGE_STATE NR_SLAB_RECLAIMABLE
+					&SlubRec=&Val
+					&Val2=&SlubRec/2.
+					if &Val2>&WMarkLow
+						&Available=&Available+&SlubRec-&WMarkLow
+					else
+						&Available=&Available+&SlubRec-&Val2
+					if &Available<0.
+						&Available=0
+					if !y.isvariable(totalram_pages)
+					    print "MemTotal:       " %color.red format.d(7.,v.value((&_totalram_pages)->counter)*4.) "KB"
+					else
+					    print "MemTotal:       " %color.red format.d(7.,v.value(totalram_pages)*4.) "KB"
+					gosub GLOBAL_PAGE_STATE NR_FREE_PAGES
+					print "MemFree:        " %color.red format.d(7.,&Val*4.) "KB"
+					print "MemAvailable:   " %color.red format.d(7.,&Available*4.) "KB"
+					print "Buffers:        " %color.red format.d(7.,&BufferNr*4.) "KB"
+					gosub GLOBAL_PAGE_STATE NR_FILE_PAGES
+					&Val=&Val-&SwapCachedNr-&BufferNr
+					if &Val<0.
+						&Val=0
+					print "Cached:         " %color.red format.d(7.,&Val*4.) "KB"
+					print "SwapCached:     " %color.red format.d(7.,&SwapCachedNr*4.) "KB"
+					gosub GLOBAL_PAGE_STATE NR_ACTIVE_ANON
+					&ActiveAnon=&Val
+					gosub GLOBAL_PAGE_STATE NR_INACTIVE_ANON
+					&InactiveAnon=&Val
+					gosub GLOBAL_PAGE_STATE NR_ACTIVE_FILE
+					&ActiveFile=&Val
+					gosub GLOBAL_PAGE_STATE NR_INACTIVE_FILE
+					&InactiveFile=&Val
+					print "Active:         " %color.red format.d(7.,(&ActiveAnon+&ActiveFile)*4.) "KB"
+					print "Inactive:       " %color.red format.d(7.,(&InactiveAnon+&InactiveFile)*4.) "KB"
+					print "Active(anon):   " %color.red format.d(7.,&ActiveAnon*4.) "KB"
+					print "Inactive(anon): " %color.red format.d(7.,&InactiveAnon*4.) "KB"
+					print "Active(file):   " %color.red format.d(7.,&ActiveFile*4.) "KB"
+					print "Inactive(file): " %color.red format.d(7.,&InactiveFile*4.) "KB"
+					gosub GLOBAL_PAGE_STATE NR_UNEVICTABLE
+					print "Unevictable:    " %color.red format.d(7.,&Val*4.) "KB"
+					gosub GLOBAL_PAGE_STATE NR_MLOCK
+					print "Mlocked:        " %color.red format.d(7.,&Val*4.) "KB"
+					if y.exist(total_swap_pages)
+					(
+						print "SwapTotal:      " %color.red format.d(7.,(v.value(total_swap_pages)+&ToBeUnusedNr)*4.) "KB"
+						print "SwapFree:       " %color.red format.d(7.,(v.value(nr_swap_pages.counter)+&ToBeUnusedNr)*4.) "KB"
+					)
+					else
+					(
+						print "SwapTotal:      " %color.red format.d(7.,0) "KB"
+						print "SwapFree:       " %color.red format.d(7.,0) "KB"
+					)
+					gosub GLOBAL_PAGE_STATE NR_FILE_DIRTY
+					print "Dirty:          " %color.red format.d(7.,&Val*4.) "KB"
+					gosub GLOBAL_PAGE_STATE NR_WRITEBACK
+					print "Writeback:      " %color.red format.d(7.,&Val*4.) "KB"
+					if y.exist(vm_stat)
+					(
+						gosub GLOBAL_PAGE_STATE NR_ANON_PAGES
+						print "AnonPages:      " %color.red format.d(7.,&Val*4.) "KB"
+					)
+					gosub GLOBAL_PAGE_STATE NR_FILE_MAPPED
+					print "Mapped:         " %color.red format.d(7.,&Val*4.) "KB"
+					gosub GLOBAL_PAGE_STATE NR_SHMEM
+					print "Shmem:          " %color.red format.d(7.,&Val*4.) "KB"
+					print "Slub:           " %color.red format.d(7.,(&SlubRec+&SlubUnRec)*4.) "KB"
+					print "SReclaimable:   " %color.red format.d(7.,&SlubRec*4.) "KB"
+					print "SUnreclaim:     " %color.red format.d(7.,&SlubUnRec*4.) "KB"
+					gosub GLOBAL_PAGE_STATE NR_KERNEL_STACK_KB
+					print "KernelStack:    " %color.red format.d(7.,&Val) "KB" %color.black ", " %d (&Val/16) " threads"
+					gosub GLOBAL_PAGE_STATE NR_PAGETABLE
+					print "PageTables:     " %color.red format.d(7.,&Val*4.) "KB"
+					if y.isvariable(totalram_pages)				
+					(
+					    gosub GLOBAL_PAGE_STATE NR_UNSTABLE_NFS
+					    print "NFS_Unstable:   " %color.red format.d(7.,&Val*4) "KB"
+					)
+					gosub GLOBAL_PAGE_STATE NR_BOUNCE
+					print "Bounce:         " %color.red format.d(7.,&Val*4) "KB"
+					gosub GLOBAL_PAGE_STATE NR_WRITEBACK_TEMP
+					print "WritebackTmp:   " %color.red format.d(7.,&Val*4) "KB"
+					print "CmaTotal:       " %color.red format.d(7.,v.value(totalcma_pages)*4.) "KB"
+					area.view meminfoarea
+					end
+BLOCK_DEV_NR:
+					v.newlocal struct inode* \inode
+					v.newlocal struct block_device* \bdev
+					v.newlocal struct list_head* \pList
+					&BufferNr=0
+					private &off
+					if !y.isvariable(totalram_pages)
+					(
+					    &off=v.value(&((struct inode*)0)->i_sb_list)
+					    v.a \pList=&blockdev_superblock->s_inodes
+					    v.a \pList=\pList->next
+					    v.while \pList!=&blockdev_superblock->s_inodes
+					    (
+						     v.a \inode=(uintptr_t)\pList-&off
+						     &BufferNr=&BufferNr+v.value(\inode->i_mapping->nrpages)
+						     v.a \pList=\pList->next
+					    )	
+					)
+					else
+					(
+					    &off=v.value(&((struct block_device*)0)->bd_list)
+					    v.a \pList=all_bdevs.next
+					    v.while \pList!=&all_bdevs
+					    (
+						    v.a \bdev=(uintptr_t)\pList-&off
+						    &BufferNr=&BufferNr+v.value(\bdev->bd_inode->i_mapping->nrpages)
+						    v.a \pList=\pList->next
+						)
+					)
+					return
+SWAP_CACHED_NR:
+					private &i
+					&SwapCachedNr=0
+					if !y.exist(swapper_spaces)
+						return
+					&i=0
+					rpt v.sizeof(swapper_spaces)/v.sizeof(swapper_spaces[0])
+					(
+						if v.sizeof(swapper_spaces[0])==v.sizeof(void*)
+							&SwapCachedNr=&SwapCachedNr+v.value(swapper_spaces[&i]->nrpages)
+						else
+							&SwapCachedNr=&SwapCachedNr+v.value(swapper_spaces[&i].nrpages)
+						&i=&i+1
+					)
+					return
+GLOBAL_PAGE_STATE:
+					entry &idx
+					private &str
+					v.newlocal enum zone_stat_item \item
+					if y.exist(vm_stat)
+					(
+						v.a \item=&idx
+						&Val=v.value(vm_stat[\item].counter)
+						goto OUT
+					)
+					v.a \item=0.
+					v.while \item<100.
+					(
+						&str="v.str(\item)"
+						if str.char(&str,0)=='0'
+							goto NEXT
+						if str.scan(&str, "&idx", 0)>=0.
+						(
+							v.a \item=&idx
+							&Val=v.value(vm_zone_stat[\item].counter)
+							goto OUT
+						)
+						v.a \item=\item+1.
+					)
+NEXT:				v.newlocal enum node_stat_item \item2
+					v.a \item2=&idx
+					&Val=v.value(vm_node_stat[\item2].counter)
+OUT:				if &Val<0.
+						&Val=0
+					return
+				)
+				menuitem "[:objects]Display &Zone"
+				(
+					v.newlocal struct zone* \zone
+					if y.isvariable(totalram_pages)
+					    v.newlocal struct per_cpu_pageset* \pageset
+					else
+					    v.newlocal struct per_cpu_pages* \pageset
+					private &statcnt &i &j
+					&statcnt=v.sizeof(\zone->vm_stat)/v.sizeof(\zone->vm_stat[0])
+					area.c zonearea 70. (v.value(nr_cpu_ids)+&statcnt+13.)*v.value(contig_page_data.nr_zones)
+					area.clear zonearea
+					&j=0
+					v.while &j<contig_page_data.nr_zones
+					(
+						v.a \zone=&contig_page_data.node_zones[&j]
+						v.if !\zone->present_pages
+							goto ZNI_NEXT
+						print "zone " %color.maroon d.str(D:v.value(\zone->name))
+						print "  free    " %color.red %d v.value(\zone->vm_stat[0].counter)*4 "KB"
+						if y.isvariable(totalram_pages)
+						(
+						    print "  min     " %color.red %d v.value(\zone->watermark[0])*4 "KB"
+						    print "  low     " %color.red %d v.value(\zone->watermark[1])*4 "KB"
+						    print "  high    " %color.red %d v.value(\zone->watermark[2])*4 "KB"
+						)
+						else
+						(
+						    print "  min     " %color.red %d v.value(\zone->_watermark[0])*4 "KB"
+						    print "  low     " %color.red %d v.value(\zone->_watermark[1])*4 "KB"
+						    print "  high    " %color.red %d v.value(\zone->_watermark[2])*4 "KB"
+						)
+						print "  spanned " %color.red %d v.value(\zone->spanned_pages)/256. "MB"
+						print "  present " %color.red %d v.value(\zone->present_pages)/256. "MB"
+						if y.isvariable(totalram_pages)
+						    print "  managed " %color.red %d v.value(\zone->managed_pages)/256. "MB"
+						else
+						    print "  managed " %color.red %d v.value((&(\zone->managed_pages))->counter)/256. "MB"
+						&i=0
+						rpt &statcnt
+						(
+							v.if \zone->vm_stat[&i].counter>0
+								print "  " format.str(d.str(D:v.value(vmstat_text[&i])),12,' ') " " %color.red %d v.value(\zone->vm_stat[&i].counter)*4 "KB"
+							&i=&i+1
+						)
+						print "  protection       "
+						&i=0
+						rpt v.sizeof(\zone->lowmem_reserve)/v.sizeof(\zone->lowmem_reserve[0])
+						(
+							print %cont ", " %color.red %d v.value(\zone->lowmem_reserve[&i])
+							&i=&i+1
+						)
+						print "  pageset"
+						&i=0
+						v.while &i<nr_cpu_ids
+						(
+							if y.isvariable(totalram_pages)
+							(
+							    v.a \pageset=__per_cpu_offset[&i]+((uintptr_t)\zone->pageset)
+							    print "    cpu: " &i " count: " format.d(3.,v.value(\pageset->pcp.count)) " high: " format.d(3.,v.value(\pageset->pcp.high))
+							    print %cont " batch: " format.d(3.,v.value(\pageset->pcp.batch)) " vm state threshold: " %d v.value(\pageset->stat_threshold)
+							)
+							else
+							(
+							    v.a \pageset=__per_cpu_offset[&i]+((uintptr_t)\zone->per_cpu_pageset)
+							    print "    cpu: " &i " count: " format.d(3.,v.value(\pageset->count)) " high: " format.d(3.,v.value(\pageset->high))
+							    print %cont " batch: " format.d(3.,v.value(\pageset->batch))
+							)
+							&i=&i+1
+						)
+						print "  start_pfn      " %color.red "0x" v.value(\zone->zone_start_pfn*4096.)
+						print ""
+ZNI_NEXT:				&j=&j+1
+					)
+					area.view zonearea
+				)
+				menuitem "[:objects]Display &Buddy"
+				(
+					v.newlocal struct zone* \zone
+					private &ordercnt &i &j
+					&ordercnt=v.sizeof(\zone->free_area)/v.sizeof(\zone->free_area[0])
+					area.c buddyarea 87. v.value(contig_page_data.nr_zones)+1
+					area.clear buddyarea
+					print "zone name"
+					&i=0
+					&j=4
+					rpt &ordercnt
+					(
+						print %cont " " %color.maroon format.d(4, &j) "KB"
+						&j=&j*2
+						&i=&i+1
+					)
+					&j=0
+					v.while &j<contig_page_data.nr_zones
+					(
+						v.a \zone=&contig_page_data.node_zones[&j]
+						v.if \zone->present_pages==0
+							goto BDI_NEXT
+						print format.str(d.str(D:v.value(\zone->name)), 9, ' ')
+						&i=0
+						rpt &ordercnt
+						(
+							print %cont " " format.d(6, v.value(\zone->free_area[&i].nr_free))
+							&i=&i+1
+						)
+BDI_NEXT:				&j=&j+1
+					)
+					area.view buddyarea
+				)
+				menuitem "[:objects]Display &dma_buff_iova"
+				(					
+					private &off1 &off2 &count
+					v.newlocal struct dma_buf* \db
+					v.newlocal struct dma_buf_attachment* \db_a
+					v.newlocal struct list_head* \db_list_head
+					v.newlocal struct list_head* \db_a_list_head
+					private &iova &length
+					v.newlocal char* \name
+					
+					open #1 ~~~~/iova.log /c
+					&off1=v.value(&((struct dma_buf*)0)->list_node)
+					&off2=v.value(&((struct dma_buf_attachment*)0)->node)
+					
+					v.a \db_list_head=db_list.head.next
+					v.while \db_list_head!=&db_list.head
+					(
+					    v.a \db=(uintptr_t)\db_list_head-&off1
+					    v.a \db_a_list_head=\db->attachments.next	
+					    &count=0				    
+					    v.while \db_a_list_head!=&\db->attachments
+					    (
+					        v.a \db_a=(uintptr_t)\db_a_list_head-&off2
+					        &iova=0
+					        v.if \db_a->sgt
+					        (
+					            &iova=v.value(\db_a->sgt->sgl->dma_address)
+					            &length=v.value(\db_a->sgt->sgl->dma_length)				            
+					        )
+					        v.if \db_a->dev->init_name 
+					        (
+					            v.a \name=\db_a->dev->init_name
+					        )
+					        else
+					        (
+					            v.a \name=\db_a->dev->kobj.name
+					        )
+					        write #1 "dma_buffer:0x" v.value(\db) "    attch" &count "    iova:0x" &iova "--0x" (&iova+&length) "    dev:"  d.str(D:v.value(\name))
+					        &count=&count+1
+					        v.a \db_a_list_head=\db_a_list_head->next
+					    
+					    )
+					    v.a \db_list_head=\db_list_head->next
+					)
+					close #1
+			
+				)
+				menuitem "[:objects]Display &PageBt Rank"
+				(
+					private &list_off &list_cnt &i &j &k &TopCnt &RTopCnt &TotPages
+					if !y.exist(gBtTable)
+					(
+						dialog.ok "Don't support page owner currently"
+						end
+					)
+					&TopCnt=10
+					v.newlocal struct BtEntry*[&TopCnt] \pTops
+					v.newlocal struct BtEntry* \pBtEntry
+					v.newlocal struct list_head* \pList
+					v.newlocal struct list_head* \pListHead
+					&list_cnt=v.value(sizeof(gBtTable.list)/sizeof(gBtTable.list[0]))
+					&list_off=v.value(&((struct BtEntry*)0)->list)
+					&RTopCnt=1
+					&TotPages=0
+					&i=0
+					while &i<&list_cnt
+					(
+						v.a \pListHead=&gBtTable.list[&i]
+						v.a \pList=\pListHead->next
+						v.while \pList!=\pListHead
+						(
+							v.a \pBtEntry=(uintptr_t)\pList-&list_off
+							&TotPages=&TotPages+v.value(\pBtEntry->allocations)
+							&j=0
+							rpt &RTopCnt
+							(
+								v.if !\pTops[&j]||\pBtEntry->allocations>\pTops[&j]->allocations
+								(
+									&k=&RTopCnt-1
+									while &k>&j
+									(
+										v.a \pTops[&k]=\pTops[&k-1]
+										&k=&k-1
+									)
+									v.a \pTops[&j]=\pBtEntry
+									if &RTopCnt<&TopCnt
+										&RTopCnt=&RTopCnt+1
+									goto PAGE_SEND
+								)
+								&j=&j+1
+							)
+PAGE_SEND:					v.a \pList=\pList->next
+						)
+						&i=&i+1
+					)
+					&k=1
+					&i=0
+					while &i<&RTopCnt
+					(
+						&k=&k+2+v.value(\pTops[&i]->nr_entries)
+						&i=&i+1
+					)
+					area.c pageoarea 80. &k
+					area.clear pageoarea
+					print "total " %color.red %d &TotPages/256. "MB"
+					&i=0
+					while &i<&RTopCnt
+					(
+						print %color.red %d v.value(\pTops[&i]->allocations*4) "KB " v.value(\pTops[&i]->allocations*100)/&TotPages "%"
+						&j=0
+						v.while &j<\pTops[&i]->nr_entries
+						(
+							print v.value(\pTops[&i]->backtrace[&j]) " " y.function(D:v.value(\pTops[&i]->backtrace[&j]))
+							&j=&j+1
+						)
+						&i=&i+1
+						print ""
+					)
+					area.view pageoarea
+				)
+				menuitem "[:objects]Display &MTK_Gpu"
+				(
+					v.newlocal int \sum
+					v.newlocal int \pid
+					v.newlocal int \gpu
+					v.newlocal int \maxGpupid
+					v.newlocal int \maxGpu
+					private &statcnt &i &tmp &j
+					area.c gpuarea 100. 100.
+					area.clear gpuarea
+					&statcnt=v.sizeof(g_mtk_gpu_meminfo)/v.sizeof(g_mtk_gpu_meminfo[0])
+					&i=0
+					v.a \maxGpu=0
+					v.if &statcnt>150
+						goto End
+					v.while &i<&statcnt
+					(
+						v.a \sum=\sum+g_mtk_gpu_meminfo[&i].used_pages
+						v.a \gpu=g_mtk_gpu_meminfo[&i].used_pages
+						v.a \pid=g_mtk_gpu_meminfo[&i].pid
+						v.if !\gpu
+							goto GpuEnd
+						print "process pid: " %color.red  format.d(8.,v.value(\pid))  %color.blue "       gpu memory: " %color.red format.d(8.,v.value(\gpu)*4) "KB"
+						v.if \maxGpu<g_mtk_gpu_meminfo[&i].used_pages
+						(
+							v.a \maxGpu=g_mtk_gpu_meminfo[&i].used_pages
+							v.a \maxGpupid=g_mtk_gpu_meminfo[&i].pid
+						)
+						&i=&i+1
+					)
+GpuEnd:				print "MaxGpu process pid:" %color.red  format.d(8., v.value(\maxGpupid))  %color.blue  "        gpu memory: " %color.red format.d(8.,v.value(\maxGpu)*4) "KB"
+					print "g_mtk_gpu_meminfo : " %color.red %d v.value(\sum)*4 "KB"
+					area.view gpuarea
+				)
+				menuitem "[:objects]Display &DmaBuf"
+				(
+					task.y.loadmod "system_heap"
+					task.y.loadmod "mtk_sec_heap"
+					local &dmabuf_sz &poolSz
+					v.newlocal struct list_head* \pList
+					v.newlocal struct dma_buf* \buf
+					v.newlocal struct dma_heap* \heap
+					v.newlocal struct system_heap_buffer* \sh_buf
+					v.newlocal struct mtk_sec_heap_buffer* \msh_buf
+					private &off &TotdmabufSz &TotHeapSz
+
+					area.c bufarea 200. 200.
+					area.clear bufarea
+					
+					print %color.blue format.str("dmabuf addr",18.,' ') " " format.str("size",8.,' ') " " format.str("exp_name",24.,' ') " name"
+					&&TotdmabufSz=0
+					&off=v.value(&((struct dma_buf*)0)->list_node)
+					v.a \pList=db_list.head.next
+					v.while \pList!=&db_list.head
+					(
+						v.a \buf=(uintptr_t)\pList-&off
+						print "0x" format.hex(16.,v.value(\buf)) " " format.d(6.,v.value(\buf->size)/1024.) "KB " format.str(d.str(D:v.value(\buf->exp_name)),24.,' ') " " format.str(d.str(D:v.value(\buf->name)),36.,' ')
+						v.if (\buf->ops==&mtk_mm_heap_buf_ops||\buf->ops==&system_heap_buf_ops)
+						(
+							v.a \sh_buf=\buf->priv
+							print %cont ", uncached: " v.value(\sh_buf->uncached) ", pid: " format.d(5.,v.value(\sh_buf->pid)) "/" format.str(d.str(D:v.value(\sh_buf->pid_name)),16.,' ')
+							print %cont ", tid: " format.d(5.,v.value(\sh_buf->tid)) "/" format.str(d.str(D:v.value(\sh_buf->tid_name)),16.,' ') ", ts: " format.d(5.,v.value(\sh_buf->ts)/1000000) "s"
+						)
+						else v.if (\buf->ops==&sec_buf_page_ops||\buf->ops==&sec_buf_region_ops)
+						(
+							v.a \msh_buf=\buf->priv
+							print %cont ", uncached: " v.value(\msh_buf->uncached) ", pid: " format.d(5.,v.value(\msh_buf->pid)) "/" format.str(d.str(D:v.value(\msh_buf->pid_name)),16.,' ')
+							print %cont ", tid: " format.d(5.,v.value(\msh_buf->tid)) "/" format.str(d.str(D:v.value(\msh_buf->tid_name)),16.,' ') ", ts: " format.d(5.,v.value(\msh_buf->ts)/1000000) "s"
+						)
+						&TotdmabufSz=&TotdmabufSz+v.value(\buf->size)
+						v.a \pList=\pList->next
+					)
+					print %color.red "buffer total: " &TotdmabufSz/1024. "KB, normal dma_heap buffer total:" v.value(dma_heap_normal_total.counter)/1024. "KB"
+					print ""
+					
+					print %color.blue format.str("heap addr",18.,' ') " " format.str("size",8.,' ') " " format.str("pool_sz",8.,' ') " name"
+					&TotHeapSz=0
+					&off=v.value(&((struct dma_heap*)0)->list)
+					v.a \pList=heap_list.next
+					v.while \pList!=&heap_list
+					(
+						v.a \heap=(uintptr_t)\pList-&off
+						gosub DMA_HEAP_BUFFER_TOTAL v.value(\heap)
+						print "0x" format.hex(16.,v.value(\heap)) " " format.d(6.,&dmabuf_sz/1024.) "KB"
+						v.if \heap->ops&&\heap->ops->get_pool_size==&system_get_pool_size
+						(
+							gosub SYSTEM_GET_POOL_SIZE
+							print %cont " " format.d(6.,&poolSz/1024.) "KB"
+						)
+						else
+						(
+							print %cont " " format.d(6.,0) "KB"
+						)
+						print %cont " " d.str(D:v.value(\heap->name))
+						&TotHeapSz=&TotHeapSz+&dmabuf_sz
+						v.a \pList=\pList->next
+					)
+					print %color.red "non-dma_heap buffer total: " (&TotdmabufSz-&TotHeapSz)/1024. "KB"
+					area.view bufarea
+					end
+SYSTEM_GET_POOL_SIZE:
+					private &cnt &cnt2 &i &j
+					
+					&poolSz=0
+					&cnt=v.sizeof(pools)/v.sizeof(pools[0])
+					&cnt2=v.sizeof(pools[0]->count)/v.sizeof(pools[0]->count[0])
+					&i=0
+					rpt &cnt
+					(
+						&j=0
+						rpt &cnt2
+						(
+							&poolSz = &poolSz+v.value(pools[&i]->count[&j]<<pools[&i]->order)
+							&j=&j+1
+						)
+						&i=&i+1
+					)
+					return
+DMA_HEAP_BUFFER_TOTAL:
+					entry &heap
+					v.newlocal struct list_head* \tlist
+					private &off &heap_addr
+
+					&heap_addr=&heap
+					&dmabuf_sz=0
+					&off=v.value(&((struct dma_buf*)0)->list_node)
+					v.a \tlist=db_list.head.next
+					v.while \tlist!=&db_list.head
+					(
+						v.a \buf=(uintptr_t)\tlist-&off
+						v.if (\buf->ops==&mtk_mm_heap_buf_ops||\buf->ops==&system_heap_buf_ops||\buf->ops==&sec_buf_page_ops||\buf->ops==&sec_buf_region_ops)
+						(
+							v.a \sh_buf=\buf->priv
+							v.if \sh_buf->heap==&heap_addr
+							(
+								&dmabuf_sz=&dmabuf_sz+v.value(\buf->size)
+							)
+						)
+						v.a \tlist=\tlist->next
+					)
+					return
+				)
+				menuitem "[:objects]Display &IonHeap"
+				(
+					private &node_off &node2_off &node3_off &Name &DbgName &TotSz &TotOrphanedSz &LineCnt
+					local &IonSize
+					v.newlocal struct rb_node* \rbn
+					v.newlocal struct rb_node* \rbn_bk
+					v.newlocal struct ion_client* \ionc
+					v.newlocal struct ion_handle* \ionh
+					v.newlocal struct ion_buffer* \ionb
+					v.newlocal struct ion_mm_buffer_info* \bug_info
+					&node_off=v.value(&((struct ion_client*)0)->node)
+					&node2_off=v.value(&((struct ion_buffer*)0)->node)
+					&node3_off=v.value(&((struct ion_handle*)0)->node)
+					open #1 ~~~~/ion.log /c
+					v.a \rbn=g_ion_device->clients.rb_node
+					gosub RB_FIRST
+					v.while \rbn
+					(
+						v.a \ionc=(uintptr_t)\rbn-&node_off
+						v.if \ionc->task
+						(
+							&Name=v.str(\ionc->task->comm)
+							v.if \ionc->dbg_name[0]
+								&DbgName=v.str(\ionc->dbg_name)
+							else
+								&DbgName=d.str(D:v.value(\ionc->name))
+						)
+						else
+						(
+							&Name=d.str(D:v.value(\ionc->name))
+							&DbgName="          from_kernel          "
+						)
+						write #1 "client(0x" v.value(\ionc) ") " format.str("&Name",15.,' ') " (" format.str("&DbgName",31.,' ') ") pid(" format.d(5.,v.value(\ionc->pid)) ") ================>"
+						v.a \rbn_bk=\rbn
+						v.a \rbn=\ionc->handles.rb_node
+						gosub RB_FIRST
+						v.while \rbn
+						(
+							v.a \ionh=(uintptr_t)\rbn-&node3_off
+							v.a \ionb=\ionh->buffer
+							v.a \bug_info=\ionb->priv_virt
+							write #1 "	handle=0x" v.value(\ionh) " buffer=0x" v.value(\ionb) " buffer_sz=" format.d(6.,v.value(\ionb->size)/1024.) "KB, buffer_pid=" format.d(5.,v.value(\ionb->pid))
+							write #1 %cont ", dbg_name=" format.str(v.str(\bug_info->dbg_info.dbg_name),31.,' ') ", task_comm=" format.str(v.str(\ionb->task_comm),15.,' ') ", heap_id=" format.d(2.,v.value(\ionb->heap->id)) ", fd=" format.d(4.,v.value(\ionh->dbg.fd)) ", ts:" format.d(10.,v.value(\ionh->dbg.user_ts)) "ms"
+							gosub RB_NEXT
+						)
+						v.a \rbn=\rbn_bk
+						gosub RB_NEXT
+					)
+					close #1
+					&LineCnt=7.
+					v.a \rbn=g_ion_device->clients.rb_node
+					gosub RB_FIRST
+					v.while \rbn
+					(
+						v.a \ionc=(uintptr_t)\rbn-&node_off
+						&IonSize=0
+						gosub ION_DBGMM_HEAP_TOTAL
+						if &IonSize!=0
+							&LineCnt=&LineCnt+1
+						gosub RB_NEXT
+					)
+					v.a \rbn=g_ion_device->buffers.rb_node
+					gosub RB_FIRST
+					v.while \rbn
+					(
+						v.a \ionb=(uintptr_t)\rbn-&node2_off
+						v.if !\ionb->handle_count&&\ionb->heap->id==10.
+							&LineCnt=&LineCnt+1
+						gosub RB_NEXT
+					)
+					area.c ionarea 50. &LineCnt
+					area.clear ionarea
+					print %color.maroon "     client            dbg_name    pid       size"
+					v.a \rbn=g_ion_device->clients.rb_node
+					gosub RB_FIRST
+					v.while \rbn
+					(
+						v.a \ionc=(uintptr_t)\rbn-&node_off
+						&IonSize=0
+						gosub ION_DBGMM_HEAP_TOTAL
+						if &IonSize==0
+							goto ION_NEXT
+						&Name=d.str(D:v.value(\ionc->name))
+						&DbgName="from_kernel"
+						v.if \ionc->task
+						(
+							&Name=v.str(\ionc->task->comm)
+							&DbgName=v.str(\ionc->dbg_name)
+						)
+						print format.str("&Name",-16.,' ') " " format.str("&DbgName",-16.,' ') " " format.d(5.,v.value(\ionc->pid)) " " %color.red format.d(7.,&IonSize/1024.) "KB"
+ION_NEXT:				gosub RB_NEXT
+					)
+					print "-"<<40.
+					print "orphaned allocations(info is from last known client):"
+					if v.exist(\ionb->kmap_cnt)
+						print %color.maroon "       name      kmap_cnt refcount pid       size"
+					else
+						print %color.maroon "       name      refcount pid       size"
+					&TotOrphanedSz=0
+					&TotSz=0
+					v.a \rbn=g_ion_device->buffers.rb_node
+					gosub RB_FIRST
+					v.while \rbn
+					(
+						v.a \ionb=(uintptr_t)\rbn-&node2_off
+						v.if \ionb->heap->id!=10.
+							goto ION_NEXT2
+						&TotSz=&TotSz+v.value(\ionb->size)
+						v.if !\ionb->handle_count
+						(
+							if v.exist(\ionb->kmap_cnt)
+								print format.str(v.str(\ionb->task_comm),-16.,' ') " " format.d(8.,v.value(\ionb->kmap_cnt)) " " format.d(7.,v.value(*(unsigned*)&\ionb->ref.refcount))
+							else
+								print format.str(v.str(\ionb->task_comm),-16.,' ') " " format.d(7.,v.value(*(unsigned*)&\ionb->ref.refcount))
+							print %cont " " format.d(5.,v.value(\ionb->pid)) " " %color.red format.d(7.,v.value(\ionb->size)/1024.) "KB"
+							&TotOrphanedSz=&TotOrphanedSz+v.value(\ionb->size)
+						)
+ION_NEXT2:				gosub RB_NEXT
+					)
+					print "-"<<40.
+					print "total orphaned" " "<<25. %color.red format.d(7.,&TotOrphanedSz/1024.) "KB"
+					print "total" " "<<34. %color.red format.d(7.,&TotSz/1024.) "KB"
+					area.view ionarea
+					end
+ION_DBGMM_HEAP_TOTAL:
+					private &node_off
+					v.newlocal struct rb_node* \rbn
+					v.newlocal struct ion_handle* \ionh
+					&node_off=v.value(&((struct ion_handle*)0)->node)
+					v.a \rbn=\ionc->handles.rb_node
+					gosub RB_FIRST
+					v.while \rbn
+					(
+						v.a \ionh=(uintptr_t)\rbn-&node_off
+						v.if \ionh->buffer->heap->id==10.
+							&IonSize=&IonSize+v.value(\ionh->buffer->size)
+						gosub RB_NEXT
+					)
+					return
+RB_FIRST:
+					v.if !\rbn
+						return
+					v.while \rbn->rb_left
+						v.a \rbn=\rbn->rb_left
+					return
+RB_NEXT:
+					v.newlocal struct rb_node* \rbt
+					v.if \rbn->__rb_parent_color==(uintptr_t)\rbn
+					(
+						v.a \rbn=0
+						return
+					)
+					v.if \rbn->rb_right
+					(
+						v.a \rbn=\rbn->rb_right
+						v.while \rbn->rb_left
+							v.a \rbn=\rbn->rb_left
+						return
+					)
+					v.a \rbt=\rbn
+					v.a \rbn=\rbn->__rb_parent_color&~3UL
+					v.while \rbn&&\rbt==\rbn->rb_right
+					(
+						v.a \rbt=\rbn
+						v.a \rbn=\rbn->__rb_parent_color&~3UL
+					)
+					return
+				)
+				menuitem "[:objects]Dump &Slub"
+				(
+					v.newlocal struct kmem_cache* \s
+					v.newlocal struct page* \p
+					v.newlocal struct page* \memmap
+					if !y.exist(store_user_show)
+					(
+						dialog.ok "Don't support slub debug currently"
+						end
+					)
+					v.newlocal struct track* \track
+					v.newlocal unsigned* \pbt
+					v.newlocal unsigned*[20000] \bt
+					v.newlocal unsigned[20000] \bt_cnt
+					v.newlocal unsigned long[20000] \alloc_sz
+					v.newlocal unsigned long[20000] \alloc_cnt
+					local &track_off &track_cnt &module_off &obj_sz &obj_size &rec_cnt &asz &idx_bk &tmp1 &tmp2
+					private &off &off2 &j
+					&module_off=0
+					&rec_cnt=0
+					&asz=0
+					&idx_bk=-1.
+					&track_cnt=v.value(sizeof(\track->addrs)/sizeof(\track->addrs[0]))
+					v.if sizeof(long)!=sizeof(\track->addrs[0])
+						&module_off=&ModStart
+					v.if sizeof(long)==4
+						v.a \memmap=mem_map-0x40000
+					else
+					(
+						v.a \memmap=0xFFFFFFBE00000000-sizeof(struct page)*0x40000
+						if &MemMapAddr!=0
+							v.a \memmap=&MemMapAddr
+					)
+					&off=v.value(&((struct kmem_cache*)0)->list)
+					&off2=v.value(&((struct page*)0)->lru)
+					v.a \s=(uintptr_t)slab_caches.next-&off
+					v.while &\s->list!=&slab_caches
+					(
+						v.if (\s->flags&0x10400)!=0x10400
+							goto SLUB_NEXT
+						v.if \s->offset
+							&track_off=v.value(\s->offset+sizeof(void*))
+						else
+							&track_off=v.value(\s->inuse)
+						&obj_sz=v.value(\s->object_size)
+						&obj_size=v.value(\s->size)
+						;v.a \p=
+						v.a \p=(uintptr_t)\s->node[0]->partial.next-&off2
+						v.while &\p->lru!=&\s->node[0]->partial
+						(
+							gosub slub_page
+							v.a \p=(uintptr_t)\p->lru.next-&off2
+						)
+						v.a \p=(uintptr_t)\s->node[0]->full.next-&off2
+						v.while &\p->lru!=&\s->node[0]->full
+						(
+							gosub slub_page
+							v.a \p=(uintptr_t)\p->lru.next-&off2
+						)
+SLUB_NEXT:				v.a \s=(uintptr_t)\s->list.next-&off
+					)
+					;gosub quick_sort 0 &rec_cnt-1
+					open #1 ~~~~/slub.log /c
+					write #1 "total alloc " %d &asz/1024. "KB"
+					if &rec_cnt==0
+						goto FILE_END
+					;if &rec_cnt>16.
+					;	&rec_cnt=16.
+					&idx_bk=0
+					rpt &rec_cnt
+					(
+						if v.value(\alloc_sz[&idx_bk])>0x100000
+						(
+							write #1 %d v.value(\alloc_sz[&idx_bk])/1024. "KB " %d v.value(\alloc_cnt[&idx_bk])
+							v.a \pbt=\bt[&idx_bk]
+							&j=0
+							rpt v.value(\bt_cnt[&idx_bk])
+							(
+								write #1 v.value(\pbt[&j]+&module_off) " " y.function(D:v.value(\pbt[&j]+&module_off))
+								&j=&j+1
+							)
+							write #1 ""
+						)
+						&idx_bk=&idx_bk+1
+					)
+FILE_END:
+					close #1
+					end
+quick_sort:
+					entry &left &right
+					private &i &j
+					if &left>=&right
+						return
+					&tmp1=v.value(\alloc_sz[(&left+&right)/2])
+					&i=&left-1
+					&j=&right+1
+					rpt 0
+					(
+SORT_1:					&i=&i+1
+						v.if \alloc_sz[&i]<&tmp1
+							goto SORT_1
+SORT_2:					&j=&j-1
+						v.if \alloc_sz[&j]>&tmp1
+							goto SORT_2
+						if &i>=&j
+							goto SORT_OUT
+						&tmp2=v.value(\alloc_sz[&i])
+						v.a \alloc_sz[&i]=\alloc_sz[&j]
+						v.a \alloc_sz[&j]=&tmp2
+						&tmp2=v.value(\alloc_cnt[&i])
+						v.a \alloc_cnt[&i]=\alloc_cnt[&j]
+						v.a \alloc_cnt[&j]=&tmp2
+						&tmp2=v.value(\bt[&i])
+						v.a \bt[&i]=\bt[&j]
+						v.a \bt[&j]=&tmp2
+						&tmp2=v.value(\bt_cnt[&i])
+						v.a \bt_cnt[&i]=\bt_cnt[&j]
+						v.a \bt_cnt[&j]=&tmp2
+					)
+SORT_OUT:			gosub quick_sort &left &i-1
+					gosub quick_sort &j+1 &right
+					return
+slub_page:
+					private &objaddr &addr
+					local &tidx
+					&objaddr=v.value((\p-\memmap)<<12.)+0xFFFFFFC000000000-0x40000000
+					rpt v.value(\s->oo.x&0xFFFF)
+					(
+						&addr=&objaddr+&obj_sz
+						if d.byte(D:&addr)!=0xcc
+							goto SLUB_NEXT2
+						v.a \track=&objaddr+&track_off
+						&addr=v.value(\track->addr)-&module_off
+						&tidx=0
+						rpt &track_cnt
+						(
+							v.if &addr==\track->addrs[&tidx]||&addr==\track->addrs[&tidx]+4
+							(
+								gosub add_slub_loc
+								goto SLUB_NEXT2
+							)
+							&tidx=&tidx+1
+						)
+SLUB_NEXT2:				&objaddr=&objaddr+&obj_size
+					)
+					return
+add_slub_loc:
+					private &low &high
+					&asz=&asz+&obj_size
+					local &pos &rt
+					&low=-1.
+					&high=&rec_cnt
+					if &idx_bk>=0
+					(
+						v.a \pbt=\bt[&idx_bk]
+						gosub cmp_bt
+						if &rt==0
+						(
+							v.a \alloc_cnt[&idx_bk]=\alloc_cnt[&idx_bk]+1
+							v.a \alloc_sz[&idx_bk]=\alloc_sz[&idx_bk]+&obj_sz
+							return
+						)
+						else if &rt==1
+							&low=&idx_bk
+						else
+							&high=&idx_bk
+					)
+					rpt 0
+					(
+						&pos=&low+(&high-(&low)+1)/2
+						if &pos==&high
+							goto _OUT
+						v.a \pbt=\bt[&pos]
+						gosub cmp_bt
+						if &rt==0
+						(
+							v.a \alloc_cnt[&pos]=\alloc_cnt[&pos]+1
+							v.a \alloc_sz[&pos]=\alloc_sz[&pos]+&obj_sz
+							return
+						)
+						else if &rt==1
+							&low=&pos
+						else
+							&high=&pos
+					)
+_OUT:				if &rec_cnt>=20000.
+						return
+					&idx_bk=&pos
+					if &pos<&rec_cnt
+						gosub move_bt
+					v.a \alloc_cnt[&pos]=1
+					v.a \bt_cnt[&pos]=&track_cnt-&tidx
+					v.a \alloc_sz[&pos]=&obj_sz
+					v.a \bt[&pos]=&\track->addrs[&tidx]
+					&rec_cnt=&rec_cnt+1
+					return
+cmp_bt:
+					private &i
+					&i=0
+					rpt &track_cnt-&tidx
+					(
+						v.if \track->addrs[&i+&tidx]<\pbt[&i]
+						(
+							&rt=-1.
+							return
+						)
+						else if v.value(\track->addrs[&i+&tidx])>v.value(\pbt[&i])
+						(
+							&rt=1
+							return
+						)
+						&i=&i+1
+					)
+					&rt=0
+					return
+move_bt:
+					private &i
+					&i=&rec_cnt
+					rpt &rec_cnt-&pos
+					(
+						v.a \alloc_cnt[&i]=\alloc_cnt[&i-1]
+						v.a \alloc_sz[&i]=\alloc_sz[&i-1]
+						v.a \bt[&i]=\bt[&i-1]
+						v.a \bt_cnt[&i]=\bt_cnt[&i-1]
+						&i=&i-1
+					)
+					return
+				)
+				menuitem "[:objects]Dump &Slubinfo"
+				(
+				  v.newlocal struct kmem_cache* \s
+					v.newlocal struct page* \p
+					v.newlocal struct list_head* \k_list
+					if !y.exist(store_user_show)
+					(
+						dialog.ok "Don't Open CONFIG_SLUB_DEBUG, please use Slubinfo_not_slub_debug"
+						end
+					)
+					private &off &off2
+					private &active_objs &num_objs &active_slabs &num_slubs &objects_per_slab &cache_order &nr_free
+					private &total &kmem_cache_memory
+					&total=0
+					&off=v.value(&((struct kmem_cache*)0)->list)
+					&off2=v.value(&((struct page*)0)->lru)
+					v.a \k_list=slab_caches.next
+					area.c slubinfo 200. 200
+					area.clear slubinfo
+					v.while \k_list!=&slab_caches
+					(
+					  &nr_free=0
+					  v.a \s=(uintptr_t)\k_list-&off
+					  v.newlocal struct kmem_cache_node* \node
+					  v.newlocal struct list_head* \list
+					  v.a \node=\s->node[0]
+					  v.a \list=\node->partial.next
+					  v.while \list!=&\node->partial
+					  (
+						 v.a \p=(uintptr_t)\list-&off2
+						 &nr_free=&nr_free+v.value(\p->objects)-v.value(\p->inuse)
+						 v.a \list=\list->next
+					  )
+					  &active_objs=v.value((long)\node->total_objects)-&nr_free
+					  &num_objs=v.value((long)\node->total_objects)
+					  &active_slabs=v.value((long)\node->nr_slabs)
+					  &num_slabs=&active_slabs
+					  &objects_per_slab=v.value(\s->oo.x)&0xffff
+					  &cache_order=v.value(\s->oo.x)>>16.
+					  &kmem_cache_memory=&num_slabs*(1<<&cache_order)
+					  &kmem_cache_memory=&kmem_cache_memory<<2
+					  &total=&total+&num_slabs*(1<<&cache_order)
+					  print "kmem_cache:0x" %Hex v.value(\s) "  " "name:" format.str(d.str(D:v.value(\s->name)),-22.,' ') "  " "memory:" format.d(7.,&kmem_cache_memory) "KB" "  " "order:" &cache_order  "  " "objs_per_slub:" %d &objects_per_slab
+					  v.a \k_list=\k_list->next
+					)
+				&total=&total<<2
+				print "slub mem total:" %d &total  "KB"
+				area.view slubinfo
+				)
+				menuitem "[:objects]Dump &Slubinfo_not_slub_debug"
+				(
+					v.newlocal struct page* \p
+					v.newlocal struct list_head* \k_list
+					v.newlocal long[200] \count
+					v.newlocal struct kmem_cache*[200] \s
+					v.newlocal struct kmem_cache* \s_temp
+					private &slab_cache
+					local &pfn_number &max &off &offset	&total &order &page_size
+					&pfn_number=0
+					&off=v.value(&((struct kmem_cache*)0)->list)
+					;&max=v.value(contig_page_data.node_zones[0].spanned_pages)
+					&max=v.value(contig_page_data.node_spanned_pages)
+					v.a \p=(mem_section[0][1].section_mem_map)&0xfffffffffffffffc
+					v.a \p=\p+contig_page_data.node_start_pfn
+					;v.a \p=\p+contig_page_data.node_zones[0].zone_start_pfn
+					area.c slubinfo_not_slub_debug 200. 200
+					area.clear slubinfo_not_slub_debug
+					&offset=0
+					&total=0
+					while &offset<200.
+					(
+						  v.a \count[&offset]=0
+						  v.a \s[&offset]=0
+						  &offset=&offset+1
+					)
+					&page_size=v.value((struct page*)0+1.)
+					while &pfn_number<&max
+					(
+						v.if \p->flags&0x80
+						(
+							 &slab_cache=v.value(\p->slab_cache)
+							 &offset=0
+							 v.a \k_list=slab_caches.next
+							 v.while \k_list!=&slab_caches
+							 (
+								 v.a \s_temp=(uintptr_t)\k_list-&off
+								 if &slab_cache==v.value(\s_temp)
+								 (
+									 v.a \count[&offset]=\count[&offset]+1
+									 v.if \s[&offset]==0
+										 v.a \s[&offset]=\s_temp
+									 &order=v.value(\s_temp->oo.x)>>16.
+									 v.if &order
+									 (
+										  v.a \p=(uintptr_t)\p+(1<<&order)*&page_size
+										  v.a \p=\p-1.
+										  &pfn_number=&pfn_number+1<<&order-1.
+									 )
+									 &total=&total+1<<&order
+									 break
+								  )
+								 v.a \k_list=\k_list->next
+								 &offset=&offset+1.
+							 )
+							 ;&total=&total+1.
+						)
+						v.a \p=\p+1.
+						&pfn_number=&pfn_number+1.
+					)
+					&offset=0
+					while &offset<200.
+					(
+					  v.if  \count[&offset]
+					   (
+						 &order=v.value(\s[&offset]->oo.x)>>16.
+						 print "kmem_cache:0x" %Hex v.value(\s[&offset]) "  " "name:" format.str(d.str(D:v.value(\s[&offset]->name)),-22.,' ') "  " "memory:" format.d(7.,v.value(\count[&offset])*4*(1<<&order)) "KB" "  " "order:" %d &order  "  " "objs_per_slub:" %d v.value(\s[&offset]->oo.x)&0xffff
+					   )
+					   &offset=&offset+1.
+					)
+				   print "slub mem total:" %d &total*4  "KB"
+				   area.view slubinfo_not_slub_debug
+				)
+				menuitem "[:objects]Display &Vmalloc" "task.vmainfo"
+				menuitem "[:objects]Display &Zram"
+				(
+					private &zram_type &i &total
+					&zram_type=0
+					if y.exist(zram_devices)
+					(
+						v.if (zram_devices&&zram_devices->disksize)
+							&zram_type=1
+					)
+					if y.exist(hwzram_devices)
+					(
+						v.if (hwzram_devices&&hwzram_devices->disksize)
+							&zram_type=2
+					)
+					if &zram_type==0
+					(
+						dialog.ok "no ZRAM devices"
+						end
+					)
+					area.c zraminfoarea 100. 16.
+					area.clear zraminfoarea
+					if &zram_type==1
+					(
+						print "DiskSize:     " %d v.value(zram_devices->disksize)/1024. "KB"
+						print "OrigSize:     " %d v.value(zram_devices->stats.pages_stored.counter)*4 "KB"
+						print "ComprSize:    " %d v.value(zram_devices->stats.compr_data_size.counter)/1024. "KB"
+						print "MemUsed:      " %d v.value(zram_devices->meta->mem_pool->pages_allocated.counter)*4 "KB"
+						print "ZeroPage:     " %d v.value(zram_devices->stats.zero_pages.counter)*4 "KB"
+						print "NotifyFree:   " %d v.value(zram_devices->stats.notify_free.counter)*4 "KB"
+						print "FailReads:    " %d v.value(zram_devices->stats.failed_reads.counter)*4 "KB"
+						print "FailWrites:   " %d v.value(zram_devices->stats.failed_writes.counter)*4 "KB"
+						print "NumReads:     " %d v.value(zram_devices->stats.num_reads.counter)*4 "KB"
+						print "NumWrites:    " %d v.value(zram_devices->stats.num_writes.counter)*4 "KB"
+						print "InvalidIO:    " %d v.value(zram_devices->stats.invalid_io.counter)*4 "KB"
+						print "MaxUsedPages: " %d v.value(zram_devices->stats.max_used_pages.counter)*4 "KB"
+						if v.exist(zram_devices->stats.zsm_saved.counter)
+						(
+							print "ZSM saved: " %d v.value(zram_devices->stats.zsm_saved.counter)/1024. "KB"
+							print "ZSM saved: " %d v.value(zram_devices->stats.zsm_saved4k.counter)/1024. "KB"
+						)
+						if v.exist(pool_stats.pages_compacted)
+							print "PageMigrated: " %d v.value(pool_stats.pages_compacted)*4 "KB"
+						print "Algorithm:    " d.str(D:v.value(zram_devices->compressor))
+					)
+					else
+					(
+						print "DiskSize:     " %d v.value(hwzram_devices->disksize)/1024. "KB"
+						print "OrigSize:     " %d v.value(hwzram_devices->stats.pages_stored.counter)*4 "KB"
+						print "ComprSize:    " %d v.value(hwzram_devices->stats.compr_data_size.counter)/1024. "KB"
+						&total=0
+						&i=0
+						rpt v.value(sizeof(hwzram_devices->hwz->allocator.size_count)/sizeof(hwzram_devices->hwz->allocator.size_count[0]))
+						(
+							&total=&total+(v.value(hwzram_devices->hwz->allocator.size_count[&i].counter)<<&i)
+							&i=&i+1
+						)
+						print "MemUsed:      " %d &total/16. "KB"
+						print "ZeroPage:     " %d v.value(hwzram_devices->stats.zero_pages.counter)*4 "KB"
+						print "NotifyFree:   " %d v.value(hwzram_devices->stats.notify_free.counter)*4 "KB"
+						print "FailReads:    " %d v.value(hwzram_devices->stats.failed_reads.counter)*4 "KB"
+						print "FailWrites:   " %d v.value(hwzram_devices->stats.failed_writes.counter)*4 "KB"
+						print "NumReads:     " %d v.value(hwzram_devices->stats.num_reads.counter)*4 "KB"
+						print "NumWrites:    " %d v.value(hwzram_devices->stats.num_writes.counter)*4 "KB"
+						print "InvalidIO:    " %d v.value(hwzram_devices->stats.invalid_io.counter)*4 "KB"
+						print "MaxUsedPages: " %d v.value(hwzram_devices->stats.max_used_pages.counter)*4 "KB"
+					)
+					area.view zraminfoarea
+				)
+				menuitem "[:objects]Display &vmstat"
+				(
+					private &statcnt &vmeventcnt &cnt &i &j
+					if y.exist(vm_stat)
+						&statcnt=v.sizeof(vm_stat)/v.sizeof(vm_stat[0])
+					else
+						&statcnt=v.sizeof(vm_zone_stat)/v.sizeof(vm_zone_stat[0])
+					&vmeventcnt=v.sizeof(vm_event_states.event)/v.sizeof(vm_event_states.event[0])
+					area.c vmstatarea 34. &statcnt+&vmeventcnt
+					area.clear vmstatarea
+					&i=0
+					while (&i<&statcnt)
+					(
+						if y.exist(vm_stat)
+							&cnt=v.value(vm_stat[&i].counter)
+						else
+							&cnt=v.value(vm_zone_stat[&i].counter)
+						if &cnt>0
+							print format.str(d.str(D:v.value(vmstat_text[&i])),12,' ') " " %color.red format.d(11.,&cnt*4) "KB"
+						&i=&i+1
+					)
+					&i=0
+					while (&i<&vmeventcnt)
+					(
+						&cnt=0
+						&j=0
+						v.while (&j<nr_cpu_ids)
+						(
+							&cnt=&cnt+v.value(((struct vm_event_state*)(__per_cpu_offset[&j]+(uintptr_t)&vm_event_states))->event[&i])
+							&j=&j+1
+						)
+						if &i<2
+							&cnt=&cnt/2
+						if &cnt!=0
+							print format.str(d.str(D:v.value(vmstat_text[&statcnt+2+&i])),12,' ') " " %color.red format.d(11.,&cnt*4) "KB"
+						&i=&i+1
+					)
+					area.view vmstatarea
+				)
+				menuitem "[:objects]Display &Process Rss"
+				(
+					v.newlocal struct task_struct* \ttask
+					private &cnt &off &rfile &ranon &rswap &TotFile &TotAnon &TotSwap &TotCnt
+					&cnt=0
+					&TotFile=0
+					&TotAnon=0
+					&TotSwap=0
+					&TotCnt=0
+					&off=v.value(&((struct task_struct*)0)->tasks.next)
+					v.a \ttask=(uintptr_t)init_task.tasks.next-&off
+					v.while \ttask!=&init_task
+					(
+						v.if !(\ttask->flags&0x200000)
+							&cnt=&cnt+1
+						v.a \ttask=(uintptr_t)\ttask->tasks.next-&off
+					)
+					area.c task_memarea 160. &cnt+2
+					area.clear task_memarea
+					print "  pid   adj   file   anon   swap  total name"
+					v.a \ttask=(uintptr_t)init_task.tasks.next-&off
+					v.while \ttask!=&init_task
+					(
+						v.if (\ttask->flags&0x200000)
+							goto TSK_NEXT
+						&rfile=0
+						&ranon=0
+						&rswap=0
+						v.if \ttask->mm
+						(
+							v.if (\ttask->mm->rss_stat.count[0].counter>0.)
+								&rfile=v.value(\ttask->mm->rss_stat.count[0].counter)
+							v.if (\ttask->mm->rss_stat.count[1].counter>0.)
+								&ranon=v.value(\ttask->mm->rss_stat.count[1].counter)
+							v.if (\ttask->mm->rss_stat.count[2].counter>0.)
+								&rswap=v.value(\ttask->mm->rss_stat.count[2].counter)
+						)
+						&TotFile=&TotFile+&rfile
+						&TotAnon=&TotAnon+&ranon
+						&TotSwap=&TotSwap+&rswap
+						v.if \ttask->signal->oom_score_adj!=-1000
+							&TotCnt=&TotCnt+1
+						print format.d(5.,v.value(\ttask->pid)) " " format.d(5.,v.value(\ttask->signal->oom_score_adj)) " " format.d(4.,&rfile/256.) "MB "
+						print %cont format.d(4.,&ranon/256.) "MB " format.d(4.,&rswap/256.) "MB " %color.red format.d(4.,(&rfile+&ranon+&rswap)/256.) "MB " %color.black v.str(\ttask->comm)
+TSK_NEXT:				v.a \ttask=(uintptr_t)\ttask->tasks.next-&off
+					)
+					print %color.red "Total " format.d(5.,&TotCnt) " " format.d(4.,&TotFile/256.) "MB " format.d(4.,&TotAnon/256.) "MB " format.d(4.,&TotSwap/256.) "MB " format.d(4.,(&TotFile+&TotAnon+&TotSwap)/256.) "MB"
+					area.view task_memarea
+				)
+				menuitem "[:objects]Dump &mlog"
+				(
+					private &Start &FmtIdx &MlogId &Val &LogBufSz
+					open #1 ~~~~/mlog.log /c /w
+					write #1 "      type  time-sec time-nsec"
+					v.if meminfo_filter
+						write #1 %cont "  mem-free swap-free     cache  kern-stk  page tbl      slub   gpu_use gpu_cache     mlock      zram    active  inactive     shmem       ion"
+					v.if vmstat_filter
+					(
+						write #1 %cont "    pswpin   pswpout pgfmfault  normal#0  normal#1  normal#2  normal#3  normal#4  normal#5  normal#6  normal#7  normal#8  normal#9 normal#10"
+						write #1 %cont "    high#0    high#1    high#2    high#3    high#4    high#5    high#6    high#7    high#8    high#9   high#10"
+					)
+					v.if proc_filter
+						write #1 %cont "       pid   oom_adj       rss     rswap   swap_in  swap_out    fm_flt"
+					&Start=v.value(mlog_start)
+					if y.exist(mlog_buf_len)
+						&LogBufSz=v.value(mlog_buf_len)
+					else
+						&LogBufSz=v.sizeof(mlog_buffer)/v.sizeof(mlog_buffer[0])
+					&MlogId=v.value(~0UL)
+					&FmtIdx=0
+					v.while &Start+1<mlog_end
+					(
+						&Val=v.value(mlog_buffer[&Start&(&LogBufSz-1)])
+						&Start=&Start+1
+						if &FmtIdx==0&&(&Val!=&MlogId)
+							goto MLOG_NEXT
+						if &Val==&MlogId&&(&FmtIdx!=0)
+							&FmtIdx=0
+						if &FmtIdx==0
+							write #1 ""
+						else
+							write #1 %cont " " format.d(9.,&Val)
+						&FmtIdx=&FmtIdx+1
+						v.if &FmtIdx>=strfmt_len
+							&FmtIdx=v.value(strfmt_proc)
+MLOG_NEXT:
+					)
+					close #1
+					end
+				)
+			)
+			popup "[:objects]Display &Workqueue"
+			(
+				menuitem "[:objects]Display workqueue &system_wq event"
+				(
+					;workqueue_struct =>per cpu( pool_workqueue), if wq->flag & WQ_UNBOND ==NULL , work will put to pool_wq by cpu or cpu(smp_processor_id)
+					;before work enque to poo_wq, check work firstly ,if work was previously on a different pool,it maigh still before running there
+					;in this case，需求确保不会在wq 的pool_wq 中有重入操作
+					v.newlocal struct workqueue_struct * \system_wq
+					v.newlocal struct pool_workqueue * \cpu_pwqs
+					v.newlocal struct work_struct* \work
+					v.newlocal struct work_struct* \curr_work
+					v.newlocal struct worker_pool* \pool
+					v.newlocal struct worker* \worker
+					v.newlocal struct list_head* \wlist
+					v.newlocal struct list_head* \n_list
+					v.newlocal struct list_head* \pre_list
+					v.newlocal struct list_head* \worker_head
+					v.newlocal struct list_head* \next_worker
+					v.newlocal struct list_head* \prev_worker
+					v.newlocal struct task_struct* \task
+					private &i &func_name &work_entry_offset &worker_offset &work_addr  &worker_addr &per_addr &cpu_id
+					v.a \system_wq=system_wq
+					v.a \worker=0x0
+					&worker_offset=v.value(&(\worker->node))
+					v.a \work=0x0
+					&work_entry_offset=v.value(&(\work->entry))
+					&cpu_id=0
+					area.c work 150. 60.*v.value(nr_cpu_ids)
+					area.clear work
+					print "workqeue system_wq: " %color.red "0x" format.hex(16.,v.value(\system_wq))  %color.black "     name:" %color.red format.str(v.str(\system_wq->name),16., ' ')
+					print " "
+					v.while &cpu_id<nr_cpu_ids
+					(
+						print %color.red "workqueue on CPU:"  v.value(&cpu_id)
+						print "--------------------------------------------------------------------------------------------------------------- "
+						;find per cpu pool_workqueue from workqueue_struct
+						;**cpu_pwq is used for kernel >=6.6
+						if v.exist(\system_wq->cpu_pwq)
+						(
+							&per_addr=v.value(\system_wq->cpu_pwq)
+							v.newlocal struct pool_workqueue ** \cpu_pwqs_temp
+							v.a \cpu_pwqs_temp=&per_addr+__per_cpu_offset[&cpu_id]
+							v.a \cpu_pwqs=*(\cpu_pwqs_temp)
+						)
+						else
+						(
+							&per_addr=v.value(\system_wq->cpu_pwqs)
+							v.a \cpu_pwqs=&per_addr+__per_cpu_offset[&cpu_id]
+						)
+						print "cpu &cpu_id pool_workqueue cpu_pwqs: " %color.red "0x" format.hex(16.,v.value(\cpu_pwqs))
+						v.a \pool=\cpu_pwqs->pool
+						v.a \worker_head=&(\pool->workers)
+						print "cpu &cpu_id worker_pool            : " %color.red "0x" format.hex(16.,v.value(\pool))  %color.black "   nr_workers:" %color.red v.value(\pool->nr_workers) %color.black "   nr_idle:" %color.red v.value(\pool->nr_idle)  %color.black "   nr_running:" %color.red v.value(*(unsigned*)&\pool->nr_running)
+						v.a \next_worker=\worker_head->next
+						v.a \prev_worker=\worker_head
+						v.while \next_worker!=\worker_head
+						(
+							v.if \next_worker->prev!=\prev_worker
+							(
+								print %color.red "worker list error:next_worker->prev:0x" format.hex(16.,v.value(\next_worker->prev)) "!= prev_worker:0x" format.hex(16.,v.value(\prev_worker))
+								break
+							)
+							&worker_addr=v.value(\next_worker)-&worker_offset
+							v.a \worker=&worker_addr
+							v.a \task=\worker->task
+							print "worker:" %color.red "0x" format.hex(16.,v.value(\worker)) %color.black "    worker id:"  %color.red format.d(5.,v.value(\worker->id))
+							print "task->comm :" %color.red format.str(v.str(\task->comm),15.,' ')  %color.black  "  pid:" %color.red format.d(5.,v.value(\task->pid))
+							v.a \curr_work=\worker->current_work
+							v.if \curr_work
+							(
+								if v.exist(\worker->sleeping)
+								(
+									print %cont "  worker->sleeping: " %color.red v.value(\worker->sleeping)
+								)
+								print %cont "  currnt work_struct: " %color.red "0x" format.hex(16.,v.value(\curr_work))
+								print %cont "  work_func_t: " %color.red y.function(D:v.value(\curr_work->func))
+							)
+							v.a \prev_worker=\next_worker
+							v.a \next_worker=\next_worker->next
+						)
+						v.a \wlist=&(\pool->worklist)
+						v.a \n_list=\wlist->next
+						v.a \pre_list=\wlist
+						print "the associated cpu:" %color.red %d v.value(\pool->cpu)
+						print "List of pending working:"
+						v.while \n_list!=\wlist
+						(
+							v.if \n_list->prev!=\pre_list
+							(
+								print %color.red "worklist error:next_list->prev:0x" format.hex(16.,v.value(\n_list->prev)) "!= prev_list:0x" format.hex(16.,v.value(\pre_list))
+								break
+							)
+							&work_addr=v.value(\n_list)-&work_entry_offset
+							v.a \work=&work_addr
+							&func_name=v.str(\work->func)
+							print "work_struct:" %color.red "0x" format.hex(16.,v.value(\work))
+							print %cont "    work_func_t: " %color.red y.function(D:v.value(\work->func))
+							v.a \pre_list=\n_list
+							v.a \n_list=\n_list->next
+						)
+						; if nr_active > max_active , 后面正常入队(非queue_delayed_work_on)会添加到 delay_works list 中
+						print %cont  %color.black " cpu &cpu_id pool_wq nr_active:"  %color.red %d v.value(\cpu_pwqs->nr_active)
+						print %cont  %color.black " cpu &cpu_id pool_wq max_active:"  %color.red %d v.value(\cpu_pwqs->max_active)
+						if v.exist(\cpu_pwqs->inactive_works)
+						(
+							v.a \wlist=&(\cpu_pwqs->inactive_works)
+							print "List of inactive works:"
+						)
+						else
+						(
+							v.a \wlist=&(\cpu_pwqs->delayed_works)
+							print "List of delayed works:"
+						)
+						v.a \n_list=\wlist->next
+						v.a \pre_list=\wlist
+						v.while \n_list!=\wlist
+						(
+							v.if \n_list->prev!=\pre_list
+							(
+								print %color.red "worklist error:next_list->prev:0x" format.hex(16.,v.value(\n_list->prev)) "!= prev_list:0x" format.hex(16.,v.value(\pre_list))
+								break
+							)
+							&work_addr=v.value(\n_list)-&work_entry_offset
+							v.a \work=&work_addr
+							&func_name=v.str(\work->func)
+							print "work_struct:" %color.red "0x" format.hex(16.,v.value(\work))
+							print %cont "    work_func_t: " %color.red y.function(D:v.value(\work->func))
+							v.a \pre_list=\n_list
+							v.a \n_list=\n_list->next
+						)
+						print " "
+						print " "
+						&cpu_id=&cpu_id+1
+					)
+					area.view work
+				)
+				menuitem "[:objects]Display workqueue &system_highpri_wq events_highpri"
+				(
+					v.newlocal struct workqueue_struct * \system_highpri_wq
+					v.newlocal struct pool_workqueue * \cpu_pwqs
+					v.newlocal struct work_struct* \work
+					v.newlocal struct work_struct* \curr_work
+					v.newlocal struct worker_pool* \pool
+					v.newlocal struct worker* \worker
+					v.newlocal struct list_head* \wlist
+					v.newlocal struct list_head* \n_list
+					v.newlocal struct list_head* \pre_list
+					v.newlocal struct list_head* \worker_head
+					v.newlocal struct list_head* \next_worker
+					v.newlocal struct list_head* \prev_worker
+					v.newlocal struct task_struct* \task
+					private &i &func_name &work_entry_offset &worker_offset &work_addr  &worker_addr &per_addr &cpu_id
+					v.a \system_highpri_wq=system_highpri_wq
+					v.a \worker=0x0
+					&worker_offset=v.value(&(\worker->node))
+					v.a \work=0x0
+					&work_entry_offset=v.value(&(\work->entry))
+					&cpu_id=0
+					area.c work 150. 60.*v.value(nr_cpu_ids)
+					area.clear work
+					print "workqeue system_highpri_wq: " %color.red "0x" format.hex(16.,v.value(\system_highpri_wq))  %color.black "     name:" %color.red format.str(v.str(\system_highpri_wq->name),16., ' ')
+					print " "
+					v.while &cpu_id<nr_cpu_ids
+					(
+						print %color.red "workqueue on CPU:"  v.value(&cpu_id)
+						print "--------------------------------------------------------------------------------------------------------------- "
+						;find per cpu pool_workqueue from workqueue_struct
+						;**cpu_pwq is used for kernel >=6.6
+						if v.exist(\system_highpri_wq->cpu_pwq)
+						(
+							&per_addr=v.value(\system_highpri_wq->cpu_pwq)
+							v.newlocal struct pool_workqueue ** \cpu_pwqs_temp
+							v.a \cpu_pwqs_temp=&per_addr+__per_cpu_offset[&cpu_id]
+							v.a \cpu_pwqs=*(\cpu_pwqs_temp)
+						)
+						else
+						(
+							&per_addr=v.value(\system_highpri_wq->cpu_pwqs)
+							v.a \cpu_pwqs=&per_addr+__per_cpu_offset[&cpu_id]
+						)
+						print "cpu &cpu_id pool_workqueue cpu_pwqs: " %color.red "0x" format.hex(16.,v.value(\cpu_pwqs))
+						v.a \pool=\cpu_pwqs->pool
+						v.a \worker_head=&(\pool->workers)
+						print "cpu &cpu_id worker_pool            : " %color.red "0x" format.hex(16.,v.value(\pool))  %color.black "   nr_workers:" %color.red v.value(\pool->nr_workers) %color.black "   nr_idle:" %color.red v.value(\pool->nr_idle)  %color.black "   nr_running:" %color.red v.value(*(unsigned*)&\pool->nr_running)
+						v.a \next_worker=\worker_head->next
+						v.a \prev_worker=\worker_head
+						v.while \next_worker!=\worker_head
+						(
+							v.if \next_worker->prev!=\prev_worker
+							(
+								print %color.red "worker list error:next_worker->prev:0x" format.hex(16.,v.value(\next_worker->prev)) "!= prev_worker:0x" format.hex(16.,v.value(\prev_worker))
+								break
+							)
+							&worker_addr=v.value(\next_worker)-&worker_offset
+							v.a \worker=&worker_addr
+							v.a \task=\worker->task
+							print "worker:" %color.red "0x" format.hex(16.,v.value(\worker)) %color.black "    worker id:"  %color.red format.d(5.,v.value(\worker->id))
+							print "task->comm :" %color.red format.str(v.str(\task->comm),15.,' ')  %color.black  "  pid:" %color.red format.d(5.,v.value(\task->pid))
+							v.a \curr_work=\worker->current_work
+							v.if \curr_work
+							(
+								if v.exist(\worker->sleeping)
+								(
+									print %cont "  worker->sleeping: " %color.red v.value(\worker->sleeping)
+								)
+								print %cont "  currnt work_struct: " %color.red "0x" format.hex(16.,v.value(\curr_work))
+								print %cont "  work_func_t: " %color.red y.function(D:v.value(\curr_work->func))
+							)
+							v.a \prev_worker=\next_worker
+							v.a \next_worker=\next_worker->next
+						)
+						v.a \wlist=&(\pool->worklist)
+						v.a \n_list=\wlist->next
+						v.a \pre_list=\wlist
+						print "the associated cpu:" %color.red %d v.value(\pool->cpu)
+						print "List of pending working:"
+						v.while \n_list!=\wlist
+						(
+							v.if \n_list->prev!=\pre_list
+							(
+								print %color.red "worklist error:next_list->prev:0x" format.hex(16.,v.value(\n_list->prev)) "!= prev_list:0x" format.hex(16.,v.value(\pre_list))
+								break
+							)
+							&work_addr=v.value(\n_list)-&work_entry_offset
+							v.a \work=&work_addr
+							&func_name=v.str(\work->func)
+							print "work_struct:" %color.red "0x" format.hex(16.,v.value(\work))
+							print %cont "    work_func_t: " %color.red y.function(D:v.value(\work->func))
+							v.a \pre_list=\n_list
+							v.a \n_list=\n_list->next
+						)
+						print %cont %color.black " cpu &cpu_id pool_wq nr_active:"  %color.red %d v.value(\cpu_pwqs->nr_active)
+						print %cont %color.black " cpu &cpu_id pool_wq max_active:"  %color.red %d v.value(\cpu_pwqs->max_active)
+						if v.exist(\cpu_pwqs->inactive_works)
+						(
+							v.a \wlist=&(\cpu_pwqs->inactive_works)
+							print "List of inactive works:"
+						)
+						else
+						(
+							v.a \wlist=&(\cpu_pwqs->delayed_works)
+							print "List of delayed works:"
+						)
+						v.a \n_list=\wlist->next
+						v.a \pre_list=\wlist
+						v.while \n_list!=\wlist
+						(
+							v.if \n_list->prev!=\pre_list
+							(
+								print %color.red "worklist error:next_list->prev:0x" format.hex(16.,v.value(\n_list->prev)) "!= prev_list:0x" format.hex(16.,v.value(\pre_list))
+								break
+							)
+							&work_addr=v.value(\n_list)-&work_entry_offset
+							v.a \work=&work_addr
+							&func_name=v.str(\work->func)
+							print "work_struct:" %color.red "0x" format.hex(16.,v.value(\work))
+							print %cont      "    work_func_t: " %color.red y.function(D:v.value(\work->func))
+							v.a \pre_list=\n_list
+							v.a \n_list=\n_list->next
+						)
+						print " "
+						print " "
+						&cpu_id=&cpu_id+1
+					)
+					area.view work
+				)
+				menuitem "[:objects]Display workqueue &system_long_wq events_long"
+				(
+					v.newlocal struct workqueue_struct * \system_long_wq
+					v.newlocal struct pool_workqueue * \cpu_pwqs
+					v.newlocal struct work_struct* \work
+					v.newlocal struct work_struct* \curr_work
+					v.newlocal struct worker_pool* \pool
+					v.newlocal struct worker* \worker
+					v.newlocal struct list_head* \wlist
+					v.newlocal struct list_head* \n_list
+					v.newlocal struct list_head* \pre_list
+					v.newlocal struct list_head* \worker_head
+					v.newlocal struct list_head* \next_worker
+					v.newlocal struct list_head* \prev_worker
+					v.newlocal struct task_struct* \task
+					private &i &func_name &work_entry_offset &worker_offset &work_addr  &worker_addr &per_addr &cpu_id
+					v.a \system_long_wq=system_long_wq
+					v.a \worker=0x0
+					&worker_offset=v.value(&(\worker->node))
+					v.a \work=0x0
+					&work_entry_offset=v.value(&(\work->entry))
+					&cpu_id=0
+					area.c work 150. 60.*v.value(nr_cpu_ids)
+					area.clear work
+					print "workqeue system_long_wq: " %color.red "0x" format.hex(16.,v.value(\system_long_wq))  %color.black "     name:" %color.red format.str(v.str(\system_long_wq->name),16., ' ')
+					print " "
+					v.while &cpu_id<nr_cpu_ids
+					(
+						print %color.red "workqueue on CPU:"  v.value(&cpu_id)
+						print "--------------------------------------------------------------------------------------------------------------- "
+						;find per cpu pool_workqueue from workqueue_struct
+						;**cpu_pwq is used for kernel >=6.6
+						if v.exist(\system_long_wq->cpu_pwq)
+						(
+							&per_addr=v.value(\system_long_wq->cpu_pwq)
+							v.newlocal struct pool_workqueue ** \cpu_pwqs_temp
+							v.a \cpu_pwqs_temp=&per_addr+__per_cpu_offset[&cpu_id]
+							v.a \cpu_pwqs=*(\cpu_pwqs_temp)
+						)
+						else
+						(
+							&per_addr=v.value(\system_long_wq->cpu_pwqs)
+							v.a \cpu_pwqs=&per_addr+__per_cpu_offset[&cpu_id]
+						)
+						print "cpu &cpu_id pool_workqueue cpu_pwqs: " %color.red "0x" format.hex(16.,v.value(\cpu_pwqs))
+						v.a \pool=\cpu_pwqs->pool
+						v.a \worker_head=&(\pool->workers)
+						print "cpu &cpu_id worker_pool            : " %color.red "0x" format.hex(16.,v.value(\pool))  %color.black "   nr_workers:" %color.red v.value(\pool->nr_workers) %color.black "   nr_idle:" %color.red v.value(\pool->nr_idle)   %color.black "   nr_running:" %color.red v.value(*(unsigned*)&\pool->nr_running)
+						v.a \next_worker=\worker_head->next
+						v.a \prev_worker=\worker_head
+						v.while \next_worker!=\worker_head
+						(
+							v.if \next_worker->prev!=\prev_worker
+							(
+								print %color.red "worker list error:next_worker->prev:0x" format.hex(16.,v.value(\next_worker->prev)) "!= prev_worker:0x" format.hex(16.,v.value(\prev_worker))
+								break
+							)
+							&worker_addr=v.value(\next_worker)-&worker_offset
+							v.a \worker=&worker_addr
+							v.a \task=\worker->task
+							print "worker:" %color.red "0x" format.hex(16.,v.value(\worker)) %color.black "    worker id:"  %color.red format.d(5.,v.value(\worker->id))
+							print "task->comm :" %color.red format.str(v.str(\task->comm),15.,' ')  %color.black  "  pid:" %color.red format.d(5.,v.value(\task->pid))
+							v.a \curr_work=\worker->current_work
+							v.if \curr_work
+							(
+								if v.exist(\worker->sleeping)
+								(
+									print %cont "  worker->sleeping: " %color.red v.value(\worker->sleeping)
+								)
+								print %cont "  currnt work_struct: " %color.red "0x" format.hex(16.,v.value(\curr_work))
+								print %cont "  work_func_t: " %color.red y.function(D:v.value(\curr_work->func))
+							)
+							v.a \prev_worker=\next_worker
+							v.a \next_worker=\next_worker->next
+						)
+						v.a \wlist=&(\pool->worklist)
+						v.a \n_list=\wlist->next
+						v.a \pre_list=\wlist
+						print "the associated cpu:" %color.red %d v.value(\pool->cpu)
+						print "List of pending working:"
+						v.while \n_list!=\wlist
+						(
+							v.if \n_list->prev!=\pre_list
+							(
+								print %color.red "worklist error:next_list->prev:0x" format.hex(16.,v.value(\n_list->prev)) "!= prev_list:0x" format.hex(16.,v.value(\pre_list))
+								break
+							)
+							&work_addr=v.value(\n_list)-&work_entry_offset
+							v.a \work=&work_addr
+							&func_name=v.str(\work->func)
+							print "work_struct:" %color.red "0x" format.hex(16.,v.value(\work))
+							print %cont "    work_func_t: " %color.red y.function(D:v.value(\work->func))
+							v.a \pre_list=\n_list
+							v.a \n_list=\n_list->next
+						)
+						print %cont %color.black " cpu &cpu_id pool_wq nr_active:"  %color.red %d v.value(\cpu_pwqs->nr_active)
+						print %cont %color.black " cpu &cpu_id pool_wq max_active:"  %color.red %d v.value(\cpu_pwqs->max_active)
+						if v.exist(\cpu_pwqs->inactive_works)
+						(
+							v.a \wlist=&(\cpu_pwqs->inactive_works)
+							print "List of inactive works:"
+						)
+						else
+						(
+							v.a \wlist=&(\cpu_pwqs->delayed_works)
+							print "List of delayed works:"
+						)
+						v.a \n_list=\wlist->next
+						v.a \pre_list=\wlist
+						v.while \n_list!=\wlist
+						(
+							v.if \n_list->prev!=\pre_list
+							(
+								print %color.red "worklist error:next_list->prev:0x" format.hex(16.,v.value(\n_list->prev)) "!= prev_list:0x" format.hex(16.,v.value(\pre_list))
+								break
+							)
+							&work_addr=v.value(\n_list)-&work_entry_offset
+							v.a \work=&work_addr
+							&func_name=v.str(\work->func)
+							print "work_struct:" %color.red "0x" format.hex(16.,v.value(\work))
+							print %cont      "    work_func_t: " %color.red y.function(D:v.value(\work->func))
+							v.a \pre_list=\n_list
+							v.a \n_list=\n_list->next
+						)
+						print " "
+						print " "
+						&cpu_id=&cpu_id+1
+					)
+					area.view work
+				)
+				menuitem "[:objects]Display workqueue &system_unbound_wq events_unbound"
+				(
+					v.newlocal struct hlist_head* \unbound_pool_hash
+					v.newlocal struct worker_pool* \pool
+					v.newlocal struct work_struct* \work
+					v.newlocal struct work_struct* \curr_work
+					v.newlocal struct worker* \worker
+					v.newlocal struct list_head* \worker_head
+					v.newlocal struct list_head* \next_worker
+					v.newlocal struct list_head* \prev_worker
+					v.newlocal struct task_struct* \task
+					v.newlocal struct list_head* \wlist
+					v.newlocal struct list_head* \n_list
+					v.newlocal struct list_head* \pre_list
+					private &work_entry_offset &worker_offset &offhashnode
+					private &index &ptr
+
+					&index = 0
+					v.a \worker=0x0
+					&worker_offset=v.value(&(\worker->node))
+					v.a \work=0x0
+					&work_entry_offset=v.value(&(\work->entry))
+					&offhashnode=v.value(&((struct worker_pool*)0)->hash_node)
+					
+					area.c work 150. 60.*v.value(nr_cpu_ids)
+					area.clear work
+					print "workqeue unbound worker pool " 
+					print ""
+
+					v.while &index<sizeof(unbound_pool_hash)/sizeof(unbound_pool_hash[0])
+					(
+						&ptr = v.value(unbound_pool_hash[&index].first)
+						while &ptr!=0
+						(
+							v.a \pool = &ptr-&offhashnode
+							&ptr = v.value(\pool->hash_node.next)
+							v.a \worker_head=&(\pool->workers)
+							print "--------------------------------------------------------------------------------------------------------------- "
+							print "cpu &cpu_id worker_pool            : " %color.red "0x" format.hex(16.,v.value(\pool))  %color.black "   nr_workers:" %color.red v.value(\pool->nr_workers) %color.black "   nr_idle:" %color.red v.value(\pool->nr_idle)
+							v.a \next_worker=\worker_head->next
+							v.a \prev_worker=\worker_head
+							v.while \next_worker!=\worker_head
+							(
+								v.if \next_worker->prev!=\prev_worker
+								(
+									print %color.red "worker list error:next_worker->prev:0x" format.hex(16.,v.value(\next_worker->prev)) "!= prev_worker:0x" format.hex(16.,v.value(\prev_worker))
+									break
+								)
+								&worker_addr=v.value(\next_worker)-&worker_offset
+								v.a \worker=&worker_addr
+								v.a \task=\worker->task
+								print "worker:" %color.red "0x" format.hex(16.,v.value(\worker)) %color.black "    worker id:"  %color.red format.d(5.,v.value(\worker->id))
+								print "task->comm :" %color.red format.str(v.str(\task->comm),15.,' ')  %color.black  "  pid:" %color.red format.d(5.,v.value(\task->pid))
+								v.a \curr_work=\worker->current_work
+								v.if \curr_work
+								(
+									print %cont "  currnt work_struct: " %color.red "0x" format.hex(16.,v.value(\curr_work))
+									print %cont "  work_func_t: " %color.red y.function(D:v.value(\curr_work->func))
+								)
+								v.a \prev_worker=\next_worker
+								v.a \next_worker=\next_worker->next
+							)
+							; pending work script
+							v.a \wlist=&(\pool->worklist)
+							v.a \n_list=\wlist->next
+							v.a \pre_list=\wlist
+							print "the associated cpu:" %color.red %d v.value(\pool->cpu)
+							print "List of pending working:"
+							v.while \n_list!=\wlist
+							(
+								v.if \n_list->prev!=\pre_list
+								(
+									print %color.red "worklist error:next_list->prev:0x" format.hex(16.,v.value(\n_list->prev)) "!= prev_list:0x" format.hex(16.,v.value(\pre_list))
+									break
+								)
+								&work_addr=v.value(\n_list)-&work_entry_offset
+								v.a \work=&work_addr
+								print "work_struct:" %color.red "0x" format.hex(16.,v.value(\work)) "    work_func_t: " %color.red y.function(D:v.value(\work->func))
+								v.a \pre_list=\n_list
+								v.a \n_list=\n_list->next
+							)
+						)
+						&index = &index+1
+					)
+					area.view work
+				)
+			)
+			popup "[:objects]Display &IrqInfo"
+			(
+				menuitem "[:objects]Display &Irq Count Inf"
+				(
+					v.newlocal struct irq_desc * \desc
+					private &i &j &cpu_id &count &rtype &RADIX_TREE_INTERNAL_NODE &rootSlot &node &slotOff
+					area.c interrupts_area 116. 300.
+					area.clear interrupts_area
+					print %color.blue "hwirq name                   total"
+					&cpu_id=0
+					v.while &cpu_id<nr_cpu_ids
+					(
+						print %cont %color.blue "      CPU" &cpu_id
+						&cpu_id=&cpu_id+1
+					)
+					&rtype=v.typeof(irq_desc_tree)
+					if str.scan("&rtype","struct xarray",0)==0
+					(
+						&RADIX_TREE_INTERNAL_NODE=2
+						&slotOff=v.value(&((struct xa_node *)0)->slots)
+						&rootSlot=v.value((unsigned long)irq_desc_tree.xa_head&~(unsigned long)2)+&slotOff
+					)
+					else
+					(
+						&RADIX_TREE_INTERNAL_NODE=1
+						&slotOff=v.value(&((struct radix_tree_node *)0)->slots)
+						&rootSlot=v.value((unsigned long)irq_desc_tree.rnode&~(unsigned long)1)+&slotOff
+					)
+					&j=0
+					while &j<64.
+					(
+						&node=v.value(((void **)&rootSlot)[&j])
+						if (&node&(&RADIX_TREE_INTERNAL_NODE))==0
+							goto next_1
+						&node=&node-&RADIX_TREE_INTERNAL_NODE
+						&i=0
+						while &i<64.
+						(
+							v.a \desc=((void **)(&node+&slotOff))[&i]
+							v.if \desc==0||\desc->kstat_irqs==0
+								goto next_2
+							&count=0
+							&cpu_id=0
+							v.while &cpu_id<nr_cpu_ids
+							(
+								&count=&count+v.value(*(unsigned *)((unsigned long)\desc->kstat_irqs+__per_cpu_offset[&cpu_id]))
+								&cpu_id=&cpu_id+1
+							)
+							if &count>100.
+							(
+								v.if \desc->irq_data.domain
+									print format.d(5.,v.value(\desc->irq_data.hwirq))
+								else
+									print "     "
+								v.if \desc->name
+									print %cont " " format.str(d.str(D:v.value(\desc->name)), 12, ' ')
+								v.if \desc->action
+									print %cont " " format.str(d.str(D:v.value(\desc->action->name)), 12, ' ')
+								print %cont " " format.d(9.,&count)
+								&cpu_id=0
+								v.while &cpu_id<nr_cpu_ids
+								(
+									&count=v.value(*(unsigned *)((unsigned long)\desc->kstat_irqs+__per_cpu_offset[&cpu_id]))
+									print %cont " " format.d(9.,&count)
+									&cpu_id=&cpu_id+1
+								)
+							)
+next_2:						&i=&i+1
+						)
+next_1:					&j=&j+1
+					)
+					area.view interrupts_area
+				)
+				menuitem "[:objects]Display &Cur Irq"
+				(
+					v.newlocal struct sched_block_event* \sched_be
+					v.newlocal struct rq* \pRq
+					local &SchedClk &Val
+					private &CpuId
+					&CpuId=core()
+					v.a \pRq=(uintptr_t)&runqueues+__per_cpu_offset[&CpuId]
+					gosub NSEC_HIGH v.value(\pRq->clock)
+					&SchedClk=&Val
+					area.c curirqarea 120. 6.
+					area.clear curirqarea
+					print %color.maroon "  name    count start_before   duration event"
+					v.a \sched_be=(uintptr_t)&sft_mon+__per_cpu_offset[&CpuId]
+					gosub DISP_IRQEVENT "SoftTimer"
+					v.a \sched_be=(uintptr_t)&tasklet_mon+__per_cpu_offset[&CpuId]
+					gosub DISP_IRQEVENT "Tasklet"
+					v.a \sched_be=(uintptr_t)&SoftIRQ_mon+__per_cpu_offset[&CpuId]
+					gosub DISP_IRQEVENT "SoftIRQ"
+					v.a \sched_be=(uintptr_t)&hrt_mon+__per_cpu_offset[&CpuId]
+					gosub DISP_IRQEVENT "HRTimer"
+					v.a \sched_be=(uintptr_t)&ISR_mon+__per_cpu_offset[&CpuId]
+					gosub DISP_IRQEVENT "IRQ"
+					area.view curirqarea
+					end
+DISP_IRQEVENT:
+					private &Str
+					entry &Str
+					v.if \sched_be->cur_event
+					(
+						print %color.red "R " %color.black format.str(&Str, 9, ' ') " " format.d(3.,v.value(\sched_be->cur_count))
+						gosub NSEC_HIGH v.value(\sched_be->cur_ts)
+						print %cont " " format.d(9.,&SchedClk-&Val) "ms " %color.red format.d(9.,&SchedClk-&Val) "ms "
+						v.if \sched_be->cur_event>0xFFFFF
+							print %cont v.value(\sched_be->cur_event) " " y.function(D:v.value(\sched_be->cur_event))
+						else
+							print %cont %d v.value(\sched_be->cur_event)
+					)
+					print "  " format.str(&Str, 9, ' ') " " format.d(3.,v.value(\sched_be->last_count))
+					gosub NSEC_HIGH v.value(\sched_be->last_ts)
+					print %cont " " format.d(9.,&SchedClk-&Val) "ms "
+					gosub NSEC_HIGH v.value(\sched_be->last_te-\sched_be->last_ts)
+					print %cont %color.red format.d(9.,&Val) "ms "
+					v.if \sched_be->last_event>0xFFFFF
+						print %cont v.value(\sched_be->last_event) " " y.function(D:v.value(\sched_be->last_event))
+					else
+						print %cont %d v.value(\sched_be->last_event)
+					return
+NSEC_HIGH:
+					entry &Val
+					if &Val<0
+						&Val=-(-&Val/1000000.)
+					else
+						&Val=&Val/1000000.
+					return
+				)
+			)
+			menuitem "[:objects]Display Timers"
+			(
+				v.newlocal struct timer_list* \timer
+				local &tval &msec_per_jiffies &jiffies &TIMER_DEF &TIMER_PINNED
+				private &coreidx &i &cnt &cnt2 &off
+				&off=v.value(&((struct timer_list*)0)->entry)
+				if y.exist(jiffies)
+					&jiffies=v.value((unsigned long)jiffies)
+				else
+					&jiffies=v.value(jiffies_64)
+				&msec_per_jiffies=1000./250. ; HZ=250.
+				if y.exist(timer_bases)
+				(
+					v.newlocal struct timer_base* \tvbase
+					&TIMER_DEF=0x80000
+					&TIMER_PINNED=0x100000
+					&cnt=v.value(sizeof(((struct timer_base*)0)->vectors)/sizeof(((struct timer_base*)0)->vectors[0]))
+					&cnt2=&cnt*2
+					area.c timerarea
+					area.clear timerarea
+					print %color.blue format.str("      addr",v.sizeof(long)*2+2,' ') "  expires  level " format.str("  data",v.sizeof(long)*2,' ') "    flag " format.str("  func_addr",v.sizeof(long)*2,' ') " func"
+					&coreidx=0
+					v.while &coreidx<nr_cpu_ids
+					(
+						v.a \tvbase=(uintptr_t)&timer_bases+__per_cpu_offset[&coreidx]
+						v.print "cpu: " &coreidx " running_timer: " \tvbase->running_timer
+						&i=0
+						rpt &cnt2
+						(
+							v.a \timer=(uintptr_t)\tvbase->vectors[&i].first-&off
+							v.while (uintptr_t)\timer+&off!=0
+							(
+								gosub SHOW_TIMER
+								v.a \timer=(uintptr_t)\timer->entry.next-&off
+							)
+							&i=&i+1
+							if &i==&cnt
+							(
+								v.a \tvbase=&\tvbase[1]
+								&i=0
+							)
+						)
+						print ""
+						&coreidx=&coreidx+1
+					)
+				)
+				else
+				(
+					v.newlocal struct list_head* \list
+					v.newlocal struct tvec_base* \tvbase
+					&TIMER_DEF=0x100000
+					&TIMER_PINNED=0
+					&cnt=v.value(sizeof(((struct tvec_base*)0)->tv1.vec)/sizeof(((struct tvec_base*)0)->tv1.vec[0])+4*sizeof(((struct tvec_base*)0)->tv2.vec)/sizeof(((struct tvec_base*)0)->tv2.vec[0]))
+					area.c timerarea
+					area.clear timerarea
+					print %color.blue format.str("    addr",v.sizeof(long)*2+2,' ') "  expires  slack " format.str("  data",v.sizeof(long)*2,' ') "    flag    func"
+					&coreidx=0
+					v.while &coreidx<nr_cpu_ids
+					(
+						v.a \tvbase=(uintptr_t)&tvec_bases+__per_cpu_offset[&coreidx]
+						print "cpu: " &coreidx " active_timers: " %d v.value(\tvbase->active_timers) " all_timers: " %d v.value(\tvbase->all_timers)
+						v.print %cont " running_timer: " \tvbase->running_timer
+						&i=0
+						v.if sizeof(\tvbase->tv1.vec[0])==sizeof(\list[0])
+						(
+							rpt &cnt
+							(
+								v.a \list=&\tvbase->tv1.vec[&i]
+								v.a \timer=(uintptr_t)\list->next-&off
+								v.while &\timer->entry!=\list
+								(
+									gosub SHOW_TIMER
+									v.a \timer=(uintptr_t)\timer->entry.next-&off
+								)
+								&i=&i+1
+							)
+						)
+						else
+						(
+							rpt &cnt
+							(
+								v.a \timer=(uintptr_t)\tvbase->tv1.vec[&i].first-&off
+								v.while (uintptr_t)\timer+&off!=0
+								(
+									gosub SHOW_TIMER
+									v.a \timer=(uintptr_t)\timer->entry.next-&off
+								)
+								&i=&i+1
+							)
+						)
+						print ""
+						&coreidx=&coreidx+1
+					)
+				)
+				area.view timerarea
+				end
+SHOW_TIMER:
+				echo v.value(\timer)
+				&tval=v.value((\timer->expires-&jiffies)*&msec_per_jiffies)
+				if &tval<10000.
+					print %cont " " format.d(6.,&tval) "ms"
+				else if &tval<3600000.
+					print %cont " " format.d(6.,&tval/1000.) "s "
+				else
+					print %cont " " format.d(6.,&tval/3600000.) "h "
+				if v.exist(\timer->slack)
+					print %cont " " format.d(5.,v.value(\timer->slack))
+				else
+					print %cont " " format.d(5.,v.value((\timer->flags>>22.)&0x3FF)/64.)
+				if v.exist(\timer->data)
+					print %cont " " format.hex(v.sizeof(long)*2,v.value(\timer->data))
+				if v.exist(\timer->base)
+				(
+					v.if (unsigned)\timer->base&1
+						print %cont " deferrable"
+					v.if (unsigned)\timer->base&2
+						print %cont " irqsafe   "
+					v.if !((unsigned)\timer->base&3)
+						print %cont "           "
+				)
+				else
+				(
+					v.if (unsigned)\timer->flags&(&TIMER_DEF)
+						print %cont " deferrable"
+					v.if (unsigned)\timer->flags&0x200000
+						print %cont " irqsafe   "
+					v.if (unsigned)\timer->flags&(&TIMER_PINNED)
+						print %cont " pinned    "
+					v.if !((unsigned)\timer->flags&(0x200000|(&TIMER_DEF)|(&TIMER_PINNED)))
+						print %cont "                   "
+				)
+				print %cont " " v.value(\timer->function) " " y.function(D:v.value(\timer->function))
+				return
+			)
+			menuitem "Get kernel config"
+			(
+				if y.exist(kernel_config_data)
+				(
+					private &cfg_start &cfg_end
+					if y.exist(kernel_config_data_end)
+					(
+						&cfg_start=ADDRESS.OFFSET(Var.ADDRESS(kernel_config_data))
+						&cfg_end=ADDRESS.OFFSET(Var.ADDRESS(kernel_config_data_end))
+					)
+					else
+					(
+						&cfg_start=ADDRESS.OFFSET(Var.ADDRESS(kernel_config_data))+0x8
+						&cfg_end=ADDRESS.OFFSET(Var.END(kernel_config_data))-0x1-0x8
+					)
+					d.save.binary "config.gz" &cfg_start--&cfg_end
+					print "Kernel config saved to config.gz"
+				)
+				else
+				(
+					print "Cannot find kernel config!"
+				)
+			)
+		)
+		popup "Cur Info"
+		(
+			menuitem "Thread Info"
+			(
+				v.newlocal struct task_struct* \thd
+				private &ThdAddr
+				v.if sizeof(long)==8
+				(
+					&ThdAddr=r(sp_el0)
+					v.a \thd=&ThdAddr
+					if v.exist(\thd->thread_info)
+						&ThdAddr=v.value(&\thd->thread_info)
+					else
+						&ThdAddr=v.value(\thd->stack)
+				)
+				else
+					&ThdAddr=r(SP)&~(&ThreadSize-1)
+				v.v %m %s (struct thread_info)&ThdAddr
+			)
+			menuitem "Task Struct"
+			(
+				private &TskAddr
+				v.if sizeof(long)==8
+					&TskAddr=r(sp_el0)
+				else
+				(
+					&TskAddr=r(SP)&~(&ThreadSize-1)
+					&TskAddr=v.value(((struct thread_info)&TskAddr).task)
+				)
+				v.v %m %s (struct task_struct)&TskAddr
+			)
+			menuitem "Run queue"
+			(
+				&core=core()
+				v.v %m %s *(struct rq *)((uintptr_t)&runqueues+__per_cpu_offset[&core])
+			)
+			menuitem "Funcs in stack"
+			(
+				private &Sp &SpEnd &Val &Val2
+				&Sp=r(SP)
+				area.c stkarea 100. 200.
+				area.clear stkarea
+				v.if sizeof(long)==8
+				(
+					&SpEnd=(&Sp&~(&ThreadSize-1))+(&ThreadSize-0x10)
+					if y.exist(irq_stack)
+					(
+						&core=core()
+						&stkaddr=v.value((uintptr_t)&irq_stack+__per_cpu_offset[&core])
+						if &Sp>=&stkaddr&&(&Sp<&stkaddr+(&ThreadSize-0x10))
+							&SpEnd=&stkaddr+(&ThreadSize-0x10)
+					)
+					print %color.blue "       SP         ADDR              NAME"
+					&Sp=&Sp&~0xF
+					while &Sp<&SpEnd
+					(
+						&Val=d.quad(D:&Sp)
+						&Val2=d.quad(D:&Sp+0x8)
+						if &Val>=&Sp&&(&Val<&SpEnd)&&(&Val2>=v.value(&_stext))&&(&Val2<=v.value(&_etext))
+							print %h &Sp " " %h &Val2 " " y.function(D:&Val2)
+						&Sp=&Sp+0x10
+					)
+				)
+				else
+				(
+					&SpEnd=(&Sp&~(&ThreadSize-1))+(&ThreadSize-0x8)
+					print %color.blue "    SP    ADDR      NAME"
+					&Sp=&Sp&~0x7
+					while &Sp<&SpEnd
+					(
+						&Val=d.long(D:&Sp+0x4)
+						&Val2=d.long(D:&Sp+0xC)
+						if &Val>=&Sp&&(&Val<&SpEnd)&&(&Val2>=v.value(&_stext))&&(&Val2<=v.value(&_etext))
+							print %h &Sp " " %h &Val2 " " y.function(D:&Val2)
+						&Sp=&Sp+0x8
+					)
+				)
+				area.view stkarea
+			)
+			menuitem "Funcs in SCS"
+			(
+				private &ThdAddr &Sp &SpEnd &Val
+				&Sp=r(X18)
+				&SpEnd=&Sp&0xFFFFFFFFFFFFF000
+				area.c scsarea 210. (&Sp-&SpEnd)/8.+1.
+				area.clear scsarea
+				print %color.blue "ADDR              NAME                                                                   FILE"
+				while &Sp>&SpEnd
+				(
+					&Sp=&Sp-0x8
+					&Val=(d.quad(D:&Sp)|0xFF7FFF8000000000)-0x4
+					&Name=format.str(y.function(P:&Val),70.,' ')
+					&File=y.sourcefile(P:&Val)
+					&Line=y.sourceline(P:&Val)
+					print %h &Val " &Name &File:&Line"
+				)
+				area.view scsarea
+			)
+			menuitem "Root fs"
+			(
+				local &de_child_off
+				v.newlocal struct dentry* \tde
+				v.newlocal struct list_head* \tlist
+				private &TskAddr &rde
+
+				area.c de_area 200. 6000.
+				area.clear de_area
+				&de_child_off=v.value(&((struct dentry*)0)->d_child)
+				v.if sizeof(long)==8
+					&TskAddr=r(sp_el0)
+				else
+				(
+					&TskAddr=r(SP)&~(&ThreadSize-1)
+					&TskAddr=v.value(((struct thread_info)&TskAddr).task)
+				)
+				&rde=v.value(((struct task_struct*)&TskAddr)->fs->root.dentry)
+				gosub walk_dentry &rde 0
+				area.view de_area
+				end
+walk_dentry:
+				entry &de &idx
+				private &pList &Head &tIdx
+
+				&tIdx=&idx
+				gosub show_dentry &de &tIdx
+				v.a \tde=&de
+				&pList=v.value(\tde->d_subdirs.next)
+				&Head=v.value(&\tde->d_subdirs)
+				while &pList!=&Head
+				(
+					gosub walk_dentry &pList-&de_child_off &tIdx+4
+					v.a \tlist=&pList
+					&pList=v.value(\tlist->next)
+				)
+				return
+show_dentry:
+				entry &de &idx
+
+				v.a \tde=&de
+				print v.value(\tde) " "<<&idx d.str(D:v.value(\tde->d_name.name))
+				return
+			)
+		)
+	)
+
+	menu "var"
+	(
+		enable CORE.NUMBER()>1
+		menuitem "&View Percpu Var"
+		(
+			local &corestr &num
+			&corestr="current."
+			&num=0.
+			rpt CORE.NUMBER()
+			(
+				&corestr="&corestr"+","+"&num"
+				&num=&num+1.
+			)
+			dialog.view
+			(&
+				header "View PERCPU Variable"
+				pos 0. 0. 30. 5.
+				box ""
+				pos 1. 1. 10. 1.
+				text "Core:"
+				pos 12. 1. 17. 1.
+CORE:			pulldown "&corestr" ""
+				pos 6. 3. 8. 1.
+				button "Display"
+				(
+					local &address &core &symname &type
+					&symname=track.string()
+					&type=v.typeof(&symname)
+					&address=address.offset(track.address())
+					&core=dialog.string(CORE)
+					if "&core"=="current."
+					(
+						&core=core()
+					)
+					wpos , ,, , , , WINtlist Normal "percpu &symname /CORE &core"
+					if (&address>address.offset(y.secend(.data..percpu)))||&address<address.offset(y.secaddress(.data..percpu))
+						v.v %open *(&type)(*(unsigned long*)&address+__per_cpu_offset[&core])
+					else
+						v.v %open *(&type*)(&address+__per_cpu_offset[&core])
+					dialog.end
+				)
+				pos 15. 3. 8. 1.
+				button "Close" "dialog.end"
+			)
+		)
+	)
+
+	menu "data"
+	(
+		menuitem "View Owner"
+		(
+			v.newlocal struct page* \page
+			local &virt &phys &sec_per_root &nr &i &addr &refcnt
+			area.c ownerarea 100. 20.
+			area.clear ownerarea
+			&virt=address.offset(track.address())
+			&phys=trans.physical(D:&virt)
+			if address.physical(&phys)
+				&phys=address.offset(&phys)
+			else if v.sizeof(long)==8&&&virt>=0xFFFFFFC00000000
+				&phys=(&virt&3FFFFFFFF)+0x40000000
+			else if v.sizeof(long)==4&&&virt>=0xC0000000
+				&phys=(&virt-0xC0000000)+0x40000000
+			else
+				&phys=0
+			print "virt=" %color.red "&virt" %color.black " phys=" %color.red "&phys"
+			if &phys<0x40000000
+				goto owner_end
+			v.if sizeof(long)==4
+				v.a \page=&mem_map[(&phys-0x40000000)>>12.]
+			else
+			(
+				v.a \page=&((struct page*)0xFFFFFFBE00000000)[(&phys-0x40000000)>>12.]
+				if &MemMapAddr!=0
+					v.a \page=&((struct page*)&MemMapAddr)[&phys>>12.]
+			)
+			v.if sizeof(long)==8
+				print %cont " real virt=" %color.red v.value((((\page->flags>>22.)&0xF)<<2.)|0xFFFFFFC0)
+			if v.exist(\page->_refcount.counter)
+				&refcnt=v.value(\page->_refcount.counter)
+			else
+				&refcnt=v.value(\page->_count.counter)
+			print "page: " %color.red v.value(\page) %color.black " refcount=" %d %color.red &refcnt %color.black " mapcount=" %d %color.red v.value(\page->_mapcount.counter+1) %color.black " mapping=" %color.red v.value(\page->mapping) %color.black " index=" %color.red %d v.value(\page->index)
+			v.if \page->flags
+			(
+				print "page flag: 0x" v.value(\page->flags) ":"
+				v.if \page->flags&0x1
+					print %cont " locked"
+				v.if \page->flags&0x2
+					print %cont " error"
+				v.if \page->flags&0x4
+					print %cont " referenced"
+				v.if \page->flags&0x8
+					print %cont " uptodate"
+				v.if \page->flags&0x10
+					print %cont " dirty"
+				v.if \page->flags&0x20
+					print %cont " lru"
+				v.if \page->flags&0x40
+					print %cont " active"
+				v.if \page->flags&0x80
+					print %cont " slab"
+				v.if \page->flags&0x100
+					print %cont " owner_priv_1"
+				v.if \page->flags&0x200
+					print %cont " arch_1"
+				v.if \page->flags&0x400
+					print %cont " reserved"
+				v.if \page->flags&0x800
+					print %cont " private"
+				v.if \page->flags&0x1000
+					print %cont " private_2"
+				v.if \page->flags&0x2000
+					print %cont " writeback"
+				v.if \page->flags&0x4000
+					print %cont " head"
+				v.if \page->flags&0x8000
+					print %cont " swapcache"
+				v.if \page->flags&0x10000
+					print %cont " mappedtodisk"
+				v.if \page->flags&0x20000
+					print %cont " reclaim"
+				v.if \page->flags&0x40000
+					print %cont " swapbacked"
+				v.if \page->flags&0x80000
+					print %cont " unevictable"
+				v.if \page->flags&0x100000
+					print %cont " mlocked"
+			)
+			v.newlocal struct page* \tpage
+			v.a \tpage=\page-((&virt>>12.)&0x3FF)
+			v.while \tpage<=\page
+			(
+				&nr=1.
+				v.if \tpage->_mapcount.counter==0xFFFFFF80
+				(
+					&i=0.
+					v.while &i<\tpage->private
+					(
+						&nr=&nr*2
+						&i=&i+1
+					)
+					v.if \tpage+&nr>\page
+					(
+						&addr=(&virt&0xFFFFFFFFFFC00000)+(((v.value(\tpage)+((&virt>>12.)&0x3FF)*v.sizeof(struct page)-v.value(\page))/v.sizeof(struct page))<<12.)
+						print "FREE page, range: " %color.red "0x" %h &addr " ~ 0x" %h &addr+(&nr<<12.)
+					)
+				)
+				v.a \tpage=\tpage+&nr
+			)
+			v.if \page->compound_head&1
+				v.a \page=\page->compound_head-1
+			v.if \page->flags&0x80
+			(
+				v.newlocal struct kmem_cache* \s
+				v.a \s=\page->slab_cache
+				print "slub: " d.str(D:v.value(\s->name)) " obj_size=" %d %color.red v.value(\s->object_size) %color.black " size=" %d %color.red v.value(\s->size)
+			)
+			if v.sizeof(long)==4||(!y.exist(page_ext_ops))
+				goto owner_end
+			&sec_per_root=4096./v.sizeof(struct mem_section)
+			&nr=&phys>>30.
+			v.if mem_section[&nr/&sec_per_root]
+			(
+				v.newlocal struct page_ext* \epage
+				v.newlocal unsigned long * \BtAry
+				v.newlocal struct mem_section* \msect
+				v.a \msect=&mem_section[&nr/&sec_per_root][&nr&(&sec_per_root-1)]
+				v.a \epage=&\msect->page_ext[&phys>>12.]
+				print "page alloced via order=" v.value(\epage->order) " mask=" v.value(\epage->gfp_mask)
+				if v.exist(\epage->nr_entries)
+				(
+					&i=v.value(\epage->nr_entries-1)
+					v.a \BtAry=\epage->trace_entries
+				)
+				else
+				(
+					&i=-1
+					v.if \epage->entry
+					(
+						&i=v.value(\epage->entry->nr_entries-1)
+						v.a \BtAry=\epage->entry->backtrace
+					)
+				)
+				v.while &i>=0
+				(
+					&addr=v.value(\BtAry[&i])
+					print " " y.function(D:&addr)
+					&i=&i-1
+				)
+			)
+owner_end:
+			area.view ownerarea
+		)
+		menuitem "View slub track"
+		(
+			if !y.exist(setup_slub_debug)
+			(
+				dialog.ok "CONFIG_SLUB_DEBUG is disabled"
+				end
+			)
+			v.newlocal struct track* \track
+			local &addr &i &off &cnt &track_cnt
+			&track_cnt=v.value(sizeof(\track->addrs)/sizeof(\track->addrs[0]))
+			&cnt=v.value(sizeof(\track->addrs)/sizeof(\track->addrs[0]))*2+2
+			area.c trackarea 100. &cnt
+			area.clear trackarea
+			&addr=address.offset(track.address())
+			v.a \track=&addr
+			&off=0
+			v.if sizeof(long)!=sizeof(\track->addrs[0])
+				&off=&ModStart
+			print "alloc: " y.function(D:v.value(\track->addr)) " when=" %d v.value(\track->when) "tick cpu=" %d v.value(\track->cpu) " pid=" %d v.value(\track->pid)
+			&i=0
+			rpt &track_cnt
+			(
+				&addr=v.value(\track->addrs[&i])+&off
+				print &addr " " y.function(D:&addr)
+				&i=&i+1
+			)
+			v.a \track++
+			print "free:  " y.function(D:v.value(\track->addr)) " when=" %d v.value(\track->when) "tick cpu=" %d v.value(\track->cpu) " pid=" %d v.value(\track->pid)
+			&i=0
+			rpt &track_cnt
+			(
+				&addr=v.value(\track->addrs[&i])+&off
+				print &addr " " y.function(D:&addr)
+				&i=&i+1
+			)
+			area.view trackarea
+		)
+	)
+)
+else
+(
+	add
+	menu
+	(
+	)
+	menu "task.tl"
+	(
+		replace
+		menuitem "Switch Context"
+		(
+			PRIVATE &Addr &Sp
+			v.newlocal struct tskTaskControlBlock* \tsk
+
+			&Addr=address.offset(track.address())
+			v.a \tsk=&Addr
+			&Sp=v.value(\tsk->pxTopOfStack)
+			if v.value(pxCurrentTCB)==&Addr
+			(
+				r.s pc &rv_pc
+				r.s x1 &rv_x1
+				r.s x2 &rv_x2
+				r.s x3 &rv_x3
+				r.s x4 &rv_x4
+				r.s x5 &rv_x5
+				r.s x6 &rv_x6
+				r.s x7 &rv_x7
+				r.s x8 &rv_x8
+				r.s x9 &rv_x9
+				r.s x10 &rv_x10
+				r.s x11 &rv_x11
+				r.s x12 &rv_x12
+				r.s x13 &rv_x13
+				r.s x14 &rv_x14
+				r.s x15 &rv_x15
+				r.s x16 &rv_x16
+				r.s x17 &rv_x17
+				r.s x18 &rv_x18
+				r.s x19 &rv_x19
+				r.s x20 &rv_x20
+				r.s x21 &rv_x21
+				r.s x22 &rv_x22
+				r.s x23 &rv_x23
+				r.s x24 &rv_x24
+				r.s x25 &rv_x25
+				r.s x26 &rv_x26
+				r.s x27 &rv_x27
+				r.s x28 &rv_x28
+				r.s x29 &rv_x29
+				r.s x30 &rv_x30
+				r.s x31 &rv_x31
+				end
+			)
+			; see portRESTORE_CONTEXT
+			r.s pc d.long(sd:&Sp+0x7c)
+			per.s.simple CSR:0x300 d.long(sd:&Sp+0x80) ; mstatus
+			r.s x1 d.long(sd:&Sp+0x0)
+			r.s x2 &Sp+0x84
+			r.s x3 d.long(sd:&Sp+0x8)
+			r.s x4 d.long(sd:&Sp+0xc)
+			r.s x5 d.long(sd:&Sp+0x10)
+			r.s x6 d.long(sd:&Sp+0x14)
+			r.s x7 d.long(sd:&Sp+0x18)
+			r.s x8 d.long(sd:&Sp+0x1c)
+			r.s x9 d.long(sd:&Sp+0x20)
+			r.s x10 d.long(sd:&Sp+0x24)
+			r.s x11 d.long(sd:&Sp+0x28)
+			r.s x12 d.long(sd:&Sp+0x2c)
+			r.s x13 d.long(sd:&Sp+0x30)
+			r.s x14 d.long(sd:&Sp+0x34)
+			r.s x15 d.long(sd:&Sp+0x38)
+			r.s x16 d.long(sd:&Sp+0x3c)
+			r.s x17 d.long(sd:&Sp+0x40)
+			r.s x18 d.long(sd:&Sp+0x44)
+			r.s x19 d.long(sd:&Sp+0x48)
+			r.s x20 d.long(sd:&Sp+0x4c)
+			r.s x21 d.long(sd:&Sp+0x50)
+			r.s x22 d.long(sd:&Sp+0x54)
+			r.s x23 d.long(sd:&Sp+0x58)
+			r.s x24 d.long(sd:&Sp+0x5c)
+			r.s x25 d.long(sd:&Sp+0x60)
+			r.s x26 d.long(sd:&Sp+0x64)
+			r.s x27 d.long(sd:&Sp+0x68)
+			r.s x28 d.long(sd:&Sp+0x6c)
+			r.s x29 d.long(sd:&Sp+0x70)
+			r.s x30 d.long(sd:&Sp+0x74)
+			r.s x31 d.long(sd:&Sp+0x78)
+		)
+	)
+)
