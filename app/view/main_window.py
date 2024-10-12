@@ -99,7 +99,7 @@ class CustomTitleBar(MSFluentTitleBar):
         self.tabBar.setCloseButtonDisplayMode(TabCloseButtonDisplayMode.ON_HOVER)
 
         # 设置标签关闭的信号处理
-        self.tabBar.tabCloseRequested.connect(self.tabBar.removeTab)
+        #self.tabBar.tabCloseRequested.connect(self.removetab)
         # 设置标签切换的信号处理
         self.tabBar.currentChanged.connect(lambda i: print(self.tabBar.tabText(i)))
         
@@ -127,6 +127,7 @@ class MainWindow(MSFluentWindow):
 
         self.setTitleBar(CustomTitleBar(self))
         self.tabBar = self.titleBar.tabBar  # type: TabBar
+        self.tabBar.tabCloseRequested.connect(self.removetab)
 
                 
         #self.tabBar.currentChanged.connect(self.onTabChanged)
@@ -241,3 +242,9 @@ class MainWindow(MSFluentWindow):
 
         # tab左对齐
         self.showInterface.addWidget(TabInterface(text, icon, routeKey, self))
+
+    def removetab(self, index: int):
+        self.tabBar.removeTab(index)
+        self.showInterface.removeWidget(self.showInterface.widget(index))
+        self.showInterface.setCurrentIndex(0)
+        
