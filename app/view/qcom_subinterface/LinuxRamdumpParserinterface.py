@@ -386,6 +386,7 @@ class SettinsCard(GroupHeaderCardWidget):
             self.stateTooltip.setState(True)
             self.runButton.setEnabled(True)
             self.stateTooltip.show()
+
         elif value == "ERROR":
             self.stateTooltip.setContent('解析失败')
             self.stateTooltip.setState(False)
