@@ -16,6 +16,7 @@ from qfluentwidgets import (NavigationItemPosition, MessageBox, MSFluentTitleBar
 from .setting_interface import SettingInterface
 from .mtk_interface import MtkInterface
 from .qcom_interface import QcomInterface
+from .general_interface import GeneralInterface
 from ..common.config import cfg
 from ..common.icon import Icon
 from ..common.signal_bus import signalBus
@@ -130,6 +131,7 @@ class MainWindow(MSFluentWindow):
 
         # TODO: create sub interface
         self.settingInterface = SettingInterface(self)
+        self.generalInterface = GeneralInterface(self)
         self.homeInterface = QStackedWidget(self, objectName='homeInterface')
         self.qcomInterface = QcomInterface(self)
         self.mtkInterface = MtkInterface(self)
@@ -154,6 +156,7 @@ class MainWindow(MSFluentWindow):
 
         # create sub interface
         self.addSubInterface(self.homeInterface, FIF.HOME, '主页', FIF.HOME_FILL)
+        self.addSubInterface(self.generalInterface, FIF.APPLICATION, '通用')
         self.addSubInterface(self.mtkInterface, FIF.APPLICATION, 'MTK')
         self.addSubInterface(self.qcomInterface, FIF.APPLICATION, '高通')
 
