@@ -11,7 +11,7 @@ from ..common import resource
 from ..common.license_service import LicenseService
 from ..common.config import cfg
 from .main_window import MainWindow
-
+from ..common.logging import *
 
 def isWin11():
     return sys.platform == 'win32' and sys.getwindowsversion().build >= 22000

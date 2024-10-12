@@ -21,6 +21,7 @@ from qfluentwidgets import (CardWidget, setTheme, Theme, IconWidget, BodyLabel, 
 from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from app.common.config import ROOTPATH
+from app.common.logging import logger
 
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
@@ -159,8 +160,8 @@ class  Worker(QThread):
         self.shell = shell
 
     def run(self):
-        print("Worker Thread ID: ", QThread.currentThreadId())
-        print(f"Run command: {self.command}")
+        logger.info("Worker Thread ID: {}".format(QThread.currentThreadId()))
+        logger.info("Run command: {}".format(self.command))
 
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -176,7 +177,7 @@ class  Worker(QThread):
             line = process.stdout.readline()
             if not line:
                 break
-            print(line.decode('gbk').strip())
+            logger.info(line.decode('gbk').strip())
 
         self.signal.emit("SUCCESS")
         #self.signal.emit("ERROR")
@@ -260,8 +261,9 @@ class SettinsCard(GroupHeaderCardWidget):
         )
 
     def ondbChooseButtonClicked(self):
-        print("db file Choose Button Clicked!")
+        logger.info("db file Choose Button Clicked!")
         self.dbfile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.dbg)")
+        logger.info("db file: {}".format(self.dbfile))
 
         if self.dbfile == "":
             self.dbchooseButton.setText("选择")
@@ -272,7 +274,7 @@ class SettinsCard(GroupHeaderCardWidget):
 
     def customSignalHandler(self, value):
         # 接收到解析命令结束的信号
-        print(f"Custom signal handler: {value}")
+        logger.info("Custom signal handler: {}".format(value))
         if value == "SUCCESS":
             self.stateTooltip.setContent('解析完成')
             self.stateTooltip.setState(True)
@@ -286,7 +288,7 @@ class SettinsCard(GroupHeaderCardWidget):
             self.runButton.setEnabled(True)
             self.stateTooltip.show()
         else:
-            print(value)
+            logger.info(value)
 
         # 打开解析完成的文件夹
         # output目录名为dbfile文件名加上.DEC字符串
@@ -295,13 +297,13 @@ class SettinsCard(GroupHeaderCardWidget):
 
 
     def start_task(self, command, shell):
-        print("Start task")
+        logger.info("Start task")
         self.worker = Worker(command, shell=shell)
         self.worker.signal.connect(self.customSignalHandler)
         self.worker.start()
 
     def onRunButtonClicked(self):
-        print("run button clicked!")
+        logger.info("run button clicked!")
 
         if self.dbfile == "":
             self.showNofileErrorFlyout()
@@ -469,7 +471,7 @@ class AeeExtractorInterface:
         #self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
 
     def addTab(self, routeKey, text, icon):
-        print(f'[LIUQI]add tab {routeKey} {text} {icon}')
+        logger.info('[LIUQI]add tab {} {}'.format(routeKey, text))
         self.mainWindow.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
@@ -478,5 +480,5 @@ class AeeExtractorInterface:
         self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
         self.mainWindow.tabBar.setCurrentIndex(self.mainWindow.tabBar.count() - 1)
 
-        print("[LIUQI] CurrentWidget: ", self.mainWindow.homeInterface.currentWidget())
-        print("[LIUQI] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())
+        #logger.info("[LIUQI] CurrentWidget: ".format(self.mainWindow.homeInterface.currentWidget()))
+        #logger.info("[LIUQI] CurrentWidgetRoutekey: ".format(self.mainWindow.homeInterface.currentWidget().objectName()))

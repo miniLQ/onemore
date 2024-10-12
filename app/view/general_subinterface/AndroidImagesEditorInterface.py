@@ -20,8 +20,8 @@ from qfluentwidgets import (CardWidget, setTheme, Theme, IconWidget, BodyLabel, 
 
 from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
-from code.sadp import run_parse
 from app.common.config import ROOTPATH
+from app.common.logging import logger
 
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 ANDROID_BOOT_IMAGE_EDITOR_PATH = os.path.join(TOOLS_PATH, "boot_editor")
@@ -166,8 +166,8 @@ class  Worker(QThread):
         self.shell = shell
 
     def run(self):
-        print("Worker Thread ID: ", QThread.currentThreadId())
-        print(f"Run command: {self.command}")
+        logger.info("Worker Thread ID: {}".format(QThread.currentThreadId()))
+        logger.info("Run command: {}".format(self.command))
 
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -183,7 +183,7 @@ class  Worker(QThread):
             line = process.stdout.readline()
             if not line:
                 break
-            print(line.decode('gbk').strip())
+            logger.info(line.decode('gbk').strip())
 
         self.signal.emit("SUCCESS")
         #self.signal.emit("ERROR")
@@ -255,7 +255,7 @@ class SettinsCard(GroupHeaderCardWidget):
     
         # self.platformComboBox.addItems(items)
         # # 设置platformComboBox的编辑事件
-        # #self.platformComboBox.currentTextChanged.connect(print)
+        # #self.platformComboBox.currentTextChanged.connect(logger.info)
         # self.platformComboBox.currentIndexChanged.connect(self.platformComboBoxClicked)
 
         # self.lineEdit.setPlaceholderText("请输入额外的解析参数")
@@ -292,11 +292,11 @@ class SettinsCard(GroupHeaderCardWidget):
         self.runButton.clicked.connect(self.runButtonClicked)
 
     def outputButtonClicked(self):
-        print("output Choose Button Clicked")
+        logger.info("output Choose Button Clicked")
         # 弹出windows文件选择框
         self.output = QFileDialog.getExistingDirectory(self, "选择文件夹")
         # 打印选择的文件路径
-        print("Choose output Directory: ", self.output)
+        logger.info("Choose output Directory: {}".format(self.output))
         
         if self.output == "":
             self.outputButton.setText("选择")
@@ -307,11 +307,11 @@ class SettinsCard(GroupHeaderCardWidget):
 
 
     def imagechooseButtonClicked(self):
-        print("image choose Button Clicked")
+        logger.info("image choose Button Clicked")
         # 弹出windows文件选择框
         self.inputfile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.img)")
         # 打印选择的文件路径
-        print("Choose image File: ", self.inputfile)
+        logger.info("Choose image File: {}".format(self.inputfile))
 
         if self.inputfile == "":
             # 设置vmlinuxButton的文字显示已选择
@@ -322,14 +322,14 @@ class SettinsCard(GroupHeaderCardWidget):
 
 
     def comboBoxClicked(self, index):
-        print("ComboBox Clicked: ", index)
+        logger.info("ComboBox Clicked: {}".format(index))
         # 打印当前选择的值
-        print("Current Index: ", self.comboBox.currentText())
+        logger.info("Current Index: {}".format(self.comboBox.currentText()))
 
     # def platformComboBoxClicked(self, index):
-    #     print("Platform ComboBox Clicked: ", index)
+    #     logger.info("Platform ComboBox Clicked: ", index)
     #     # 打印当前选择的值
-    #     print("Current Index: ", self.platformComboBox.currentText())
+    #     logger.info("Current Index: ", self.platformComboBox.currentText())
 
     def showNoSelectFileFlyout(self):
         Flyout.create(
@@ -351,7 +351,7 @@ class SettinsCard(GroupHeaderCardWidget):
 
     def customSignalHandler(self, value):
         # 接收到解析命令结束的信号
-        print(f"Custom signal handler: {value}")
+        logger.info("Custom signal handler: {}".format(value))
         if value == "SUCCESS":
             self.stateTooltip.setContent('解析完成')
             self.stateTooltip.setState(True)
@@ -363,26 +363,26 @@ class SettinsCard(GroupHeaderCardWidget):
             self.runButton.setEnabled(True)
             self.stateTooltip.show()
         else:
-            print(value)
+            logger.info(value)
 
 
     def start_task(self, command, shell):
-        print("Start task")
+        logger.info("Start task")
         self.worker = Worker(command, shell=shell)
         self.worker.signal.connect(self.customSignalHandler)
         self.worker.start()
 
     def runButtonClicked(self):
-        print("Run Button Clicked")
-        print("image file path: ", self.inputfile)
-        print("output directory: ", self.output)
+        logger.info("Run Button Clicked")
+        logger.info("image file path: ".format(self.inputfile))
+        logger.info("output directory: ".format(self.output))
 
         # if self.comboBox.currentText() == "始终显示":
         #     shell = True
         # else:
         #     shell = False
 
-        #print("Display terminal: ", shell)
+        #logger.info("Display terminal: ", shell)
 
         if self.output == "" or self.inputfile == "":
             self.showNoSelectFileFlyout()
@@ -552,7 +552,7 @@ class AndroidImagesEditorInterface:
         #self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
 
     def addTab(self, routeKey, text, icon):
-        print(f'[LIUQI] add tab {routeKey} {text} {icon}')
+        logger.info('[LIUQI] add tab {} {}'.format(routeKey, text))
         self.mainWindow.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
@@ -561,15 +561,15 @@ class AndroidImagesEditorInterface:
         self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
         self.mainWindow.tabBar.setCurrentIndex(self.mainWindow.tabBar.count() - 1)
 
-        print("[LIUQI] CurrentWidget: ", self.mainWindow.homeInterface.currentWidget())
-        print("[LIUQI] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())
+        #logger.info("[LIUQI] CurrentWidget: ".format(self.mainWindow.homeInterface.currentWidget()))
+        #logger.info("[LIUQI] CurrentWidgetRoutekey: ".format(self.mainWindow.homeInterface.currentWidget().objectName()))
 
     # def onTabChanged(self, index):
     #     objectName = self.mainWindow.tabBar.currentTab().routeKey()
-    #     print("[LIUQI1] ObjectName: ", objectName)
-    #     print("[LIUQI1] index: ", index)
-    #     print("[LIUQI1] CurrentWidget: ", self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
+    #     logger.info("[LIUQI1] ObjectName: ", objectName)
+    #     logger.info("[LIUQI1] index: ", index)
+    #     logger.info("[LIUQI1] CurrentWidget: ", self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
     #     self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
     #     self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
     #     self.mainWindow.tabBar.setCurrentIndex(index)
-    #     print("[LIUQI1] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())
+    #     logger.info("[LIUQI1] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())

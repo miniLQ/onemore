@@ -20,8 +20,8 @@ from qfluentwidgets import (CardWidget, setTheme, Theme, IconWidget, BodyLabel, 
 
 from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
-from code.sadp import run_parse
 from app.common.config import ROOTPATH
+from app.common.logging import logger
 
 GNU_TOOLS_PATH = os.path.join(ROOTPATH, 'tools', 'gnu-tools')
 
@@ -177,8 +177,8 @@ class  Worker(QThread):
         self.shell = shell
 
     def run(self):
-        print("Worker Thread ID: ", QThread.currentThreadId())
-        print(f"Run command: {self.command}")
+        logger.info("Worker Thread ID: {}".format(QThread.currentThreadId()))
+        logger.info("Run command: {}".format(self.command))
 
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -194,7 +194,7 @@ class  Worker(QThread):
             line = process.stdout.readline()
             if not line:
                 break
-            print(line.decode('gbk').strip())
+            logger.info(line.decode('gbk').strip())
 
         self.signal.emit("SUCCESS")
         #self.signal.emit("ERROR")
@@ -269,7 +269,7 @@ class SettinsCard(GroupHeaderCardWidget):
     
         self.platformComboBox.addItems(items)
         # 设置platformComboBox的编辑事件
-        #self.platformComboBox.currentTextChanged.connect(print)
+        #self.platformComboBox.currentTextChanged.connect(logger.info)
         self.platformComboBox.currentIndexChanged.connect(self.platformComboBoxClicked)
 
         self.lineEdit.setPlaceholderText("请输入额外的解析参数")
@@ -308,11 +308,11 @@ class SettinsCard(GroupHeaderCardWidget):
         self.runButton.clicked.connect(self.runButtonClicked)
 
     def chooseButtonClicked(self):
-        print("Choose Button Clicked")
+        logger.info("Choose Button Clicked")
         # 弹出windows文件选择框
         self.dumpdir = QFileDialog.getExistingDirectory(self, "选择文件夹")
         # 打印选择的文件路径
-        print("Choose Dump Directory: ", self.dumpdir)
+        logger.info("Choose Dump Directory: {}".format(self.dumpdir))
         
         if self.dumpdir == "":
             self.chooseButton.setText("选择")
@@ -325,11 +325,11 @@ class SettinsCard(GroupHeaderCardWidget):
 
 
     def vmlinuxButtonClicked(self):
-        print("vmlinux Button Clicked")
+        logger.info("vmlinux Button Clicked")
         # 弹出windows文件选择框
         self.vmlinuxfile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.txt)")
         # 打印选择的文件路径
-        print("Choose Vmlinux File: ", self.vmlinuxfile)
+        logger.info("Choose Vmlinux File: {}".format(self.vmlinuxfile))
 
         if self.vmlinuxfile == "":
             # 设置vmlinuxButton的文字显示已选择
@@ -341,14 +341,14 @@ class SettinsCard(GroupHeaderCardWidget):
         self.vmlinuxGroup.setContent(self.vmlinuxfile)
 
     def comboBoxClicked(self, index):
-        print("ComboBox Clicked: ", index)
+        logger.info("ComboBox Clicked: ".format(index))
         # 打印当前选择的值
-        print("Current Index: ", self.comboBox.currentText())
+        logger.info("Current Index: ".format(self.comboBox.currentText()))
 
     def platformComboBoxClicked(self, index):
-        print("Platform ComboBox Clicked: ", index)
+        logger.info("Platform ComboBox Clicked: ".format(index))
         # 打印当前选择的值
-        print("Current Index: ", self.platformComboBox.currentText())
+        logger.info("Current Index: ".format(self.platformComboBox.currentText()))
 
     def showNoSelectFileFlyout(self):
         Flyout.create(
@@ -380,7 +380,7 @@ class SettinsCard(GroupHeaderCardWidget):
 
     def customSignalHandler(self, value):
         # 接收到解析命令结束的信号
-        print(f"Custom signal handler: {value}")
+        logger.info("Custom signal handler: {}".format(value))
         if value == "SUCCESS":
             self.stateTooltip.setContent('解析完成')
             self.stateTooltip.setState(True)
@@ -392,29 +392,29 @@ class SettinsCard(GroupHeaderCardWidget):
             self.runButton.setEnabled(True)
             self.stateTooltip.show()
         else:
-            print(value)
+            logger.info(value)
 
 
     def start_task(self, command, shell):
-        print("Start task")
+        logger.info("Start task")
         self.worker = Worker(command, shell=shell)
         self.worker.signal.connect(self.customSignalHandler)
         self.worker.start()
 
     def runButtonClicked(self):
-        print("Run Button Clicked")
+        logger.info("Run Button Clicked")
         # 获取chooseButton/ vmlinuxButton/ comboBox/ platformComboBox/ lineEdit的值
-        print("Dump directory: ", self.dumpdir)
-        print("Vmlinux file: ", self.vmlinuxfile)
-        print("platform: ", self.platformComboBox.currentText())
-        print("extend parameters: ", self.lineEdit.text())
+        logger.info("Dump directory: ".format(self.dumpdir))
+        logger.info("Vmlinux file: ".format(self.vmlinuxfile))
+        logger.info("platform: ".format(self.platformComboBox.currentText()))
+        logger.info("extend parameters: ".format(self.lineEdit.text()))
 
         if self.comboBox.currentText() == "始终显示":
             shell = True
         else:
             shell = False
 
-        print("Display terminal: ", shell)
+        logger.info("Display terminal: ".format(shell))
 
         if self.dumpdir == "" or self.vmlinuxfile == "":
             self.showNoSelectFileFlyout()
@@ -435,7 +435,7 @@ class SettinsCard(GroupHeaderCardWidget):
             # runbuton按钮设置为不可点击
             self.runButton.setDisabled(True)
 
-            print(f"Run parse with GNU tools path: {GNU_TOOLS_PATH}")
+            logger.info("Run parse with GNU tools path: {}".format(GNU_TOOLS_PATH))
             ramdump_parse_tool_path = os.path.join(ROOTPATH, 'tools', 'linux-ramdump-parser-v2')
             gdb64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'gdb.exe')
             nm64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-nm.exe')
@@ -590,7 +590,7 @@ class LinuxRamdumpParserInterface:
         #self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
 
     def addTab(self, routeKey, text, icon):
-        print(f'[LIUQI] add tab {routeKey} {text} {icon}')
+        logger.info('[LIUQI] add tab {} {}'.format(routeKey, text))
         self.mainWindow.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
@@ -599,15 +599,15 @@ class LinuxRamdumpParserInterface:
         self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
         self.mainWindow.tabBar.setCurrentIndex(self.mainWindow.tabBar.count() - 1)
 
-        print("[LIUQI] CurrentWidget: ", self.mainWindow.homeInterface.currentWidget())
-        print("[LIUQI] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())
+        #logger.info("[LIUQI] CurrentWidget: ".format(self.mainWindow.homeInterface.currentWidget()))
+        #logger.info("[LIUQI] CurrentWidgetRoutekey: ".format(self.mainWindow.homeInterface.currentWidget().objectName()))
 
     # def onTabChanged(self, index):
     #     objectName = self.mainWindow.tabBar.currentTab().routeKey()
-    #     print("[LIUQI1] ObjectName: ", objectName)
-    #     print("[LIUQI1] index: ", index)
-    #     print("[LIUQI1] CurrentWidget: ", self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
+    #     logger.info("[LIUQI1] ObjectName: ", objectName)
+    #     logger.info("[LIUQI1] index: ", index)
+    #     logger.info("[LIUQI1] CurrentWidget: ", self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
     #     self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
     #     self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
     #     self.mainWindow.tabBar.setCurrentIndex(index)
-    #     print("[LIUQI1] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())
+    #     logger.info("[LIUQI1] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())

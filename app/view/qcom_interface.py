@@ -42,6 +42,8 @@ from ..common.config import cfg, isWin11
 from ..common.setting import HELP_URL, FEEDBACK_URL, AUTHOR, VERSION, YEAR
 from ..common.signal_bus import signalBus
 from ..common.style_sheet import StyleSheet
+from ..common.logging import logger
+from ..common.utils import generate_uuid
 
 from .qcom_subinterface.LinuxRamdumpParserinterface import LinuxRamdumpParserInterface
 
@@ -127,13 +129,13 @@ class AppCard(CardWidget):
 
     def onOpenButtonClicked(self):
         #print('open button clicked')
-        print("{} button clicked!".format(self.UniqueName))
+        logger.info("{} button clicked!".format(self.UniqueName))
         # 根据self.UniqueName()来判断点击的是哪个按钮,然后执行相应函数
         if self.UniqueName == TOOL1_UNIQUE_NAME:
             # 打开Linux Ramdump Parser
             # 创建一个标签页
             # 生成一个7位的guid随机数
-            ramdomNum = random.randint(1000000, 9999999)
+            ramdomNum = generate_uuid()
             routekey = "Linux Ramdump Parser {}".format(ramdomNum)
             self.LinuxRamdumpParserInterface = LinuxRamdumpParserInterface(mainWindow=self.mainWindow)
             self.LinuxRamdumpParserInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
@@ -172,7 +174,7 @@ class AppCard(CardWidget):
             # 打开Tool7
             pass
         else:
-            print("Unknown tool")
+            logger.error("Unknown tool")
     
 
 class QcomInterface(ScrollArea):
