@@ -199,7 +199,9 @@ class GeneralInterface(ScrollArea):
         self.__initWidget()
 
         suffix = ":/qfluentwidgets/images/controls"
-        self.addCard(f"{suffix}/Chicken.png", "DTB2DTS", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
+        resource_image_path = os.path.join(ROOTPATH, 'app', 'resource', 'images')
+        print(resource_image_path)
+        self.addCard("{}".format(os.path.join(resource_image_path, "Chicken.png")), "DTB2DTS", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
         self.addCard(f"{suffix}/TitleBar.png", "Test Tool 2", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
         self.addCard(f"{suffix}/RatingControl.png", "Test Tool 3", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
         self.addCard(f"{suffix}/Checkbox.png", "Test Tool 4", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)

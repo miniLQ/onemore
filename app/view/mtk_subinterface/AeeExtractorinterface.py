@@ -1,13 +1,14 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from qfluentwidgets import CardWidget
 import sys
 from pathlib import Path
 import os
+import subprocess
 
 from PyQt6.QtCore import Qt, QPoint, QSize, QUrl, QRect, QPropertyAnimation
 from PyQt6.QtGui import QIcon, QFont, QColor, QPainter
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QGraphicsOpacityEffect
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QGraphicsOpacityEffect, QFileDialog
 
 from qfluentwidgets import (CardWidget, setTheme, Theme, IconWidget, BodyLabel, CaptionLabel, PushButton,
                             TransparentToolButton, FluentIcon, RoundMenu, Action, ElevatedCardWidget,
@@ -15,9 +16,13 @@ from qfluentwidgets import (CardWidget, setTheme, Theme, IconWidget, BodyLabel, 
                             HeaderCardWidget, InfoBarIcon, HyperlinkLabel, HorizontalFlipView,
                             PrimaryPushButton, TitleLabel, PillPushButton, setFont, ScrollArea,
                             VerticalSeparator, MSFluentWindow, NavigationItemPosition, GroupHeaderCardWidget,
-                            ComboBox, SearchLineEdit, SubtitleLabel, StateToolTip, LineEdit)
+                            ComboBox, SearchLineEdit, SubtitleLabel, StateToolTip, LineEdit, Flyout)
 
 from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
+
+from app.common.config import ROOTPATH
+
+TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
 # 获取当前文件的路径
 current_path = Path(__file__).resolve().parent
@@ -61,23 +66,10 @@ class AppInfoCard(SimpleCardWidget):
         self.iconLabel.setBorderRadius(8, 8, 8, 8)
         self.iconLabel.scaledToWidth(120)
 
-        self.nameLabel = TitleLabel('Aee Extractor', self)
-
-        #self.installButton = PrimaryPushButton('执行', self)
-        #self.installButton.clicked.connect(self.installButtonClicked)
-        #self.installButtonStateTooltip = None
-
-        #self.companyLabel = HyperlinkLabel(
-        #    QUrl('https://qfluentwidgets.com'), 'Shokokawaii Inc.', self)
+        self.nameLabel = TitleLabel('Aee DB Extractor', self)
         self.companyLabel = CaptionLabel('@Designed by iliuqi.', self)
-        #self.installButton.setFixedWidth(160)
-
-        #self.scoreWidget = StatisticsWidget('平均', '5.0', self)
-        #self.separator = VerticalSeparator(self)
-        #self.commentWidget = StatisticsWidget('评论数', '3K', self)
-
         self.descriptionLabel = BodyLabel(
-            'Aee Extractor 是MTK平台开发提供给研发人员进行Ramdump的解析使用的一个工具', self)
+            'Aee DB Extractor 是MTK平台开发提供给研发人员进行DB的解析使用的一个工具', self)
         self.descriptionLabel.setWordWrap(True)
 
         self.tagButton = PillPushButton('MTK', self)
@@ -144,23 +136,6 @@ class AppInfoCard(SimpleCardWidget):
         self.buttonLayout.addWidget(self.tagButton2, 1, Qt.AlignmentFlag.AlignLeft)
         #self.buttonLayout.addWidget(self.shareButton, 0, Qt.AlignmentFlag.AlignRight)
 
-    # def installButtonClicked(self):
-    #     if self.installButtonStateTooltip == '已执行':
-    #         self.installButtonStateTooltip.setContent('已解析完成')
-    #         self.installButtonStateTooltip.setState(True)
-    #         self.installButton.setEnabled(True)
-    #         self.installButtonStateTooltip = None
-    #     else:
-    #         self.installButtonStateTooltip = StateToolTip(
-    #            '正在解析中', '请耐心等待哦~~', self 
-    #         )
-    #         # 设置点击后不允许再次点击
-    #         self.installButton.setDisabled(True)
-    #         # set position 在右下角
-    #         self.parent.vBoxLayout.addSpacing(12)
-    #         self.parent.vBoxLayout.addWidget(self.installButtonStateTooltip, 3, Qt.AlignmentFlag.AlignBottom|Qt.AlignmentFlag.AlignRight)
-            
-    #         self.installButtonStateTooltip.show()
 
 class DescriptionCard(HeaderCardWidget):
     """ Description card """
@@ -168,12 +143,43 @@ class DescriptionCard(HeaderCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.descriptionLabel = BodyLabel(
-            'Aee Extractor 是MTK平台开发提供给研发人员进行Ramdump的解析使用的一个工具。本软件直接集成aee extractor，无需直接下载，直接选择dump文件进行解析即可！', self)
+            'Aee DB Extractor 是MTK平台开发提供给研发人员进行Ramdump的解析使用的一个工具。本软件直接集成 aee DB extractor，无需直接下载，直接选择dump文件进行解析即可！\n log位于/data/log/aee_exp/', self)
 
         self.descriptionLabel.setWordWrap(True)
         self.viewLayout.addWidget(self.descriptionLabel)
         self.setTitle('描述')
         self.setBorderRadius(8)
+
+class  Worker(QThread):
+    signal = pyqtSignal(str)
+
+    def __init__(self, command, shell=True):
+        super().__init__()
+        self.command = command
+        self.shell = shell
+
+    def run(self):
+        print("Worker Thread ID: ", QThread.currentThreadId())
+        print(f"Run command: {self.command}")
+
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+        if self.shell == True:
+            command = "start cmd /c {}".format(self.command)
+        else:
+            command = self.command
+        
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        
+        while True:
+            line = process.stdout.readline()
+            if not line:
+                break
+            print(line.decode('gbk').strip())
+
+        self.signal.emit("SUCCESS")
+        #self.signal.emit("ERROR")
 
 class SettinsCard(GroupHeaderCardWidget):
 
@@ -182,24 +188,26 @@ class SettinsCard(GroupHeaderCardWidget):
         self.setTitle("基本设置")
         self.setBorderRadius(8)
 
+        self.dbfile = ""
+
         # 选择按钮以及输入框部件
-        self.chooseButton = PushButton("选择")
-        self.fileLineEdit = LineEdit()
+        self.dbchooseButton = PushButton("选择")
+        #self.fileLineEdit = LineEdit()
 
         # 显示终端部件
         self.comboBox = ComboBox()
 
         # 入口脚本部件
-        self.lineEdit = LineEdit()
+        #self.lineEdit = LineEdit()
 
         # 设置部件的固定宽度
-        self.chooseButton.setFixedWidth(120)
-        self.fileLineEdit.setFixedWidth(320)
+        self.dbchooseButton.setFixedWidth(120)
+        #self.fileLineEdit.setFixedWidth(320)
 
-        self.lineEdit.setFixedWidth(320)
+        #self.lineEdit.setFixedWidth(320)
         self.comboBox.setFixedWidth(320)
         self.comboBox.addItems(["始终显示", "始终隐藏"])
-        self.lineEdit.setPlaceholderText("输入入口脚本的路径")
+        #self.lineEdit.setPlaceholderText("输入入口脚本的路径")
 
         # 底部运行按钮以及提示
         self.hintIcon = IconWidget(InfoBarIcon.INFORMATION)
@@ -216,12 +224,154 @@ class SettinsCard(GroupHeaderCardWidget):
         self.bottomLayout.addWidget(self.runButton, 0, Qt.AlignmentFlag.AlignRight)
         self.bottomLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
+        # 设置状态提示
+        self.stateTooltip = None
+        self.bottomStateLayout = QHBoxLayout()
+        
+        # 设置底部状态布局
+        self.bottomStateLayout.setSpacing(10)
+        self.bottomStateLayout.setContentsMargins(24, 15, 24, 20)
+        self.bottomStateLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self.bottomStateLayout.addStretch(1)
 
-        self.addGroup("{}/images/Rocket.svg".format(resource_path), "Ramdump目录", "选择Ramdump的存放目录", self.chooseButton)
-        self.addGroup("{}/images/Joystick.svg".format(resource_path), "运行终端", "设置是否显示命令行终端", self.comboBox)
-        self.addGroup("{}/images/Python.svg".format(resource_path), "入口脚本", "选择软件的入口脚本", self.lineEdit)
+        self.dbgroup = self.addGroup("{}/images/Rocket.svg".format(resource_path), "DB文件路径", "请选择DB文件", self.dbchooseButton)
+        #self.addGroup("{}/images/Joystick.svg".format(resource_path), "运行终端", "设置是否显示命令行终端", self.comboBox)
+        #self.addGroup("{}/images/Python.svg".format(resource_path), "入口脚本", "选择软件的入口脚本", self.lineEdit)
         self.vBoxLayout.addLayout(self.bottomLayout)
 
+        self.dbchooseButton.clicked.connect(self.ondbChooseButtonClicked)
+        self.runButton.clicked.connect(self.onRunButtonClicked)
+
+    def showFileStyleErrorFlyout(self):
+        Flyout.create(
+            icon=InfoBarIcon.ERROR,
+            title='db file style error',
+            content="db文件应该以dbg结尾, 请检查后再执行",
+            target=self.runButton,
+            parent=self.window()
+        )
+    def showNofileErrorFlyout(self):
+        Flyout.create(
+            icon=InfoBarIcon.ERROR,
+            title='db file is not choose',
+            content="db文件未选择, 请检查后再执行",
+            target=self.runButton,
+            parent=self.window()
+        )
+
+    def ondbChooseButtonClicked(self):
+        print("db file Choose Button Clicked!")
+        self.dbfile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.dbg)")
+
+        if self.dbfile == "":
+            self.dbchooseButton.setText("选择")
+            #self.dbgroup.setContent("请选择DB文件")
+        else:
+            self.dbchooseButton.setText("已选择")
+            self.dbgroup.setContent(self.dbfile)
+
+    def customSignalHandler(self, value):
+        # 接收到解析命令结束的信号
+        print(f"Custom signal handler: {value}")
+        if value == "SUCCESS":
+            self.stateTooltip.setContent('解析完成')
+            self.stateTooltip.setState(True)
+            self.runButton.setEnabled(True)
+            self.stateTooltip.show()
+
+
+        elif value == "ERROR":
+            self.stateTooltip.setContent('解析失败')
+            self.stateTooltip.setState(False)
+            self.runButton.setEnabled(True)
+            self.stateTooltip.show()
+        else:
+            print(value)
+
+        # 打开解析完成的文件夹
+        # output目录名为dbfile文件名加上.DEC字符串
+        output_dir = self.dbfile + ".DEC"
+        os.system("start explorer {}".format(output_dir))
+
+
+    def start_task(self, command, shell):
+        print("Start task")
+        self.worker = Worker(command, shell=shell)
+        self.worker.signal.connect(self.customSignalHandler)
+        self.worker.start()
+
+    def onRunButtonClicked(self):
+        print("run button clicked!")
+
+        if self.dbfile == "":
+            self.showNofileErrorFlyout()
+        elif not self.dbfile.endswith(".dbg"):
+            self.showFileStyleErrorFlyout()
+        else:
+            self.stateTooltip = StateToolTip('正在解析', '客官请耐心等待哦~~', self)
+            # 状态提示放到中心位置
+            self.bottomStateLayout.addWidget(self.stateTooltip, 0, Qt.AlignmentFlag.AlignRight)
+            self.vBoxLayout.addLayout(self.bottomStateLayout)
+            # 显示状态提示
+            self.stateTooltip.show()
+
+            # runbuton按钮设置为不可点击
+            self.runButton.setDisabled(True)
+
+            if self.comboBox.currentText() == "始终显示":
+                shell = True
+            else:
+                shell = False
+
+            aee_db_extract_path = os.path.join(TOOLS_PATH, "aee_db_extract")
+            command = "{} {}".format(os.path.join(aee_db_extract_path, "aee_extract.exe"), self.dbfile)
+
+            self.start_task(command, shell)
+
+class AeeExtractorCardsInfo(ScrollArea):
+    """ AEE Extractor Subinterface """
+
+    def __init__(self, parent=None, routeKey=None):
+        super().__init__(parent=parent)
+
+        self.view = QWidget(self)
+
+        self.routeKey = routeKey
+
+        self.vBoxLayout = QVBoxLayout(self.view)
+        self.appCard = AppInfoCard(parent=self)
+        #self.galleryCard = GalleryCard(self)
+        self.descriptionCard = DescriptionCard(self)
+        self.settingCard = SettinsCard(self)
+        #self.systemCard = SystemRequirementCard(self)
+
+        self.lightBox = LightBox(self)
+        self.lightBox.hide()
+        #self.galleryCard.flipView.itemClicked.connect(self.showLightBox)
+
+        self.setWidget(self.view)
+        self.setWidgetResizable(True)
+        self.setObjectName(routeKey)
+
+        self.vBoxLayout.setSpacing(25)
+        self.vBoxLayout.setContentsMargins(0, 0, 10, 30)
+        self.vBoxLayout.addWidget(self.appCard, 0, Qt.AlignmentFlag.AlignTop)
+        #self.vBoxLayout.addWidget(self.galleryCard, 0, Qt.AlignmentFlag.AlignTop)
+        self.vBoxLayout.addWidget(self.descriptionCard, 1, Qt.AlignmentFlag.AlignTop)
+        self.vBoxLayout.addWidget(self.settingCard, 2, Qt.AlignmentFlag.AlignTop)
+
+        #self.vBoxLayout.addWidget(self.systemCard, 0, Qt.AlignmentFlag.AlignTop)
+
+        self.enableTransparentBackground()
+
+    def showLightBox(self):
+        index = self.galleryCard.flipView.currentIndex()
+        self.lightBox.setCurrentIndex(index)
+        self.lightBox.fadeIn()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self.lightBox.resize(self.size())
 
 class LightBox(QWidget):
     """ Light box """
@@ -310,52 +460,6 @@ class LightBox(QWidget):
         self.opacityAni.finished.disconnect()
         self.hide()
 
-class AeeExtractorCardsInfo(ScrollArea):
-    """ AEE Extractor Subinterface """
-
-    def __init__(self, parent=None, routeKey=None):
-        super().__init__(parent=parent)
-
-        self.view = QWidget(self)
-
-        self.routeKey = routeKey
-
-        self.vBoxLayout = QVBoxLayout(self.view)
-        self.appCard = AppInfoCard(parent=self)
-        #self.galleryCard = GalleryCard(self)
-        self.descriptionCard = DescriptionCard(self)
-        self.settingCard = SettinsCard(self)
-        #self.systemCard = SystemRequirementCard(self)
-
-        self.lightBox = LightBox(self)
-        self.lightBox.hide()
-        #self.galleryCard.flipView.itemClicked.connect(self.showLightBox)
-
-        self.setWidget(self.view)
-        self.setWidgetResizable(True)
-        self.setObjectName(routeKey)
-
-        self.vBoxLayout.setSpacing(25)
-        self.vBoxLayout.setContentsMargins(0, 0, 10, 30)
-        self.vBoxLayout.addWidget(self.appCard, 0, Qt.AlignmentFlag.AlignTop)
-        #self.vBoxLayout.addWidget(self.galleryCard, 0, Qt.AlignmentFlag.AlignTop)
-        self.vBoxLayout.addWidget(self.descriptionCard, 1, Qt.AlignmentFlag.AlignTop)
-        self.vBoxLayout.addWidget(self.settingCard, 2, Qt.AlignmentFlag.AlignTop)
-
-        #self.vBoxLayout.addWidget(self.systemCard, 0, Qt.AlignmentFlag.AlignTop)
-
-        self.enableTransparentBackground()
-
-    def showLightBox(self):
-        index = self.galleryCard.flipView.currentIndex()
-        self.lightBox.setCurrentIndex(index)
-        self.lightBox.fadeIn()
-
-    def resizeEvent(self, e):
-        super().resizeEvent(e)
-        self.lightBox.resize(self.size())
-
-
 class AeeExtractorInterface:
     def __init__(self, parent=None, mainWindow=None):
         self.parent = parent
@@ -376,13 +480,3 @@ class AeeExtractorInterface:
 
         print("[LIUQI] CurrentWidget: ", self.mainWindow.homeInterface.currentWidget())
         print("[LIUQI] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())
-
-    # def onTabChanged(self, index):
-    #     objectName = self.mainWindow.tabBar.currentTab().routeKey()
-    #     print("[LIUQI1] ObjectName: ", objectName)
-    #     print("[LIUQI1] index: ", index)
-    #     print("[LIUQI1] CurrentWidget: ", self.mainWindow.homeInterface.findChild(AeeExtractorCardsInfo, objectName))
-    #     self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(AeeExtractorCardsInfo, objectName))
-    #     self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
-    #     self.mainWindow.tabBar.setCurrentIndex(index)
-    #     print("[LIUQI1] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())

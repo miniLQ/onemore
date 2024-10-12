@@ -45,7 +45,7 @@ from ..common.style_sheet import StyleSheet
 
 from .mtk_subinterface.AeeExtractorinterface import AeeExtractorInterface
 
-TOOL1_UNIQUE_NAME = "AeeExtractor"
+TOOL1_UNIQUE_NAME = "AeeDBExtractor"
 TOOL2_UNIQUE_NAME = "TOOL2"
 TOOL3_UNIQUE_NAME = "TOOL3"
 TOOL4_UNIQUE_NAME = "TOOL4"
@@ -205,7 +205,7 @@ class MtkInterface(ScrollArea):
         self.__initWidget()
 
         suffix = ":/qfluentwidgets/images/controls"
-        self.addCard(f":/qfluentwidgets/images/logo.png", "AEE Extract", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
+        self.addCard(f":/qfluentwidgets/images/logo.png", "AEE DB Extract", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
         self.addCard(f"{suffix}/TitleBar.png", "Test Tool 2", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
         self.addCard(f"{suffix}/RatingControl.png", "Test Tool 3", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
         self.addCard(f"{suffix}/Checkbox.png", "Test Tool 4", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
