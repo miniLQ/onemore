@@ -46,12 +46,14 @@ from ..common.style_sheet import StyleSheet
 
 from app.common.config import ROOTPATH
 
+from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorInterface
+
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
 #from .mtk_subinterface.AeeExtractorinterface import AeeExtractorInterface
 
 TOOL1_UNIQUE_NAME = "DTB2DTS"
-TOOL2_UNIQUE_NAME = "TOOL2"
+TOOL2_UNIQUE_NAME = "Android Images Unpack"
 TOOL3_UNIQUE_NAME = "TOOL3"
 TOOL4_UNIQUE_NAME = "TOOL4"
 TOOL5_UNIQUE_NAME = "TOOL5"
@@ -141,14 +143,11 @@ class AppCard(CardWidget):
 
         elif self.UniqueName == TOOL2_UNIQUE_NAME:
             # 打开Tool2
-            # ramdomNum = random.randint(1000000, 9999999)
-            # self.mainWindow.addTab("Test Tool 2 {}".format(ramdomNum), "Test Tool 2 {}".format(ramdomNum), 'resource/Smiling_with_heart.png')
-            
-            # # 切换到homeinterface
-            # self.mainWindow.switchTo(self.mainWindow.homeInterface)
-            # # 切换到新建的tab
-            # self.mainWindow.tabBar.setCurrentTab(routeKey="Test Tool 2 {}".format(ramdomNum))
-            # #aeeextractorsubinterface = AeeExtractorSubinterface()
+            ramdomNum = random.randint(1000000, 9999999)
+            routekey = "Android Image Unpack {}".format(ramdomNum)
+            self.AndroidImagesEdiorInterface = AndroidImagesEditorInterface(mainWindow=self.mainWindow)
+            self.AndroidImagesEdiorInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+
             pass
         elif self.UniqueName == TOOL3_UNIQUE_NAME:
             # 打开Tool3
@@ -202,7 +201,7 @@ class GeneralInterface(ScrollArea):
         resource_image_path = os.path.join(ROOTPATH, 'app', 'resource', 'images')
         print(resource_image_path)
         self.addCard("{}".format(os.path.join(resource_image_path, "Chicken.png")), "DTB2DTS", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
-        self.addCard(f"{suffix}/TitleBar.png", "Test Tool 2", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
+        self.addCard(f"{suffix}/TitleBar.png", "Android Image Unpack", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
         self.addCard(f"{suffix}/RatingControl.png", "Test Tool 3", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
         self.addCard(f"{suffix}/Checkbox.png", "Test Tool 4", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
         self.addCard(f"{suffix}/Pivot.png", "Test Tool 5", '@designed by iliuqi.', TOOL5_UNIQUE_NAME)
