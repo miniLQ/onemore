@@ -29,6 +29,12 @@ from qfluentwidgets import (CardWidget, SubtitleLabel, setTheme, Theme, IconWidg
 
 from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
+
+# 获取当前文件的路径
+current_path = Path(__file__).resolve().parent
+# resource文件夹的路径, 位于当前文件的上一级目录
+resource_path = current_path.parent / 'resource'
+
 def isWin11():
     return sys.platform == 'win32' and sys.getwindowsversion().build >= 22000
 
@@ -205,9 +211,11 @@ class MtkInterface(ScrollArea):
 
         self.__initWidget()
 
+
+
         suffix = ":/qfluentwidgets/images/controls"
-        self.addCard(f":/qfluentwidgets/images/logo.png", "AEE DB Extract", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
-        self.addCard(f"{suffix}/TitleBar.png", "KE/NE-Analyze", '@designed by mtk.', TOOL2_UNIQUE_NAME)
+        self.addCard("{}/images/masterGo.svg".format(resource_path), "AEE DB Extract", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
+        self.addCard(f"{suffix}/RatingControl.png", "KE/NE-Analyze", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
         #self.addCard(f"{suffix}/RatingControl.png", "Test Tool 3", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Checkbox.png", "Test Tool 4", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Pivot.png", "Test Tool 5", '@designed by iliuqi.', TOOL5_UNIQUE_NAME)

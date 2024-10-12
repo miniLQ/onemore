@@ -63,12 +63,12 @@ class AppInfoCard(SimpleCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
-        self.iconLabel = ImageLabel(":/qfluentwidgets/images/logo.png", self)
+        self.iconLabel = ImageLabel(":/qfluentwidgets/images/controls/RatingControl.png", self)
         self.iconLabel.setBorderRadius(8, 8, 8, 8)
         self.iconLabel.scaledToWidth(120)
 
         self.nameLabel = TitleLabel('NE/KE Analyze', self)
-        self.companyLabel = CaptionLabel('@Designed by mtk.', self)
+        self.companyLabel = CaptionLabel('@Designed by iliuqi.', self)
         self.descriptionLabel = BodyLabel(
             'NE/KE Analyze tool 是MTK平台开发提供给研发人员进行KE以及NE的解析db使用的一个工具', self)
         self.descriptionLabel.setWordWrap(True)

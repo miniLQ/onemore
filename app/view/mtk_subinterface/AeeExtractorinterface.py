@@ -29,7 +29,7 @@ TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 current_path = Path(__file__).resolve().parent
 # resource文件夹的路径, 位于当前文件的上两级目录
 resource_path = current_path.parent.parent / 'resource'
-
+logger.info("resource_path: {}".format(resource_path))
 
 def isWin11():
     return sys.platform == 'win32' and sys.getwindowsversion().build >= 22000
@@ -63,7 +63,7 @@ class AppInfoCard(SimpleCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
-        self.iconLabel = ImageLabel(":/qfluentwidgets/images/logo.png", self)
+        self.iconLabel = ImageLabel("{}/images/masterGo.svg".format(resource_path), self)
         self.iconLabel.setBorderRadius(8, 8, 8, 8)
         self.iconLabel.scaledToWidth(120)
 

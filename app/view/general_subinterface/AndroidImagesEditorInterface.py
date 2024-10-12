@@ -64,7 +64,7 @@ class AppInfoCard(SimpleCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent 
-        self.iconLabel = ImageLabel(":/qfluentwidgets/images/controls/TitleBar.png", self)
+        self.iconLabel = ImageLabel("{}/images/Rocket.svg".format(resource_path), self)
         self.iconLabel.setBorderRadius(8, 8, 8, 8)
         self.iconLabel.scaledToWidth(120)
 
