@@ -316,12 +316,11 @@ class SettinsCard(GroupHeaderCardWidget):
         
         if self.dumpdir == "":
             self.chooseButton.setText("选择")
+            self.ramdumpGroup.setContent("请选择Ramdump的存放目录")
         else:
             # 设置chooseButton的文字显示已选择
             self.chooseButton.setText("已选择")
-
-        # 更新lineEdit的内容
-        self.ramdumpGroup.setContent(self.dumpdir)
+            self.ramdumpGroup.setContent(self.dumpdir)
 
 
     def vmlinuxButtonClicked(self):
@@ -334,11 +333,10 @@ class SettinsCard(GroupHeaderCardWidget):
         if self.vmlinuxfile == "":
             # 设置vmlinuxButton的文字显示已选择
             self.vmlinuxButton.setText("选择")
+            self.vmlinuxGroup.setContent("请选择vmlinux文件")
         else:
             self.vmlinuxButton.setText("已选择")
-        
-        # 更新lineEdit的内容
-        self.vmlinuxGroup.setContent(self.vmlinuxfile)
+            self.vmlinuxGroup.setContent(self.vmlinuxfile)
 
     def comboBoxClicked(self, index):
         logger.info("ComboBox Clicked: ".format(index))
@@ -395,6 +393,8 @@ class SettinsCard(GroupHeaderCardWidget):
         else:
             logger.info(value)
 
+        # 打开输出目录
+        os.system("start {}".format(self.output_path))
 
     def start_task(self, command, shell):
         logger.info("Start task")
@@ -441,10 +441,10 @@ class SettinsCard(GroupHeaderCardWidget):
             gdb64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'gdb.exe')
             nm64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-nm.exe')
             objdump64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-objdump.exe')
-            output_path = os.path.join(self.dumpdir, 'parser_output')
+            self.output_path = os.path.join(self.dumpdir, 'parser_output')
 
             command = 'python {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(ramdump_parse_tool_path,
-                        self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, output_path, self.platformComboBox.currentText(), self.lineEdit.text())
+                        self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.lineEdit.text())
         
             self.start_task(command, shell)
     

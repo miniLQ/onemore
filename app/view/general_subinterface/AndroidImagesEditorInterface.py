@@ -300,6 +300,7 @@ class SettinsCard(GroupHeaderCardWidget):
         
         if self.output == "":
             self.outputButton.setText("选择")
+            self.outputGroup.setContent("请选择output目录")
         else:
             # 设置chooseButton的文字显示已选择
             self.outputButton.setText("已选择")
@@ -316,6 +317,7 @@ class SettinsCard(GroupHeaderCardWidget):
         if self.inputfile == "":
             # 设置vmlinuxButton的文字显示已选择
             self.imagechooseButton.setText("选择")
+            self.inputGroup.setContent("请选择image文件")
         else:
             self.imagechooseButton.setText("已选择")
             self.inputGroup.setContent(self.inputfile)
@@ -364,6 +366,9 @@ class SettinsCard(GroupHeaderCardWidget):
             self.stateTooltip.show()
         else:
             logger.info(value)
+
+        # 打开输出目录
+        os.system("start {}".format(self.output))
 
 
     def start_task(self, command, shell):

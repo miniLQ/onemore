@@ -267,7 +267,7 @@ class SettinsCard(GroupHeaderCardWidget):
 
         if self.dbfile == "":
             self.dbchooseButton.setText("选择")
-            #self.dbgroup.setContent("请选择DB文件")
+            self.dbgroup.setContent("请选择DB文件")
         else:
             self.dbchooseButton.setText("已选择")
             self.dbgroup.setContent(self.dbfile)
@@ -281,7 +281,6 @@ class SettinsCard(GroupHeaderCardWidget):
             self.runButton.setEnabled(True)
             self.stateTooltip.show()
 
-
         elif value == "ERROR":
             self.stateTooltip.setContent('解析失败')
             self.stateTooltip.setState(False)
@@ -293,7 +292,8 @@ class SettinsCard(GroupHeaderCardWidget):
         # 打开解析完成的文件夹
         # output目录名为dbfile文件名加上.DEC字符串
         output_dir = self.dbfile + ".DEC"
-        os.system("start explorer {}".format(output_dir))
+        logger.info("output dir: {}".format(output_dir))
+        os.system("start {}".format(output_dir))
 
 
     def start_task(self, command, shell):
