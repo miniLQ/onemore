@@ -475,9 +475,9 @@ class AeeExtractorInterface:
         self.mainWindow.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
-        self.mainWindow.homeInterface.addWidget(AeeExtractorCardsInfo(routeKey=routeKey))
-        self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(AeeExtractorCardsInfo, routeKey))
-        self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
+        self.mainWindow.showInterface.addWidget(AeeExtractorCardsInfo(routeKey=routeKey))
+        self.mainWindow.showInterface.setCurrentWidget(self.mainWindow.showInterface.findChild(AeeExtractorCardsInfo, routeKey))
+        self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.showInterface)
         self.mainWindow.tabBar.setCurrentIndex(self.mainWindow.tabBar.count() - 1)
 
         #logger.info("[LIUQI] CurrentWidget: ".format(self.mainWindow.homeInterface.currentWidget()))

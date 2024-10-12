@@ -549,27 +549,27 @@ class AndroidImagesEditorInterface:
         self.mainWindow = mainWindow
         
         #self.mainWindow.tabBar.currentChanged.connect(self.onTabChanged)
-        #self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
+        #self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.showInterface)
 
     def addTab(self, routeKey, text, icon):
         logger.info('[LIUQI] add tab {} {}'.format(routeKey, text))
         self.mainWindow.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
-        self.mainWindow.homeInterface.addWidget(AndroidImagesEditorCardsInfo(routeKey=routeKey))
-        self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(AndroidImagesEditorCardsInfo, routeKey))
-        self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
+        self.mainWindow.showInterface.addWidget(AndroidImagesEditorCardsInfo(routeKey=routeKey))
+        self.mainWindow.showInterface.setCurrentWidget(self.mainWindow.showInterface.findChild(AndroidImagesEditorCardsInfo, routeKey))
+        self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.showInterface)
         self.mainWindow.tabBar.setCurrentIndex(self.mainWindow.tabBar.count() - 1)
 
-        #logger.info("[LIUQI] CurrentWidget: ".format(self.mainWindow.homeInterface.currentWidget()))
-        #logger.info("[LIUQI] CurrentWidgetRoutekey: ".format(self.mainWindow.homeInterface.currentWidget().objectName()))
+        #logger.info("[LIUQI] CurrentWidget: ".format(self.mainWindow.showInterface.currentWidget()))
+        #logger.info("[LIUQI] CurrentWidgetRoutekey: ".format(self.mainWindow.showInterface.currentWidget().objectName()))
 
     # def onTabChanged(self, index):
     #     objectName = self.mainWindow.tabBar.currentTab().routeKey()
     #     logger.info("[LIUQI1] ObjectName: ", objectName)
     #     logger.info("[LIUQI1] index: ", index)
-    #     logger.info("[LIUQI1] CurrentWidget: ", self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
-    #     self.mainWindow.homeInterface.setCurrentWidget(self.mainWindow.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
-    #     self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
+    #     logger.info("[LIUQI1] CurrentWidget: ", self.mainWindow.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
+    #     self.mainWindow.showInterface.setCurrentWidget(self.mainWindow.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
+    #     self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.showInterface)
     #     self.mainWindow.tabBar.setCurrentIndex(index)
-    #     logger.info("[LIUQI1] CurrentWidgetRoutekey: ", self.mainWindow.homeInterface.currentWidget().objectName())
+    #     logger.info("[LIUQI1] CurrentWidgetRoutekey: ", self.mainWindow.showInterface.currentWidget().objectName())

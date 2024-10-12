@@ -185,6 +185,8 @@ class GeneralInterface(ScrollArea):
         #self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.setObjectName('generalInterface')
         self.setWidgetResizable(True)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setFrameShadow(QFrame.Shadow.Plain)
 
         # setting label
         # 瀑布式布局

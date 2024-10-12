@@ -134,9 +134,19 @@ class MainWindow(MSFluentWindow):
         # TODO: create sub interface
         self.settingInterface = SettingInterface(self)
         self.generalInterface = GeneralInterface(self)
+        self.showInterface = QStackedWidget(self, objectName='showInterface')
         self.homeInterface = QStackedWidget(self, objectName='homeInterface')
         self.qcomInterface = QcomInterface(self)
         self.mtkInterface = MtkInterface(self)
+
+        # 在homeinterface的正中央添加一个widget，显示ONEMORE字符串
+        homewidget = Widget('ONEMORE', self.homeInterface)
+        self.homeInterface.addWidget(homewidget)
+        self.homeInterface.setCurrentWidget(homewidget)
+
+        # 当点击home的tab时，显示homewidget
+        #self.addTab('ONEMORE', 'ONEMORE', 'resource/Smiling_with_heart.png')
+        #self.homeInterface.show()
 
 
         self.connectSignalToSlot()
@@ -158,6 +168,7 @@ class MainWindow(MSFluentWindow):
 
         # create sub interface
         self.addSubInterface(self.homeInterface, FIF.HOME, '主页', FIF.HOME_FILL)
+        self.addSubInterface(self.showInterface, FIF.TAG, 'TAB', FIF.TAG, NavigationItemPosition.BOTTOM)
         self.addSubInterface(self.generalInterface, FIF.APPLICATION, '通用')
         self.addSubInterface(self.mtkInterface, FIF.APPLICATION, 'MTK')
         self.addSubInterface(self.qcomInterface, FIF.APPLICATION, '高通')
@@ -170,6 +181,10 @@ class MainWindow(MSFluentWindow):
         #self.addTab('Heart', 'As long as you love me', icon='resource/Heart.png')
 
         self.tabBar.currentChanged.connect(self.onTabChanged)
+
+        # 设置默认显示HOME界面
+        self.homeInterface.show()
+
         #self.tabBar.tabAddRequested.connect(self.onTabAddRequested)
 
     def initWindow(self):
@@ -202,18 +217,18 @@ class MainWindow(MSFluentWindow):
         logger.info("[LIUQI] onTabChanged: {}".format(objectName))
         logger.info("[LIUQI] index: {}".format(index))
         if "Linux Ramdump" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName)))
-            self.homeInterface.setCurrentWidget(self.homeInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
+            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName)))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
         elif "Aee Extractor" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.homeInterface.findChild(AeeExtractorCardsInfo, objectName)))
-            self.homeInterface.setCurrentWidget(self.homeInterface.findChild(AeeExtractorCardsInfo, objectName))
+            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(AeeExtractorCardsInfo, objectName)))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(AeeExtractorCardsInfo, objectName))
         elif "Android Image Unpack" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.homeInterface.findChild(AndroidImagesEditorCardsInfo, objectName)))
-            self.homeInterface.setCurrentWidget(self.homeInterface.findChild(AndroidImagesEditorCardsInfo, objectName))
+            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName)))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName))
         else:
-            self.homeInterface.setCurrentWidget(self.homeInterface.findChild(TabInterface, objectName))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
 
-        self.stackedWidget.setCurrentWidget(self.homeInterface)
+        self.stackedWidget.setCurrentWidget(self.showInterface)
         self.tabBar.setCurrentIndex(index)
 
     def onTabAddRequested(self):
@@ -225,4 +240,4 @@ class MainWindow(MSFluentWindow):
         self.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
-        self.homeInterface.addWidget(TabInterface(text, icon, routeKey, self))
+        self.showInterface.addWidget(TabInterface(text, icon, routeKey, self))

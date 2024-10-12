@@ -192,6 +192,8 @@ class MtkInterface(ScrollArea):
         #self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.setObjectName('mtkInterface')
         self.setWidgetResizable(True)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setFrameShadow(QFrame.Shadow.Plain)
 
         # setting label
         # 瀑布式布局
