@@ -26,6 +26,7 @@ from ..common.logging import logger
 from .qcom_subinterface.LinuxRamdumpParserinterface import LinuxRamdumpParserCardsInfo
 from .mtk_subinterface.AeeExtractorinterface import AeeExtractorCardsInfo
 from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorCardsInfo
+from .general_subinterface.StartGDBInterface import StartGDBCardsInfo
 from .mtk_subinterface.NeKeAnalyze import NeKeAnalyzeCardsInfo
 
 class Widget(QFrame):
@@ -230,6 +231,9 @@ class MainWindow(MSFluentWindow):
         elif "NE/KE-Analyze" in objectName:
             logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName)))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName))
+        elif "StartGDB" in objectName:
+            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(StartGDBCardsInfo, objectName)))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(StartGDBCardsInfo, objectName))
         else:
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
 

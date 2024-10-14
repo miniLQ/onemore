@@ -49,6 +49,7 @@ from ..common.utils import generate_uuid
 from app.common.config import ROOTPATH
 
 from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorInterface
+from .general_subinterface.StartGDBInterface import StartGDBInterface
 
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
@@ -56,7 +57,7 @@ TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
 TOOL1_UNIQUE_NAME = "DTB2DTS"
 TOOL2_UNIQUE_NAME = "Android Images Unpack"
-TOOL3_UNIQUE_NAME = "TOOL3"
+TOOL3_UNIQUE_NAME = "StartGDB"
 TOOL4_UNIQUE_NAME = "TOOL4"
 TOOL5_UNIQUE_NAME = "TOOL5"
 TOOL6_UNIQUE_NAME = "TOOL6"
@@ -153,7 +154,11 @@ class AppCard(CardWidget):
             pass
         elif self.UniqueName == TOOL3_UNIQUE_NAME:
             # 打开Tool3
-            pass
+            ramdomNum = generate_uuid()
+            routekey = "StartGDB {}".format(ramdomNum)
+            self.StartGDBInterface = StartGDBInterface(mainWindow=self.mainWindow)
+            self.StartGDBInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+
         elif self.UniqueName == TOOL4_UNIQUE_NAME:
             # 打开Tool4
             pass
@@ -206,7 +211,7 @@ class GeneralInterface(ScrollArea):
         logger.info(resource_image_path)
         self.addCard("{}".format(os.path.join(resource_image_path, "Chicken.png")), "DTB2DTS", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
         self.addCard(f"{suffix}/TitleBar.png", "Android Image Unpack", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
-        #self.addCard(f"{suffix}/RatingControl.png", "Test Tool 3", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
+        self.addCard(f"{suffix}/RatingControl.png", "StartGDB", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Checkbox.png", "Test Tool 4", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Pivot.png", "Test Tool 5", '@designed by iliuqi.', TOOL5_UNIQUE_NAME)
         #self.addCard(f"{suffix}/MediaPlayerElement.png", "Test Tool 6", '@designed by iliuqi.', TOOL6_UNIQUE_NAME)
