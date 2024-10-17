@@ -46,9 +46,10 @@ from ..common.logging import logger
 from ..common.utils import generate_uuid
 
 from .qcom_subinterface.LinuxRamdumpParserinterface import LinuxRamdumpParserInterface
+from .qcom_subinterface.NocDecodeinterface import NocDecodeInterface
 
 TOOL1_UNIQUE_NAME = "Linux Ramdump Parser"
-TOOL2_UNIQUE_NAME = "TOOL2"
+TOOL2_UNIQUE_NAME = "NOC Decode"
 TOOL3_UNIQUE_NAME = "TOOL3"
 TOOL4_UNIQUE_NAME = "TOOL4"
 TOOL5_UNIQUE_NAME = "TOOL5"
@@ -148,15 +149,11 @@ class AppCard(CardWidget):
             #aeeextractorsubinterface = AeeExtractorSubinterface()
             pass
         elif self.UniqueName == TOOL2_UNIQUE_NAME:
-            # 打开Tool2
-            # ramdomNum = random.randint(1000000, 9999999)
-            # self.mainWindow.addTab("Test Tool 2 {}".format(ramdomNum), "Test Tool 2 {}".format(ramdomNum), 'resource/Smiling_with_heart.png')
-            
-            # # 切换到homeinterface
-            # self.mainWindow.switchTo(self.mainWindow.homeInterface)
-            # # 切换到新建的tab
-            # self.mainWindow.tabBar.setCurrentTab(routeKey="Test Tool 2 {}".format(ramdomNum))
-            # #aeeextractorsubinterface = AeeExtractorSubinterface()
+            ramdomNum = generate_uuid()
+            routekey = "NOC Decode {}".format(ramdomNum)
+            self.NocDecodeInterface = NocDecodeInterface(mainWindow=self.mainWindow)
+            self.NocDecodeInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+
             pass
         elif self.UniqueName == TOOL3_UNIQUE_NAME:
             # 打开Tool3
@@ -212,7 +209,7 @@ class QcomInterface(ScrollArea):
 
         suffix = ":/qfluentwidgets/images/controls"
         self.addCard(f":/qfluentwidgets/images/logo.png", "Linux Ramdump parser", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
-        #self.addCard(f"{suffix}/TitleBar.png", "Test Tool 2", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
+        self.addCard(f"{suffix}/TitleBar.png", "NOC Decode", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
         #self.addCard(f"{suffix}/RatingControl.png", "Test Tool 3", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Checkbox.png", "Test Tool 4", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Pivot.png", "Test Tool 5", '@designed by iliuqi.', TOOL5_UNIQUE_NAME)

@@ -28,6 +28,7 @@ from .mtk_subinterface.AeeExtractorinterface import AeeExtractorCardsInfo
 from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorCardsInfo
 from .general_subinterface.StartGDBInterface import StartGDBCardsInfo
 from .mtk_subinterface.NeKeAnalyze import NeKeAnalyzeCardsInfo
+from .qcom_subinterface.NocDecodeinterface import NocDecodeCardsInfo
 
 class Widget(QFrame):
 
@@ -234,6 +235,9 @@ class MainWindow(MSFluentWindow):
         elif "StartGDB" in objectName:
             logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(StartGDBCardsInfo, objectName)))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(StartGDBCardsInfo, objectName))
+        elif "NOC Decode" in objectName:
+            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(NocDecodeCardsInfo, objectName)))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(NocDecodeCardsInfo, objectName))
         else:
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
 
