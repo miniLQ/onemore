@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2020 SAP AG and IBM Corporation.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        Andrew Johnson (IBM Corporation) - enhancements
+ -->
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd" >
+<reference id="ref_oqlsyntaxwhere" xml:lang="en-us">
+	<title>WHERE Clause</title>
+	<shortdesc />
+
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2020 SAP AG and others.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+
+	<refbody>
+		<section>
+			<p>
+				The <codeph>WHERE</codeph> clause specifies search conditions, that
+				remove unwanted data from the query result. The
+				following operators, are in order of precedence. The
+				operators are evaluated in the specified order:
+
+			</p>
+			<title>
+				&gt;=, &lt;=, &gt;, &lt;, [ NOT ] LIKE, [ NOT ] IN, IMPLEMENTS
+				(relational operations)
+			</title>
+			<codeblock>SELECT * FROM java.lang.String s WHERE s.count >= 100</codeblock>
+			<codeblock>SELECT * FROM java.lang.String s WHERE toString(s) LIKE ".*day"</codeblock>
+			<p>
+			<codeblock>SELECT * FROM java.lang.String s WHERE s.value NOT IN dominators(s)</codeblock>
+			The right hand side of <codeph>IN</codeph> can be a Java <apiname>java.util.List</apiname>, Java <apiname>Object[]</apiname>
+			array, a Java <apiname>int[]</apiname> array, or a result table from another
+			<codeph>SELECT</codeph>, in which case the item is searched among the entries
+			in the first column.
+			If the right hand side is a Java <apiname>int[]</apiname> array and the left
+			hand side is an <apiname>IObject</apiname> then the object ID is searched for
+			in the array.
+			</p>
+			<p>
+			<codeblock>SELECT * FROM java.lang.Class c WHERE c IMPLEMENTS org.eclipse.mat.snapshot.model.IClass</codeblock>
+			<codeph>IMPLEMENTS</codeph> works when the left hand side is any object or an integer
+			which is considered as an object ID and the actual IObject is used for the test.
+			</p>
+		</section>
+		<section>
+			<title>=, != (equality operations)</title>
+			<codeblock>SELECT * FROM java.lang.String s WHERE toString(s) = "monday"</codeblock>
+		</section>
+		<section>
+			<title>AND (conditional AND operation)</title>
+			<codeblock>SELECT * FROM java.lang.String s WHERE s.count > 100 AND s.@retainedHeapSize > s.@usedHeapSize</codeblock>
+		</section>
+		<section>
+			<title>OR (conditional OR operation)</title>
+			<codeblock>SELECT * FROM java.lang.String s WHERE s.count > 1000 OR s.value.@length > 1000</codeblock>
+			<p>
+				Operators can be applied to expressions, constant
+				literals and sub queries. Valid expressions are
+				explained in the next sections.
+			</p>
+		</section>
+		<section>
+			<title>Literal Expression</title>
+			<p>Boolean, String, Integer, Long, Character, Float, Double and null literals:</p>
+			<codeblock>SELECT * FROM java.lang.String s
+         WHERE ( s.count > 1000 ) = true
+           OR toString(s) = "monday"
+           OR dominators(s).size() = 0
+           OR s.@retainedHeapSize > 1024L
+           OR s.value != null AND s.value.@valueArray.@length >= 1 AND s.value.@valueArray.get(0) = 'j'
+           </codeblock>
+           <codeblock>SELECT * FROM instanceof java.lang.Number s
+         WHERE s.value > -1 
+           OR s.value > -1L
+           OR s.value > 0.1
+           OR s.value > -0.1E-2F
+           OR s.value > 0.1D
+           OR s.value > -0.1E-2D
+           OR s.value > 0.1
+           OR s.value > -0.1E-2F
+           OR s.value > 0.1D
+           OR s.value > -0.1E-2D
+           </codeblock>
+		</section>
+	</refbody>
+</reference>

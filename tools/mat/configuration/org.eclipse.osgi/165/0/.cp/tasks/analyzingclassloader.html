@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="Analyze Class Loader" />
+<meta name="abstract" content="Class loaders load classes into the memory of the JVM. When analyzing the heap, class loaders are very important for two reasons: First, applications typically load components using separate class loaders. Second, the loaded classes are usually stored in a separate space (e.g. the perm space) which can also be depleted." />
+<meta name="description" content="Class loaders load classes into the memory of the JVM. When analyzing the heap, class loaders are very important for two reasons: First, applications typically load components using separate class loaders. Second, the loaded classes are usually stored in a separate space (e.g. the perm space) which can also be depleted." />
+<meta name="copyright" content="Copyright (c) 2008, 2010 SAP AG and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2008, 2010 SAP AG and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="task_analyzingclassloader" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>Analyze Class Loader</title>
+</head>
+<body id="task_analyzingclassloader">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Analyze Class Loader</h1>
+
+	
+	
+	
+	<div class="body refbody"><p class="shortdesc">
+		Class loaders load classes into the memory of the JVM. When
+		analyzing the heap, class loaders are very important for two reasons:
+		First, applications typically load components using separate class
+		loaders. Second, the loaded classes are usually stored in a separate space (e.g. the perm space)
+		which can also be depleted.
+	</p>
+
+		<div class="section"><h2 class="title sectiontitle">Class Loader Explorer</h2>
+			
+			<div class="p">
+				To get an overview, run the
+				<span class="ph menucascade"><span class="ph uicontrol">Query Browser</span><abbr title="and then"> &gt; </abbr><span class="ph uicontrol">Java Basics</span><abbr title="and then"> &gt; </abbr><span class="ph uicontrol">Class Loader Explorer</span></span>
+				inspection on the heap dump.
+
+				<ul class="ul">
+					<li class="li">The Memory Analyzer attaches a meaningful label to the class
+						loader - in the case of OSGi bundles it is the bundle id. Looking
+						out for duplicate entries!</li>
+
+					<li class="li">Next to the class loader name, the table contains the defined
+						classes and the number of live instances. If one and the same
+						component is loaded multiple times, the number of live instances
+						can indicate which class loaders is more alive and which one
+						should be garbage collected.</li>
+
+				</ul>
+
+			</div>
+
+
+			<img class="image" src="analyzingclassloader_explorer.png" alt="Class Loader Explorer" />
+
+			<p class="p">
+				Find more information in this blog posting:
+				<a class="xref" href="http://dev.eclipse.org/blogs/memoryanalyzer/2008/05/17/the-unknown-generation-perm/" target="_blank">The Unknown Generation: Perm</a>
+			</p>
+
+
+		</div>
+
+	</div>
+
+</body>
+</html>

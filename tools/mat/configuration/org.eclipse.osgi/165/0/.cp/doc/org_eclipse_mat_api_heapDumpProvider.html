@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Heap Dump Provider</title>
+<style type="text/css">@import url("book.css");</style>
+<style type="text/css">@import url("schema.css");</style>
+</HEAD>
+<BODY>
+<H1 style="text-align:center">Heap Dump Provider</H1>
+<p></p>
+<h6 class="CaptionFigColumn SchemaHeader">Identifier: </h6>org.eclipse.mat.api.heapDumpProvider<p></p>
+<h6 class="CaptionFigColumn SchemaHeader">Since: </h6>1.0
+<p></p>
+
+<h6 class="CaptionFigColumn SchemaHeader">Description: </h6>The Acquire Heap Dump menu option allows the user to request a heap dump on a local running Java process. This extension point allows the retrieval of a list of running VMs of a particular type, and the triggering of a dump on one of those processes.<p></p>
+<h6 class="CaptionFigColumn SchemaHeader">Configuration Markup:</h6>
+<p></p>
+<p class="code SchemaDtd">&lt;!ELEMENT <a name="e.extension">extension</a> (<a href="#e.provider">provider</a>)*&gt;</p>
+<p class="code SchemaDtd">&lt;!ATTLIST extension</p>
+<p class="code SchemaDtdAttlist">point&nbsp;CDATA #REQUIRED</p><p class="code SchemaDtdAttlist">id&nbsp;&nbsp;&nbsp;&nbsp;CDATA #IMPLIED</p><p class="code SchemaDtdAttlist">name&nbsp;&nbsp;CDATA #IMPLIED</p>&gt;</p>
+<p></p>
+<ul class="ConfigMarkupAttlistDesc">
+</ul>
+<br><p class="code SchemaDtd">&lt;!ELEMENT <a name="e.provider">provider</a> EMPTY&gt;</p>
+<p class="code SchemaDtd">&lt;!ATTLIST provider</p>
+<p class="code SchemaDtdAttlist">impl&nbsp;CDATA #REQUIRED</p>&gt;</p>
+<p></p>
+<ul class="ConfigMarkupAttlistDesc">
+<li><b>impl</b> - implements <a href="org/eclipse/mat/snapshot/acquire/IHeapDumpProvider.html"><code>org.eclipse.mat.snapshot.acquire.IHeapDumpProvider</code></a>.</li>
+</ul>
+<br><h6 class="CaptionFigColumn SchemaHeader">Examples: </h6>The following is an example of a heap dump provider declaration;
+
+<pre class="Example"><span class="code SchemaTag">
+   &lt;extension
+         name=</span><span class="code SchemaCstring">&quot;IBM Virtual Machines&quot;</span><span class="code SchemaTag">
+         point=</span><span class="code SchemaCstring">&quot;org.eclipse.mat.api.heapDumpProvider&quot;</span><span class="code SchemaTag">&gt;
+      &lt;provider
+            impl=</span><span class="code SchemaCstring">&quot;org.eclipse.mat.ibmvm.acquire.DumpFactory&quot;</span><span class="code SchemaTag">&gt;
+      &lt;/provider&gt;
+   &lt;/extension&gt;
+</span></pre>
+
+The dump provider must implement <code>org.eclipse.mat.snapshot.acquire.IHeapDumpProvider</code>.
+Argument annotations can be used to specify arguments to be filled in by the user.
+
+<pre class="Example"><span class="code SchemaTag">
+@Name("My Dump type")
+public class MyDumpProvider implements org.eclipse.mat.snapshot.acquire.IHeapDumpProvider
+{
+ @Argument
+ File dumpingProgram;
+ 
+</span></pre>
+
+Argument annotations can also be used on VmInfo types.
+<pre class="Example"><span class="code SchemaTag">
+public class MyVmInfo extends VmInfo
+{
+    public enum DumpType
+    {
+        DUMP1("dump1"), //$NON-NLS-1$
+        Dump2("dump2"); //$NON-NLS-1$
+        String type;
+        private DumpType(String s) {
+            type = s;
+        }
+    }
+    @Argument
+    public DumpType type = DumpType.DUMP1;
+</span></pre>
+<p></p>
+
+<h6 class="CaptionFigColumn SchemaHeader">API Information: </h6>The value of the impl attribute must represent an implementor of <samp>org.eclipse.mat.snapshot.acquire.IHeapDumpProvider</samp>.
+<p></p>
+
+<h6 class="CaptionFigColumn SchemaHeader">Supplied Implementation: </h6>The standard supplied heap dump providers are for Oracle/Sun JVMs and for IBM Virtual Machines for Java. They are <code>org.eclipse.mat.hprof.acquire.JMapHeapDumpProvider</code> and <code>org.eclipse.mat.ibmvm.acquire.DumpFactory</code> (actually an IExecutableExtensionFactory).
+<p></p>
+
+<br>
+<p class="note SchemaCopyright">
+Copyright (c) 2010,2011 SAP AG and IBM Corporation<br>
+All rights reserved. This program and the accompanying materials are made 
+available under the terms of the Eclipse Public License 2.0 which 
+accompanies this distribution, and is available at 
+<a href="https://www.eclipse.org/legal/epl-2.0/">https://www.eclipse.org/legal/epl-2.0/</a>
+
+</p>
+</BODY>
+</HTML>

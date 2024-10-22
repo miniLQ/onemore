@@ -397,7 +397,6 @@ class SettinsCard(GroupHeaderCardWidget):
             self.showFileStyleErrorFlyout()
         else:
             self.stateTooltip = StateToolTip('正在解析', '客官请耐心等待哦~~', self)
-            # 状态提示放到中心位置
             self.bottomStateLayout.addWidget(self.stateTooltip, 0, Qt.AlignmentFlag.AlignRight)
             self.vBoxLayout.addLayout(self.bottomStateLayout)
             # 显示状态提示

@@ -29,6 +29,7 @@ from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEdit
 from .general_subinterface.StartGDBInterface import StartGDBCardsInfo
 from .mtk_subinterface.NeKeAnalyze import NeKeAnalyzeCardsInfo
 from .qcom_subinterface.NocDecodeinterface import NocDecodeCardsInfo
+from .general_subinterface.Matinterface import MatCardsInfo
 
 class Widget(QFrame):
 
@@ -238,6 +239,9 @@ class MainWindow(MSFluentWindow):
         elif "NOC Decode" in objectName:
             logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(NocDecodeCardsInfo, objectName)))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(NocDecodeCardsInfo, objectName))
+        elif "Memory Analyzer tool" in objectName:
+            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(MatCardsInfo, objectName)))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(MatCardsInfo, objectName))
         else:
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
 

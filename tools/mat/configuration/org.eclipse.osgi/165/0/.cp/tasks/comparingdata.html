@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="task" />
+<meta name="DC.title" content="Comparing Objects" />
+<meta name="copyright" content="Copyright (c) 2011, 2020 SAP AG and IBM Corporation. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2011, 2020 SAP AG and IBM Corporation. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="task_comparingdata" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>Comparing Objects</title>
+</head>
+<body id="task_comparingdata">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Comparing Objects</h1>
+
+	
+
+	<div class="body taskbody">
+		<div class="section context">
+		    <p class="p"><strong class="ph b">Introduction</strong></p>
+
+			<p class="p">
+		    Before looking into the capabilities that Memory Analyzer offers in the area of comparison
+		    let us make some explanation. Object IDs which are provided in the heap dump formats supported by MAT
+		    are just the addresses at which the objects are located. As objects are often moved and 
+		    reordered by the JVM during a GC these addressed change. Therefore they cannot be used to compare the objects.
+		    This basically means that if one compares two different heap dumps (although from the same process) it is not
+		    possible to point to the concrete objects different between the two heap dumps.
+		    However, one can still perform comparison on the aggregated results (e.g. the class histogram)
+		    and analyze how the amount of object and the memory they take has changed.
+			</p>
+
+
+			<p class="p">
+				Memory Analyzer offers the possibility to compare not only the global class histograms of two different
+				heap dumps, but an arbitrary number of table-formatted or tree-formatted results - for example the 
+				retained sets of three different objects. It doesn't matter if the tables or trees which 
+				are compared come from one and the same or different heap dumps.
+			</p>
+
+			<div class="p">
+				This means that one has the possibility to do things like:
+				<ul class="ul">
+				<li class="li">Compare the retained set of a specific package across several heap dumps</li>
+
+				<li class="li">Compare how the retained sets for application objects A1, A2 and A3 (all in the 
+				same heap dump) differ from each other</li>
+
+				</ul>
+ 
+			</div>
+
+			<p class="p">				
+				Here is a quick description how to compare several retained set tables.
+			</p>
+
+		</div>
+
+				
+		<ol class="ol steps"><li class="li step stepexpand">
+			<span class="ph cmd">
+				<strong class="ph b">Move all tables to be compared to the Compare Basket</strong>
+			</span>
+			<div class="itemgroup info">
+			<p class="p">
+				All queries which are executed in Memory Analyzer can be seen in the Navigation History View.
+				From this view one can add the results to be compared to the Compare Basket. 
+				The Navigation History is still per heap dump, therefore if one wants to compare 
+				tables from different heap dumps then they have to be added one by one.
+				Multiple tables from one heap dump can be added at a time.
+			</p>
+
+			<p class="p">Trees can be compared as well, and the comparison result is then a tree.
+			<a class="xref" href="queryingheapobjects.html">Object Query Language (OQL)</a> results
+			can also be compared, though only the last result from each OQL editor can be 
+			added to the Compare Basket. If another query is issued then the previous result
+			will be removed from the basket. If two OQL results need to be compared then
+			two OQL editors should be opened.</p>
+
+			<p class="p">If the tables or trees are filtered then the filtered result will be used for the
+			comparison. If there are derived data columns such calculated retained sizes then these
+			will be included in the comparison.</p>
+
+			</div>
+			<div class="itemgroup stepresult">
+				<img class="image" src="../mimes/nn_add_to_compare_basket.png" alt="Move from Navigation History to Compare Basket" />
+			</div>
+			</li>
+<li class="li step stepexpand">
+			<span class="ph cmd">
+				<strong class="ph b">Modify the order of the tables</strong>
+			</span>
+			<div class="itemgroup info">
+			<p class="p">
+				Using the tool bar of the Compare Basket one can modify the order in which tables 
+				should be compared, i.e. select which result should be the baseline, which comes second, etc...
+			</p>
+
+			</div>
+			<div class="itemgroup stepresult">
+				<img class="image" src="../mimes/nn_compare_basket.png" alt="Modify the Tables Order in the Compare Basket" />
+			</div>
+			</li>
+<li class="li step stepexpand">
+			<span class="ph cmd">
+				<strong class="ph b">Execute the comparison</strong>
+			</span>
+			<ul class="ul choices">
+			<li class="li choice">
+				Once the preferred order is achieved just click the execute button...
+			<p class="p">
+				<img class="image" src="../mimes/nn_click_compare.png" alt="Click Compare" />
+			</p>
+
+			</li>
+
+			<li class="li choice">
+				or to compare a subset of the tables, bring up the context menu on selected table entries.
+				When comparing tables from one and the same heap dump, it is now possible
+			to perform different set operations on the comparison result.
+				<img class="image" src="../mimes/compare_basket_context_menu.png" alt="Context menu in the Compare Basket" />
+				<div class="p">The comparison query has several options to control the comparison in
+				more detail.
+				<dl class="dl">
+					
+						<dt class="dt dlterm">-mode</dt>
+
+						<dd class="dd">Whether to show absolute values in columns, or the difference from the base table, or the difference from the preceding table.</dd>
+
+					
+					
+						<dt class="dt dlterm">-setop</dt>
+
+						<dd class="dd">Whether to just show the raw tables, or only a particular set operation, or all the tables and the set operations as context menus.</dd>
+
+					
+					
+						<dt class="dt dlterm">-keycolumn</dt>
+
+						<dd class="dd">The number of the column to be matched between the tables (default of column 1).</dd>
+
+					
+					
+						<dt class="dt dlterm">-mask</dt>
+
+						<dd class="dd">Regular expression to mask part of the key, for example addresses using: <kbd class="ph userinput">\s@ 0x[0-9a-f]+</kbd> or an array index using <kbd class="ph userinput">^\[[0-9]+\]$</kbd>
+						The same object in two consecutive heap dumps may have a different address if it has been moved 
+						by garbage collection. Two corresponding objects from two different heap dumps will have different addresses.
+						If these two objects are to matched by the comparison then the addresses need to be removed from the display value
+						of the key. This option allows this to happen.</dd>
+
+					
+					
+						<dt class="dt dlterm">-replace</dt>
+
+						<dd class="dd">Replacement text for mask matches. This will be displayed as part of the key column.
+							Regular expression terms <kbd class="ph userinput">$0</kbd>, <kbd class="ph userinput">$1</kbd> may be used to
+							extract the value of groups defined by the <span class="keyword parmname">mask</span> option.
+						</dd>
+
+					
+					
+						<dt class="dt dlterm">-prefix</dt>
+
+						<dd class="dd">Whether to include the prefix of the key column in the match — for example the field name or array index in a path.</dd>
+
+					
+					
+						<dt class="dt dlterm">-suffix</dt>
+
+						<dd class="dd">Whether to include the suffix of the key column in the match — for example the GC root type.</dd>
+
+					
+					
+						<dt class="dt dlterm">-x</dt>
+
+						<dd class="dd">The key can be extended by adding field references to be matched. The extra key values are specified as follows:
+							<span class="keyword parmname">extra</span> ::= <kbd class="ph userinput"><var class="keyword varname">className</var>[:<var class="keyword varname">field</var>[,<var class="keyword varname">field</var>]]</kbd>
+							Example:
+								<kbd class="ph userinput">java.lang.Module:name</kbd>
+							If the object is an instance of that type then the values of those fields are resolved and added to the key. If the fields are omitted then the class specific name of the object itself is resolved.
+						</dd>
+
+					
+					
+						<dt class="dt dlterm">-xfile</dt>
+
+						<dd class="dd">Read extra key values from the file. Each line must have the same format as for the -x argument.</dd>
+
+					
+				</dl>
+
+				</div>
+
+			</li>
+
+			</ul>
+
+			<div class="itemgroup stepresult">
+			<p class="p">
+				... and see the result.
+			</p>
+
+			<p class="p">
+				<img class="image" src="../mimes/nn_compared_tables_absolute.png" alt="Comparison table" />
+			</p>
+
+			</div>
+			</li>
+<li class="li step stepexpand">
+			<span class="ph cmd">
+				<strong class="ph b">Customize the displayed result</strong>
+			</span>
+			<div class="itemgroup info">
+			<p class="p">
+				By default the absolute values of all tables will be shown for every compared property,
+				e.g. number of objects, shallow size, etc... One can now change between deltas and
+				absolute values, as well as select which columns should be compared:
+			</p>
+
+			<p class="p">
+				<img class="image" src="../mimes/nn_select_compare_option.png" alt="Switch between Absolute Values and Deltas" />
+				<img class="image" src="../mimes/nn_select_columns.png" alt="Select Columns To Be Compared" />				
+			</p>
+
+			</div>
+			<div class="itemgroup stepresult">
+			<p class="p">
+				<img class="image" src="../mimes/nn_compared_result_delta.png" alt="Modified Comparison Result" />
+			</p>
+
+			</div>
+			</li>
+<li class="li step stepexpand">
+			<span class="ph cmd">
+				<strong class="ph b">Context menu with set operations</strong>
+			</span>
+			<div class="itemgroup info">
+				<p class="p">If the tables have been compared using <span class="ph menucascade"><span class="ph uicontrol">Compare tables and trees with all set operations</span></span> then it is possible to perform different set operations on the comparison result using the
+					context menu.
+					Set operations only operate when there are two or more tables or trees from the current snapshot.
+					In this situation, even if another comparison query has been chosen, then the menu toolbar contain a <span class="ph menucascade"><span class="ph uicontrol">Choose set operation ...</span></span>
+					menu which will select which set operations appear on the context menu.
+				</p>
+
+				<img class="image" src="../mimes/setops_menu.png" alt="Set Operations context menu" />
+			</div>
+			</li>
+<li class="li step stepexpand">
+			<span class="ph cmd">
+				<strong class="ph b">Comparison reports</strong>
+			</span>
+			<div class="itemgroup info">
+				There are some reports which operate by comparing two snapshots.
+				The <span class="keyword cmdname">Leak Suspects by Snapshot Comparison</span> report
+				available from the Overview pane runs a special <a class="xref" href="runningleaksuspectreport.html">Leak Suspects report</a>
+				which operates by comparing the dominator trees of the two snapshots and detects larger changes in retained sizes between
+				corresponding objects.
+				The query is also available from <span class="ph menucascade"><span class="ph uicontrol">Leak Suspects</span><abbr title="and then"> &gt; </abbr><span class="ph uicontrol">Compare Snapshots Leak Report</span></span>
+				and in <a class="xref" href="batch.html">batch mode</a>.
+			</div>
+			</li>
+</ol>
+
+	</div>
+
+</body>
+</html>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Heap Dump" />
+<meta name="DC.relation" scheme="URI" content="../tasks/acquiringheapdump.html" />
+<meta name="copyright" content="Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="concept_heapdump" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>Heap Dump</title>
+</head>
+<body id="concept_heapdump">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Heap Dump</h1>
+
+	
+	
+	<div class="body conbody">
+		<p class="p">A heap dump is a snapshot of the memory of a Java process at a certain point of time. 
+		   There are different formats for persisting this data, and depending on the format, may
+		   contain different pieces of information; but, in general, the snapshot contains information
+		   about the Java objects and classes in the heap at the moment the snapshot was triggered.
+		   In some cases, a full GC is triggered before the heap dump is written so it contains
+		   information about the remaining objects.</p>
+
+		<p class="p">The Memory Analyzer is able to work with HPROF binary heap dumps, 
+		   IBM system dumps (old versions require preprocessing), and IBM portable heap dumps (PHD) 
+		   from a variety of platforms.
+		</p>
+		   
+
+		<p class="p">
+			Typical information which can be found in heap dumps (depending on the heap dump type):
+		</p>
+
+		
+		<ul class="ul">
+			<li class="li">
+				All Objects
+				<p class="p">Class, fields, primitive values and references</p>
+
+			</li>
+
+			<li class="li">
+				All Classes
+				<p class="p">Classloader, name, super class, static fields</p>
+
+				<p class="p">When MAT parses IBM system dumps, the size of classes includes some of the amount
+				of native memory in the Java process (but outside of the Java heap) which is related
+				to those classes such as native memory for bytecode and JIT compiled code for the class
+				methods. In some cases, this may cause the total size reported on the Overview pane to
+				exceed the maximum Java heap size. This calculation may be disabled using an option
+				in the MAT configuration.</p>
+
+			</li>
+
+			<li class="li">
+				Garbage Collection Roots
+				<p class="p">Objects defined to be reachable by the JVM</p>
+
+			</li>
+
+			<li class="li">
+				Thread Stacks and Local Variables
+				<p class="p">The call-stacks of threads at the moment of the snapshot, and per-frame information about local objects</p>
+
+			</li>
+			
+		</ul>
+
+		<p class="p">A heap dump does not contain allocation information so it cannot
+			resolve questions like who had created the objects and where they
+			have been created.</p>
+
+	</div>
+
+	<div class="related-links">
+<div class="linklist relinfo reltasks" xml:lang="en-us" lang="en-us"><strong>Related tasks</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../tasks/acquiringheapdump.html">Acquiring Heap Dumps</a></li></ul></div>
+</div>
+</body>
+</html>

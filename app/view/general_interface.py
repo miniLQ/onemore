@@ -50,6 +50,7 @@ from app.common.config import ROOTPATH
 
 from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorInterface
 from .general_subinterface.StartGDBInterface import StartGDBInterface
+from .general_subinterface.Matinterface import MatInterface
 
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
@@ -58,7 +59,7 @@ TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 TOOL1_UNIQUE_NAME = "DTB2DTS"
 TOOL2_UNIQUE_NAME = "Android Images Unpack"
 TOOL3_UNIQUE_NAME = "StartGDB"
-TOOL4_UNIQUE_NAME = "TOOL4"
+TOOL4_UNIQUE_NAME = "Memory Analyzer tool"
 TOOL5_UNIQUE_NAME = "TOOL5"
 TOOL6_UNIQUE_NAME = "TOOL6"
 TOOL7_UNIQUE_NAME = "TOOL7"
@@ -161,7 +162,10 @@ class AppCard(CardWidget):
 
         elif self.UniqueName == TOOL4_UNIQUE_NAME:
             # 打开Tool4
-            pass
+            ramdomNum = generate_uuid()
+            routekey = "Memory Analyzer tool {}".format(ramdomNum)
+            self.MatInterface = MatInterface(mainWindow=self.mainWindow)
+            self.MatInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
         elif self.UniqueName == TOOL5_UNIQUE_NAME:
             # 打开Tool5
             pass
@@ -212,7 +216,7 @@ class GeneralInterface(ScrollArea):
         self.addCard("{}".format(os.path.join(resource_image_path, "Chicken.png")), "DTB2DTS", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
         self.addCard(f"{suffix}/TitleBar.png", "Android Image Unpack", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
         self.addCard(f"{suffix}/RatingControl.png", "StartGDB", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
-        #self.addCard(f"{suffix}/Checkbox.png", "Test Tool 4", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
+        self.addCard(f"{suffix}/Checkbox.png", "Memory Analyzer tool", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Pivot.png", "Test Tool 5", '@designed by iliuqi.', TOOL5_UNIQUE_NAME)
         #self.addCard(f"{suffix}/MediaPlayerElement.png", "Test Tool 6", '@designed by iliuqi.', TOOL6_UNIQUE_NAME)
         #self.addCard(f"{suffix}/PersonPicture.png", "Test Tool 7", '@designed by iliuqi.', TOOL7_UNIQUE_NAME)

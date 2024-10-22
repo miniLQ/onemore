@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="Immediate Dominators" />
+<meta name="abstract" content="Find out who is keeping alive a set of objects." />
+<meta name="description" content="Find out who is keeping alive a set of objects." />
+<meta name="DC.relation" scheme="URI" content="../../concepts/dominatortree.html" />
+<meta name="DC.relation" scheme="URI" content="../../concepts/gcroots.html" />
+<meta name="copyright" content="Copyright (c) 2008, 2010 SAP AG and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2008, 2010 SAP AG and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ref_inspections_immediate_dominators" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../../styles/commonltr.css" />
+<title>Immediate Dominators</title>
+</head>
+<body id="ref_inspections_immediate_dominators">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Immediate Dominators</h1>
+
+	
+	
+	
+	<div class="body refbody"><p class="shortdesc">Find out who is keeping alive a set of objects.
+	</p>
+
+		<div class="section"><h2 class="title sectiontitle">Motivation</h2>
+			
+			<img class="image floatright" src="immediate_dominators_graph.png" alt="Object graph of an hash table structure." />
+			<p class="p">
+				To find out why a single object is still in the heap is easy: follow
+				the
+				<a class="xref" href="path_to_gc_roots.html" title="Find out who is keeping alive a single object.">shortest path</a>
+				to any GC root. But what if you have thousands of objects? Expanding
+				every single path is too time consuming. Immediate dominators is a
+				very effective way to find out who is keeping a set of objects
+				alive.
+			</p>
+
+			<p class="p">
+				Let's consider the object graph on the left: The blue objects
+				<img class="image" src="../../mimes/icons/obj_blue.png" alt="blue" />
+				represent
+				<code class="ph codeph">java.util.HashMap</code>
+				: the map itself, the backing array with the buckets and finally the
+				map entries referring to keys and values. The yellow objects
+				<img class="image" src="../../mimes/icons/obj_yellow.png" alt="yellow" />
+				are the values stored in the map, for example strings. The red
+				object
+				<img class="image" src="../../mimes/icons/obj_red.png" alt="red" />
+				is holding a reference to the map and thereby preventing its garbage
+				collection.
+			</p>
+
+			<p class="p">
+				In this case, the
+				<a class="xref" href="../../concepts/dominatortree.html">dominator tree</a>
+				is identical to the object graph. Keep in mind that the tree
+				structure can differ from the object graph!
+			</p>
+
+			<p class="p">
+				The
+				<strong class="ph b">immediate dominators</strong>
+				of the yellow objects are the hash map entries. If all references to
+				the entry objects were gone, all yellow strings were gone too.
+			</p>
+
+			<p class="p">
+				The
+				<strong class="ph b">skip pattern</strong>
+				tells the query to skip those immediate dominators which match the
+				pattern. In the exemplary graph, it skips all blue hash map objects
+				and spits out the red object. The resulting table says: this one red
+				object keeps alive three yellow strings.
+			</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Arguments</h2>
+			
+			<table cellpadding="4" cellspacing="0" summary="" border="1" class="simpletable"><col style="width:50%" /><col style="width:50%" /><thead><tr class="sthead">
+					<th style="vertical-align:bottom;text-align:left;" id="d4404e104" class="stentry">Argument</th>
+
+					<th style="vertical-align:bottom;text-align:left;" id="d4404e107" class="stentry">Description</th>
+
+				</tr>
+</thead><tbody><tr class="strow">
+					<td style="vertical-align:top;" headers="d4404e104" class="stentry">objects</td>
+
+					<td style="vertical-align:top;" headers="d4404e107" class="stentry">An arbitrary set of objects to be analyzed.</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d4404e104" class="stentry">-skip</td>
+
+					<td style="vertical-align:top;" headers="d4404e107" class="stentry">
+						<p class="p"> A regular expression specifying which objects to skip while
+							going up the dominator tree. If the dominator of an object
+							matches the pattern, then the dominator of that dominator will be
+							taken, and so on, until an object not matching the skip pattern
+							is reached.</p>
+
+						<p class="p"> If the object is not dominated by any other object, it is
+							placed in a category ROOT.</p>
+
+					</td>
+
+				</tr>
+</tbody></table>
+
+		</div>
+
+		<div class="section" id="ref_inspections_immediate_dominators__result"><h2 class="title sectiontitle">Result</h2>
+			
+			<p class="p">The sample below shows the immediate dominators of all strings
+				in this particular heap dump.</p>
+
+			<p class="p">
+				<img class="image" src="immediate_dominators_table.png" alt="Table displaying the immediate dominators." />
+			</p>
+
+			<p class="p">
+				Read the selected row as follows:
+				<strong class="ph b">7.669</strong>
+				instances of
+				<strong class="ph b">ConfigurationElement</strong>
+				are responsible for
+				<strong class="ph b">16.130</strong>
+				strings. The configuration elements alone take up
+				<strong class="ph b">368.112</strong>
+				bytes (shallow size) while the strings use
+				<strong class="ph b">387.120</strong>
+				bytes.
+			</p>
+
+			<p class="p">
+				The
+				<strong class="ph b">retained size</strong>
+				of each object set is not calculated right away for performance
+				reasons. Usually, the number of objects and shallow sizes should
+				provide an indication what to analyze further. Of course, one can
+				calculate the retained sizes using context menu.
+			</p>
+
+			<p class="p">
+				The
+				<strong class="ph b">ROOT</strong>
+				element contains all those objects, which are
+				<strong class="ph b">not</strong>
+				dominated by another object. Those are typically instances, which
+				are kept alive through multiple paths which end in different
+				<a class="xref" href="../../concepts/gcroots.html">GC Roots</a>
+				. Semantically, the ROOT element is the virtual root node of the
+				<a class="xref" href="../../concepts/dominatortree.html">dominator tree</a>
+				.
+			</p>
+
+			<p class="p">
+				<img class="image" src="immediate_dominators_context.png" alt="Context menu available in the immediate dominator table." />
+			</p>
+
+			<p class="p">
+				As shown above, the
+				<strong class="ph b">context menu</strong>
+				gives access to both sets of objects: The dominators (e.g. the
+				configuration elements) and the dominated objects (e.g. the
+				strings).
+			</p>
+
+			<p class="p">In this example, the retained set of the 7.669 configuration
+				elements would - among other objects - contain the 16.130 strings.
+			</p>
+
+		</div>
+
+	</div>
+
+	<div class="related-links">
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="../../concepts/dominatortree.html">Dominator Tree</a></li>
+<li class="linklist"><a class="link" href="../../concepts/gcroots.html">Garbage Collection Roots</a></li></ul></div>
+</div>
+</body>
+</html>

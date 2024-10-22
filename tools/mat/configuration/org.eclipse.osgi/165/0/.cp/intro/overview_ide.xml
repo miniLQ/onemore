@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?><!--
+    Copyright (c) 2008, 2010 SAP AG.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+ -->
+
+<introContent>
+	<extensionContent id="org.eclipse.mat.overview" style="css/overview.css"
+		name="Memory Analyzer Overview" path="overview/@">
+		<group style-id="content-group" id="org.eclipse.mat.mat-overview-group">
+			<link label="Memory Analyzer" id="mat-overview" style-id="content-link"
+				url="http://org.eclipse.ui.intro/showHelpTopic?id=/org.eclipse.mat.ui.help/welcome.html">
+				<text>Get familiar with the Memory Analyzer tool and 				find out how to solve Java memory problems.</text>
+			</link>
+		</group>
+	</extensionContent>
+</introContent>

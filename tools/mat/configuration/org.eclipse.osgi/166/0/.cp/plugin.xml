@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?><!--
+    Copyright (c) 2008, 2022 SAP AG and IBM Corporation.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        Andrew Johnson - save notes
+ -->
+
+<plugin>
+
+     <extension id="application" point="org.eclipse.core.runtime.applications">
+		<application>
+			<run class="org.eclipse.mat.ui.rcp.Application"/>
+		</application>
+	</extension>
+
+   <extension
+         point="org.eclipse.ui.activities">
+      <activity
+            description="%activity.description.Menus_which_should_not_shown"
+            id="org.eclipse.mat.digger.modification"
+            name="%activity.name.Memory_Analyzer_don_t_enable"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.debug\.ui/*"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.search/*"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.ide/selectWorkingSets"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.ide/org\.eclipse\.ui\.actions\.showKeyAssistHandler"/>            
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.ide/org\.eclipse\.ui\.navigate\.selectWorkingSets"/>       
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.workbench\.texteditor/org\.eclipse\.ui\.edit\.text\.gotoLastEditPosition"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.editors/org\.eclipse\.ui\.edit\.text\.openExternalFile"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.editors/converstLineDelimitersTo"/>
+     <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.editors/org\.eclipse\.ui\.edit\.text\.delimiter\.windows"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.editors/org\.eclipse\.ui\.edit\.text\.delimiter\.unix"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.editors/org\.eclipse\.ui\.edit\.text\.delimiter\.macOS9"/> 
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.editors/org\.eclipse\.ui\.edit\.text\.gotoLastEditPosition"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.editors/org\.eclipse\.ui\.edit\.text\.gotoPreviousAnnotation"/>
+      <activityPatternBinding
+            activityId="org.eclipse.mat.digger.modification"
+            pattern="org\.eclipse\.ui\.editors/org\.eclipse\.ui\.edit\.text\.gotoNextAnnotation"/>
+   </extension>
+   
+    <extension id="intro" point="org.eclipse.ui.intro.config">
+      <config content="intro/introContent.xml"
+              id="org.eclipse.mat.ui.rcp.introConfig"
+              introId="org.eclipse.mat.ui.rcp.Intro">
+              
+        <presentation home-page-id="overview" standby-page-id="standby">
+	      <implementation kind="html" style="intro/css/shared.css"/>
+
+          <launchBar bg="#d7e5f0" location="fastview">              
+            <shortcut tooltip="Overview" icon="$nl$/intro/css/icons/overview_small.gif" url="http://org.eclipse.ui.intro/showPage?id=overview"/>
+            <shortcut tooltip="Tutorials" icon="$nl$/intro/css/icons/tutorials_small.gif" url="http://org.eclipse.ui.intro/showPage?id=tutorials"/>
+          </launchBar>
+        </presentation>
+      </config>
+    </extension>
+   
+    <extension point="org.eclipse.ui.intro">
+      <introProductBinding
+             introId="org.eclipse.mat.ui.rcp.Intro"
+             productId="org.eclipse.mat.ui.rcp.MemoryAnalyzer"/>
+      <intro
+             class="org.eclipse.ui.intro.config.CustomizableIntroPart"
+             icon="$nl$/icons/memory_analyzer_16.gif"
+             id="org.eclipse.mat.ui.rcp.Intro"
+             label="Welcome"/>
+    </extension>
+
+	<extension id="MemoryAnalyzer" point="org.eclipse.core.runtime.products">
+		<product name="%product.appName" application="org.eclipse.mat.ui.rcp.application">
+			<property name="appName" value="%product.appName"/>
+			<property name="windowImages" value="icons/memory_analyzer_16.gif,icons/memory_analyzer_32.png,icons/memory_analyzer_48.png,icons/memory_analyzer_64.png,icons/memory_analyzer_128.png,,icons/memory_analyzer_256.png"/>
+			<property name="aboutText" value="%product.aboutText"/>
+			<property name="preferenceCustomization" value="plugin_customization.ini"/>
+			<property name="aboutImage" value="icons/eclipse_lg.gif"/>
+      </product>
+   </extension>
+
+	<!-- Don't inherit from the default ID as in RCP mode we don't want bindings
+		for build all etc. -->
+	<extension
+         point="org.eclipse.ui.bindings">
+      <scheme
+            id="org.eclipse.mat.scheme"
+            name="%scheme.name.Memory_Analyzer_Default" />
+      <key
+            commandId="org.eclipse.ui.edit.copy"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+C">
+      </key>
+      <key
+            commandId="org.eclipse.ui.edit.selectAll"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+A">
+      </key>
+      <key
+            commandId="org.eclipse.ui.edit.paste"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+V">
+      </key>
+      <key
+            commandId="org.eclipse.ui.edit.cut"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+X">
+      </key>
+      <key
+            commandId="org.eclipse.ui.edit.undo"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+Z">
+      </key>
+      <key
+            commandId="org.eclipse.ui.edit.redo"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+Y">
+      </key>
+      <key
+            commandId="org.eclipse.ui.window.activateEditor"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="F12">
+      </key>
+      <key
+            commandId="org.eclipse.ui.window.maximizePart"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+M">
+      </key>
+      <key
+            commandId="org.eclipse.ui.window.previousEditor"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+M2+F6">
+      </key>
+      <key
+            commandId="org.eclipse.ui.window.nextEditor"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+F6">
+      </key>
+      <key
+            commandId="org.eclipse.ui.window.previousView"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+M2+F7">
+      </key>
+      <key
+            commandId="org.eclipse.ui.window.nextView"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+F7">
+      </key>
+      <key
+            commandId="org.eclipse.ui.file.close"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+W">
+      </key>
+      <key
+            commandId="org.eclipse.ui.file.closeAll"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+M2+W">
+      </key>
+      <key
+            commandId="org.eclipse.ui.file.save"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+S">
+      </key>
+      <key
+            commandId="org.eclipse.ui.window.showKeyAssist"
+            contextId="org.eclipse.ui.contexts.dialogAndWindow"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+M2+L">
+      </key>
+      <key
+            commandId="org.eclipse.ui.window.quickAccess"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+3">
+      </key>
+      <key
+            commandId="org.eclipse.ui.window.showViewMenu"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.mat.scheme"
+            sequence="M1+F10">
+      </key>
+   </extension>
+   
+   <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            label="%cheatsheet.actionset"
+            visible="true"
+            id="org.eclipse.ui.cheatsheets.actionSet">
+         <action
+               label="%cheatsheet.item"
+               class="org.eclipse.ui.cheatsheets.CheatSheetExtensionFactory:helpMenuAction"
+               menubarPath="help/group.tutorials"
+               id="org.eclipse.ui.cheatsheets.actions.CheatSheetHelpMenuAction">
+         </action>
+      </actionSet>
+   </extension>
+</plugin>

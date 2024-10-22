@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="Finding Memory Leak" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.relation" scheme="URI" content="../reference/querymatrix.html" />
+<meta name="copyright" content="Copyright (c) 2008, 2023 SAP AG and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2008, 2023 SAP AG and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ref_findingmemoryleak" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>Finding Memory Leak</title>
+</head>
+<body id="ref_findingmemoryleak">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Finding Memory Leak</h1>
+
+	
+
+	
+
+
+	<div class="body refbody"><p class="shortdesc"></p>
+
+		<div class="section">
+			<p class="p">
+				The following 4-step approach proved to be most
+				efficient to detect memory issues:
+			</p>
+
+			<ol class="ol">
+				<li class="li">
+					Get an overview of the heap dump. See:
+					<em class="ph i">Overview</em>
+				</li>
+
+				<li class="li">
+					Find big memory chunks (single objects or groups of
+					objects).
+				</li>
+
+				<li class="li">Inspect the content of this memory chunk.</li>
+
+				<li class="li">
+					If the content of the memory chunk is too big check
+					who keeps this memory chunk alive
+				</li>
+
+			</ol>
+
+			<p class="p">
+				This sequence of actions is automated in Memory Analyzer by the <a class="xref" href="../tasks/runningleaksuspectreport.html">Leak Suspects Report</a>.
+			</p>
+
+			<p class="p">
+				The following table contains a list of queries that are
+				most helpful in analyzing memory leak issues.
+			</p>
+
+			<table cellpadding="4" cellspacing="0" summary="" id="ref_findingmemoryleak__findingmemoryleak" border="1" class="simpletable"><col style="width:40%" /><col style="width:60%" /><thead></thead><tbody><tr id="ref_findingmemoryleak__dominator_tree" class="strow">
+					<td style="vertical-align:top;" class="stentry">Dominator Tree</td>
+
+					<td style="vertical-align:top;" class="stentry">
+						In Dominator Tree every node is responsible for
+						keeping its children alive. The tree is sorted
+						by the retained size, so you find single big
+						objects easily. When there is no single object
+						responsible for big memory consumption it is
+						helpful to group the result by class and class
+						loader to reveal big memory chunks.
+					</td>
+
+				</tr>
+<tr id="ref_findingmemoryleak__top_consumers" class="strow">
+					<td style="vertical-align:top;" class="stentry">Top Consumers</td>
+
+					<td style="vertical-align:top;" class="stentry">
+						Top Consumers query returns information about
+						the biggest objects grouped by class, class
+						loader, and package.
+					</td>
+
+				</tr>
+<tr id="ref_findingmemoryleak__path_to_GC_roots" class="strow">
+					<td style="vertical-align:top;" class="stentry">Paths to GC Roots</td>
+
+					<td style="vertical-align:top;" class="stentry">
+						Paths to GC Roots query helps to identify who is
+						responsible for keeping a single object in the
+						heap. It is reasonably to run this query on a
+						possible suspect (memory accumulation point),
+						which you can find e.g. using Big Drops in
+						Dominator Tree Query (see
+						<em class="ph i">Big Drop</em>
+						entry further down for more details).
+					</td>
+
+				</tr>
+<tr id="ref_findingmemoryleak__duplicate_classes" class="strow">
+				    <td style="vertical-align:top;" class="stentry">Duplicate Classes</td>
+
+					<td style="vertical-align:top;" class="stentry">
+						Lists classes loaded multiple times. Grouping the result by class loader points to the class loaders that load the same class multiple times. Possible cause: Several versions of the same library are deployed.
+					</td>
+
+					</tr>
+<tr id="ref_findingmemoryleak__leaking_bundles" class="strow">
+					<td style="vertical-align:top;" class="stentry">Leaking Bundles</td>
+
+					<td style="vertical-align:top;" class="stentry">
+					   For snapshots for older versions of Eclopse, list bundles which are stale and 
+					   should have been garbage collected.
+					   For newer versions of Eclipse, the duplicate classes query might be an alternative.
+					</td>
+
+				</tr>
+<tr id="ref_findingmemoryleak__big_drops" class="strow">
+				    <td style="vertical-align:top;" class="stentry">Big Drops in Dominator Tree Query</td>
+
+					<td style="vertical-align:top;" class="stentry">
+						Displays memory accumulation points in the dominator tree. Displayed are objects with a big difference between the retained size of the parent and the children and the first "interesting" dominator of the accumulation point. These are places where the memory of many small objects is accumulated under one object. 
+					</td>
+
+				</tr>
+<tr id="ref_findingmemoryleak__leak_suspects" class="strow">
+				    <td style="vertical-align:top;" class="stentry">Leak Suspects Report</td>
+
+					<td style="vertical-align:top;" class="stentry">
+						The Leak Suspects query analyzes the heap dump, searches for memory leak and provides an illustrative description of the identified suspects. 
+					</td>
+
+				</tr>
+</tbody></table>
+
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../reference/querymatrix.html" title="There is no exact algorithm for memory analysis. The following table divides existing heap dump queries by the usage categories.">Query Matrix</a></div>
+</div>
+</div></body>
+</html>

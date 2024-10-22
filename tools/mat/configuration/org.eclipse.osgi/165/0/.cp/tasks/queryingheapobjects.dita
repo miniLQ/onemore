@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2023 SAP AG and IBM Corporation.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        IBM Corporation - copy and paste OQL
+ -->
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd" >
+<task id="task_queryingheapobjects" xml:lang="en-us">
+	<title>Querying Heap Objects (OQL)</title>
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+
+	<taskbody>
+		<context>
+			<p>Memory Analyzer allows to query the heap dump with custom
+				SQL-like queries. OQL represents classes as tables, objects as rows,
+				and fields as columns.</p>
+			<codeblock>SELECT *
+FROM [ INSTANCEOF ] &lt;class name="name"&gt;
+[ WHERE &lt;filter-expression&gt; ]
+&lt;/filter-expression&gt;&lt;/class&gt;</codeblock>
+<p>To open an OQL editor use the toolbar button <image href="../mimes/i-oqleditor.png">
+<alt>open object query language button</alt>
+</image>:</p>  
+<p>OQL editor is divided into two areas:</p>
+<ul><li>Text area to type in the query (upper area)</li>
+<li>Result area to display the result of the query execution</li></ul>
+<image href="../mimes/m2fd32fba.png">
+	 <alt>screen shot of query result</alt>
+</image>
+<p>Use <uicontrol>F5</uicontrol> or <uicontrol>ctrl+enter</uicontrol> or toolbar button <image href="../mimes/4fd3f07a.png">
+<alt>Execute Query button</alt>
+</image> to execute the query.</p>
+<p>Basic OQL syntax is as follows:</p>
+<codeblock>
+SELECT *
+FROM [ INSTANCEOF ] &lt;class name&gt;
+[ WHERE &lt;filter-expression&gt; ]
+</codeblock>
+<p>
+    The text area has autocompletion for class names, class name regular expressions,
+    field names, attributes and methods. 
+    See <xref href="../reference/tipsandtricks.dita#oqlcompletion">OQL autocompletion</xref>.
+</p>
+<p>
+    The navigation history shows previous OQL queries. Clicking on a previous query 
+    executes it again. On many result panes, selecting some objects, then
+    <menucascade>
+        <uicontrol>Copy</uicontrol>
+        <uicontrol>OQL Query</uicontrol>
+    </menucascade>
+    copies an OQL representation of the objects. This OQL can then be pasted
+    into the OQL editor text area.  
+    This works from the OQL result area itself, and also copies the column details as well as the objects.
+    <image href="../mimes/oqlsaveresult.png">
+        <alt>screen shot of OQL navigation and copy OQL query</alt>
+    </image>
+</p>
+</context>
+</taskbody>
+	<related-links>
+		<link href="../reference/oqlsyntax.dita" />
+	</related-links>
+</task>

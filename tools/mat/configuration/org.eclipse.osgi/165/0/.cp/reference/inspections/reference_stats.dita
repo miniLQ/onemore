@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2023 IBM Corporation.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        IBM Corporation - initial implementation
+ -->
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd" >
+<reference id="ref_inspections_reference_stats" xml:lang="en-us">
+	<title>Reference Leak</title>
+	<shortdesc>Find infomration about and possible incorrect uses of soft, weak or phantom references.
+	</shortdesc>
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2023 IBM Corporation.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+	<refbody>
+		<section>
+			<title>Motivation</title>
+			<p>Soft references <codeph>java.lang.ref.SoftReference</codeph>,
+			weak references <codeph>java.lang.ref.WeakReference</codeph> and
+			Phantom references <codeph>java.lang.ref.PhantomReference</codeph> are used
+			to keep references to objects which can be cleared by garbage collection
+			if there are no other strong references.</p>
+			<p>Soft references can be used for object caching, so that
+			an object can usually be retained for fast access, but if
+			memory is tight then garbage collection can break the link and free the
+			object. Next time it is needed then the application program can
+			regenerate the object.</p>
+			<p>Weak references can be used in a weak hash map <codeph>java.util.WeakHashMap</codeph> to hold information associated with
+			another object, but if that object is no longer available
+			then the associated information can be freed too.</p>
+			<p>Sometimes an error in the application program can mean that
+			the object which is supposed to be softly or weakly referenced is 
+			also strongly retained by the reference object. For example the
+			key of a weak hash map is weakly retained, but if there is a strong
+			reference to it from the value of the weak hash map entry then the
+			object will never be freed.</p>
+			<p>Phantom references are used to trigger an event when 
+			an object is garbage collected.
+			The object itself cannot be obtained from the PhantomReference.</p>
+		</section>
+		<section>
+			<title>Operation</title>
+			<p>This query performs the following steps:
+			<ol>
+			<li>For each reference object supplied to the query, 
+			find the object referred to by the reference object via the
+			reference field, and return those objects as a histogram.</li>
+			<li>For each reference object supplied to the query,
+			find all the objects only retained by those reference objects via the
+			reference field, and return those objects as a histogram.</li>
+			<li>Find all the objects strongly retained by these reference objects,
+			and then find all the referenced objects in the first step which are in this set,
+			and returned those objects as a histogram. This might indicate a possible
+			reference leak, as for example normally a Weak Hash Map should not have a
+			reference from the value to the key as that would stop the entry from being freed
+			when the reference was no longer accessible.</li>
+			</ol>
+			</p>
+		</section>
+		<section>
+			<title>Arguments</title>
+			<simpletable>
+				<sthead>
+					<stentry>Argument</stentry>
+					<stentry>Description</stentry>
+				</sthead>
+				<strow>
+					<stentry>objects</stentry>
+					<stentry>Reference objects for which the reference statistics query should be run.</stentry>
+				</strow>
+				<strow>
+					<stentry><parmname>-referent_attribute</parmname></stentry>
+					<stentry>The referent field name for the reference objects.
+					The default is <codeph>referent</codeph></stentry>
+				</strow>
+			</simpletable>
+		</section>
+		<section id="result">
+			<title>Result</title>
+		</section>
+	</refbody>
+</reference>

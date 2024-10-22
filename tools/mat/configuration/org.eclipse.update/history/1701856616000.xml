@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config date="1701885415131" transient="false">
+	<site updateable="true" url="platform:/base/" enabled="true" policy="USER-EXCLUDE">
+		<feature id="org.eclipse.emf.ecore" version="2.36.0.v20231002-1156" url="features/org.eclipse.emf.ecore_2.36.0.v20231002-1156/">
+		</feature>
+		<feature id="org.eclipse.equinox.p2.core.feature" version="1.7.0.v20231112-1314" url="features/org.eclipse.equinox.p2.core.feature_1.7.0.v20231112-1314/">
+		</feature>
+		<feature id="org.eclipse.ecf.filetransfer.feature" version="3.14.1900.v20230715-1945" url="features/org.eclipse.ecf.filetransfer.feature_3.14.1900.v20230715-1945/">
+		</feature>
+		<feature id="org.eclipse.equinox.p2.rcp.feature" version="1.4.2200.v20231112-1314" url="features/org.eclipse.equinox.p2.rcp.feature_1.4.2200.v20231112-1314/">
+		</feature>
+		<feature id="org.eclipse.rcp" version="4.30.0.v20231201-0512" url="features/org.eclipse.rcp_4.30.0.v20231201-0512/">
+		</feature>
+		<feature id="org.eclipse.e4.rcp" version="4.30.0.v20231113-1355" url="features/org.eclipse.e4.rcp_4.30.0.v20231113-1355/">
+		</feature>
+		<feature id="org.eclipse.ecf.filetransfer.httpclient5.feature" version="1.1.702.v20231114-1017" url="features/org.eclipse.ecf.filetransfer.httpclient5.feature_1.1.702.v20231114-1017/">
+		</feature>
+		<feature id="org.eclipse.ecf.core.feature" version="1.6.2.v20231021-2127" url="features/org.eclipse.ecf.core.feature_1.6.2.v20231021-2127/">
+		</feature>
+		<feature id="org.eclipse.emf.common" version="2.30.0.v20230916-0637" url="features/org.eclipse.emf.common_2.30.0.v20230916-0637/">
+		</feature>
+		<feature id="org.eclipse.equinox.p2.user.ui" version="2.4.2200.v20231112-1314" url="features/org.eclipse.equinox.p2.user.ui_2.4.2200.v20231112-1314/">
+		</feature>
+		<feature id="org.eclipse.help" version="2.3.1600.v20231201-0110" url="features/org.eclipse.help_2.3.1600.v20231201-0110/" plugin-identifier="org.eclipse.help.base">
+		</feature>
+		<feature id="org.eclipse.ecf.filetransfer.httpclientjava.feature" version="2.0.200.v20231114-1017" url="features/org.eclipse.ecf.filetransfer.httpclientjava.feature_2.0.200.v20231114-1017/">
+		</feature>
+		<feature id="org.eclipse.equinox.p2.extras.feature" version="1.4.2200.v20231112-1314" url="features/org.eclipse.equinox.p2.extras.feature_1.4.2200.v20231112-1314/">
+		</feature>
+		<feature id="org.eclipse.mat.ui.rcp.feature" version="1.15.0.202311170814" url="features/org.eclipse.mat.ui.rcp.feature_1.15.0.202311170814/" plugin-identifier="org.eclipse.mat.ui.rcp">
+		</feature>
+		<feature id="org.eclipse.ecf.core.ssl.feature" version="1.1.501.v20230507-1921" url="features/org.eclipse.ecf.core.ssl.feature_1.1.501.v20230507-1921/">
+		</feature>
+		<feature id="org.eclipse.ecf.filetransfer.ssl.feature" version="1.1.402.v20231021-2127" url="features/org.eclipse.ecf.filetransfer.ssl.feature_1.1.402.v20231021-2127/">
+		</feature>
+	</site>
+</config>

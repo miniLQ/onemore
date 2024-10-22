@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Reachability" />
+<meta name="DC.relation" scheme="URI" content="gcroots.html" />
+<meta name="copyright" content="Copyright (c) 2018, 2023 IBM Corporation. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2018, 2023 IBM Corporation. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="concept_reachability" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>Reachability</title>
+</head>
+<body id="concept_reachability">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Reachability</h1>
+
+	
+	
+	<div class="body conbody">
+		<p class="p"> Objects in a heap dump have references to other objects. These can either be
+		via field references (for simple objects), array elements (for object arrays)
+		or via various hidden references. For instance every object contains a reference to
+		its type, and each class contain a reference to the class loader which loaded
+		the class.</p>
+
+		<p class="p">These objects and references form a directed graph. The objects are the nodes,
+		the references are the directed links between the nodes. The
+		garbage collection roots are the roots of this graph.
+		</p>
+
+		<dl class="dl">
+			
+			<dt class="dt dlterm">Reachable</dt>
+<dd class="dd">An object is reachable from another object if there is a
+			path following the directed links from the source object to the destination object.
+			</dd>
+
+			
+			
+			<dt class="dt dlterm">Unreachable object</dt>
+<dd class="dd">If there is no path from a garbage collection root
+			to an object then it is unreachable. There is then no way a legitimate Java program
+			can every get access to this object, so it is safe for the Java virtual machine to
+			discard this object from the heap. This process of determining unreachable objects and
+			discarding them, thus making room for more objects to be allocated as required, is
+			called garbage collection.
+			</dd>
+
+			
+		</dl>
+
+	</div>
+
+	<div class="related-links">
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="gcroots.html">Garbage collection roots</a></li></ul></div>
+</div>
+</body>
+</html>

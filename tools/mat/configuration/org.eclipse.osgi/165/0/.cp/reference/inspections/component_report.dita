@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd" >
+<!--
+    Copyright (c) 2008, 2023 SAP AG and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        IBM Corporation - minor updates
+ -->
+<reference id="ref_inspections_component_report" xml:lang="en-us">
+	<title>Component Report</title>
+	<shortdesc>Analyze a component for possible memory waste and
+		other inefficiencies.</shortdesc>
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2023 SAP AG and others.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+		
+	<refbody>
+		<section id="introduction">
+			<title>Introduction</title>
+			<p>A heap dump contains millions of objects. But which of those
+				belong to your component? And what conclusions can you draw from
+				them? This is where the Component Report can help.</p>
+			<p>
+				Before starting, one has to decide what constitutes a component.
+				Typically, a component is either a set of classes in a
+				<b>common root package</b>
+				or a set of classes loaded by the same
+				<b>class loader</b>
+				.
+			</p>
+			<p>
+				Using this root set of objects, the component report calculates a
+				customized retained set. This retained set includes all objects kept
+				alive by the root set. Additionally, it assumes that all objects
+				that have become
+				<i>finalizable</i>
+				actually have been finalized and that also all soft references have
+				been cleared.
+			</p>
+		</section>
+		<section id="run">
+			<title>Executing the Component Report</title>
+			<p> To run the report for a common root package, select the component
+				report from the tool bar and provide a regular expression to match
+				the package:</p>
+			<image href="component_report_package.png">
+				<alt>Regular expression to match common root package to be
+					used for the component report.</alt>
+			</image>
+			<p> Alternatively, one can group the class histogram by class loader
+				and then right-click the appropriate class loader and select the
+				component report:</p>
+			<image href="component_report_classloader.png">
+				<alt>Group histogram by class loader.</alt>
+			</image>
+		</section>
+		<section id="overview">
+			<title>Overview</title>
+			<p>The component report is rendered as HTML. It is stored in a ZIP
+				file next to the heap dump file.</p>
+			<image href="component_report_overview.png">
+				<alt>Overview section of the component report.</alt>
+			</image>
+			<p>
+				<ol outputclass="arrows">
+					<li>Details about the size, the number of classes, the
+						number of objects and the number of different class loaders.</li>
+					<li>The pie chart shows the size of the component relative to
+						the total heap size.
+						See <xref href="../tipsandtricks.dita#ref_tips/piechartlinks">Pie Chart Links</xref>
+						for links from pie charts.
+					</li>
+					<li>
+						The
+						<xref href="top_consumers.dita" scope="local">Top Consumers</xref>
+						section lists the biggest object, classes, class loader and
+						packages which are retained by the component. It provides a good
+						overview of what is actually kept alive by the component.
+					</li>
+					<li>
+						<xref href="retained_set.dita" scope="local">Retained Set
+						</xref>
+						displays all objects grouped by classes which are retained.
+					</li>
+				</ol>
+			</p>
+		</section>
+		<section id="strings">
+			<title>Duplicate Strings</title>
+			<p>
+				Duplicate Strings are a prime example for memory waste: multiple
+				char arrays with identical content. To find the duplicates, the
+				report
+				<xref href="group_by_value.dita" scope="local">groups</xref>
+				the char arrays by their value. It lists all char arrays with 10 or
+				more instances with identical content.
+				Java 9 introduced compact strings, using byte arrays to represent
+				the string value. This section also includes those byte arrays which
+				are dominated by a string.
+			</p>
+			<p>
+				The content of the char (or byte) arrays typically gives away ideas how to
+				reduce the duplicates:
+				<ul>
+					<li>
+						Sometimes the duplicate strings are used as
+						<b>keys or values in hash maps</b>
+						. For example, when reading heap dumps, MAT itself used to read
+						the char constant denoting the type of an attribute into memory.
+						It turned out that the heap was littered with many 'L's for
+						references, 'B's for bytes, and 'Z's for booleans, etc. By
+						replacing the
+						<codeph>char</codeph>
+						with an
+						<codeph>int</codeph>
+						, MAT could save some of the precious memory. Alternatively,
+						Enumerations could do the same trick.
+					</li>
+					<li>
+						When reading
+						<b>XML documents</b>
+						, fragments like
+						<codeph>UTF-8</codeph>
+						, tag names or tag content remains in memory. Again, think about
+						using Enumerations for the repetitive content.
+					</li>
+					<li>
+						Another option is
+						<xref format="html" scope="external"
+							href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html#intern--">interning</xref>
+						the String. This adds the string to a pool of strings which is
+						maintained privately by the class
+						<codeph>String</codeph>
+						. For each unique string, the pool will keep on instance alive.
+						However, if you are interning, make sure do it
+						<b>responsibly</b>
+						: A big pool of strings will have maintenance costs and one cannot
+						rely on interned strings being garbage collected.
+					</li>
+				</ul>
+			</p>
+		</section>
+		<section id="emptycol">
+			<title>Empty Collections</title>
+			<p>Even if collections are empty, they usually consume memory
+				through their internal object array. Imagine a tree structure where
+				every node eagerly creates array lists to hold its children, but
+				only a few nodes actually possess children.</p>
+			<p>
+				One remedy is the lazy initialization of the collections: create the
+				collection only when it is actually needed. To find out who is
+				responsible for the empty collections, use the
+				<xref href="immediate_dominators.dita" scope="local">immediate
+					dominators</xref>
+				command.
+				See the <xref 
+					href="../../tasks/analyzingjavacollectionusage.dita#task_analyzingjavacollectionusage/collectionsbysize" scope="local">
+					Collections Grouped by Size</xref> query.
+			</p>
+		</section>
+		<section id="colfillratio">
+			<title>Collection Fill Ratios</title>
+			<p>Just like empty ones, collections with only a few elements
+				also take up a lot of memory. Again, the backing array of the
+				collection is the main culprit.
+			</p>
+			<p>The examination of the fill ratios
+				using a heap dump from a production system gives hints to what
+				initial capacity to use.
+				To find out who is
+				responsible for the collections with only a few elements, use the
+				<xref href="immediate_dominators.dita" scope="local">immediate
+					dominators</xref>
+				command.
+				See the <xref 
+					href="../../tasks/analyzingjavacollectionusage.dita#task_analyzingjavacollectionusage/collectionfillratio" scope="local">
+					Collection Fill Ratio</xref> query.
+			</p>
+		</section>
+		<section id="emptyarray">
+			<title>Zero-Length Arrays</title>
+			<p>Even if arrays have a zero length they still consume memory.
+			Arrays of length 1 might be replaced by a direct reference to the object,
+			depending on whether that part of the code never refers to bigger arrays
+			or whether some other code updates the contents of the array. 
+				</p>
+			<p>
+				One remedy is the lazy initialization of the arrays: create the
+				array only when it is actually needed. 
+				Another remedy is to use a singleton empty array.
+				Consider if the objects need to be distinct
+				(perhaps used as keys into a hash map) before making the change.
+				To find out who is
+				responsible for the zero-length arrays, use the
+				<xref href="immediate_dominators.dita" scope="local">immediate
+					dominators</xref>
+				command.
+				See the <xref 
+					href="../../tasks/analyzingjavacollectionusage.dita#task_analyzingjavacollectionusage/arraybysize" scope="local">
+					Arrays Grouped by Size</xref> query.
+			</p>
+		</section>
+		<section id="arrayfillratio">
+			<title>Array Fill Ratios</title>
+			<p>Just like empty ones, arrays with only a few elements
+				also take up a lot of memory. The examination of the fill ratios
+				using a heap dump from a production system gives hints to what
+				size of array to use. The remedy depends on whether other code
+				refers to entries by index, in which case it might be possible
+				just to reallocate an array up to the last occupied index,
+				using for example <codeph>Arrays.copyOf()</codeph>
+				or whether the code just walks through the array, and the array
+				could be replaced by a copy with just the non-null entries.</p>
+				<p>
+				To find out who is
+				responsible for the arrays with many empty entries, use the
+				<xref href="immediate_dominators.dita" scope="local">immediate
+					dominators</xref>
+				See the <xref 
+					href="../../tasks/analyzingjavacollectionusage.dita#task_analyzingjavacollectionusage/arrayfillratio" scope="local">
+					Array Fill Ratio</xref> query
+				</p>
+		</section>
+		<section id="primitiveArrayConstValue">
+			<title>Primitive Arrays with a Constant Value</title>
+				<p>Sometimes an instance of primitive array:
+					<ul>
+						<li><codeph>boolean[]</codeph></li>
+						<li><codeph>byte[]</codeph></li>
+						<li><codeph>char[]</codeph></li>
+						<li><codeph>short[]</codeph></li>
+						<li><codeph>int[]</codeph></li>
+						<li><codeph>float[]</codeph></li>
+						<li><codeph>long[]</codeph></li>
+						<li><codeph>double[]</codeph></li>
+					</ul>
+					has just a single value for all the entries.
+					This could be wasted space, and indicate the array is not needed yet.
+					If the entry is
+					the default value for the type
+					<codeph>0</codeph>, <codeph>false</codeph> or <codeph>nul</codeph>
+					then perhaps the array has not been used yet.
+					If the array is a fixed non-default value then perhaps the array could be
+					replaced by a reference to that value.
+				</p>
+				<p>
+				To find out who is
+				responsible for the arrays with many empty entries, use the
+				<xref href="immediate_dominators.dita" scope="local">immediate
+					dominators</xref>
+				See the <xref 
+					href="../../tasks/analyzingjavacollectionusage.dita#task_analyzingjavacollectionusage/primitivearrayconstvalue" scope="local">
+					Primitive Arrays with a Constant Value</xref> query
+				</p>
+		</section>
+		<section id="softref">
+			<title>Soft Reference Statistics</title>
+			<p>
+				Soft references are cleared by the virtual machine in response to
+				memory demand. Usually, soft references are used to implement
+				caches: keep the objects around while there is sufficient memory,
+				clear the objects if free memory becomes low.
+				<ul>
+					<li>Usually objects are cached, because they are expensive
+						to re-create. Across a whole application, soft referenced objects
+						might carry very different costs. However, the virtual machine
+						cannot know this and clears the objects on some least recently
+						used algorithm. From the outside, this is very unpredictable and
+						difficult to fine tune.</li>
+					<li>
+						Furthermore, soft references can impose a
+						<i>stop-the-world</i>
+						phase during garbage collection. Oversimplified, the GC marks the
+						object graph behind the soft references while the virtual machine
+						is stopped.
+					</li>
+				</ul>
+				The report shows:
+				<ul>
+					<li><wintitle>Comment</wintitle>
+					An example is the following:
+						<lines><systemoutput>A total of 217,035 java.lang.ref.SoftReference objects have been found, which softly reference 38,874 objects.
+77,745 objects totalling 20.8 MB are retained (kept alive) only via soft references.
+No objects totalling 0 B are softly referenced and also strongly retained (kept alive) via soft references.
+						</systemoutput></lines>
+					</li>
+					<li><wintitle>Histogram of Soft References</wintitle>
+					These are the reference objects which are instances of a type or subclass of <codeph>java.lang.ref.SoftReference</codeph></li>
+					<li><wintitle>Histogram of Softly Referenced</wintitle>
+					These are the objects which the referent fields point to.</li>
+					<li><wintitle>Only Softly Retained</wintitle>
+					These are all the objects retained the objects in the <wintitle>Only Softly Retained</wintitle>
+					table. All these objects could be freed in the next garbage collection cycle
+					if the VM was short of memory.</li>
+					<li><wintitle>Referents strongly retained by soft reference</wintitle>
+					These could indicate a possible memory leak, as the referent field can
+					never be cleared while there is a strong path from the soft references
+					to the referenced objects.</li>
+					<li>If there are objects in the <wintitle>Referents strongly retained by soft reference</wintitle>
+					table then the <xref href="reference_leak.dita"><cmdname>Reference Leak</cmdname></xref>
+					is run to examine the possible leaks in more detail.
+					<note>
+					This might not show the same problems because the initial report 
+					<wintitle>Referents strongly retained by soft reference</wintitle> is done for
+					all references of a particular type whereas the <cmdname>Reference Leak</cmdname>
+					query operates on individual references.</note></li>
+				</ul>
+			</p>
+		</section>
+		<section>
+			<title>Weak Reference Statistics</title>
+			<p>
+				Weak references are cleared by the virtual machine when the
+				object referred to by the referent is no longer strongly reachable
+				or softly reachable
+				via another path. 
+				Usually, weak references are used to retain extra data associated
+				with an object in a <codeph>java.util.WeakHashMap</codeph>
+				or to maintain a canonical mapping as the canonical object can
+				be retrieved if it is in use anywhere, but if no longer in use
+				then the mapping table will not keep it alive.
+			</p>
+			<p>The report follows the format of the <xref href="#ref_inspections_component_report/softref">Soft Reference</xref>
+			section above. An example of the comment is:
+			</p>
+				<lines><systemoutput>A total of 620 java.lang.ref.WeakReference objects have been found, which weakly reference 436 objects.
+No objects totalling 0 B are retained (kept alive) only via weak references.
+Possible Memory Leak 301 objects totalling 7.1 KB are weakly referenced and also strongly retained (kept alive) via weak references.
+				</systemoutput></lines>
+		</section>
+		<section id="finalizer">
+			<title>Finalizer Statistics</title>
+			<p>
+				Objects which implement the
+				<codeph>finalize</codeph>
+				method are included in the component report, because those objects
+				can have serious implications for the memory of a Java Virtual
+				Machine:
+				<ul>
+					<li>
+						Whenever an object with finalizer is created, a corresponding
+						<codeph>java.lang.ref.Finalizer</codeph>
+						object is created. If the object is only reachable via its
+						finalizer, it is placed in the queue of the finalizer thread and
+						processed. Only then the next garbage collection will actually
+						free the memory. Therefore it takes at least two garbage
+						collections until the memory is freed.
+					</li>
+					<li>When using Sun's current virtual machine implementation,
+						the finalizer thread is a single thread processing the finalizer
+						objects sequentially. One blocking finalizer queue therefore can
+						easily keep alive big chunks of memory (all those other objects
+						ready to be finalized).</li>
+					<li>
+						Depending on the actual algorithm, finalizer may require a
+						<i>stop-the-world</i>
+						pause during garbage collections. This, of course, can have
+						serious implications for the responsiveness of the whole
+						application.
+					</li>
+					<li>Last not least, the time of execution of the finalizer is
+						up to the VM and therefore unpredictable.</li>
+				</ul>
+			</p>
+		</section>
+		<section id="mapcollision">
+			<title>Map Collision Ratios</title>
+			<p>This sections analyzes the collision ratios of hash maps. Maps
+				place the values in different buckets based on the hash code of the
+				keys. If the hash code points to the same bucket, the elements
+				inside the bucket are typically compared linearly.</p>
+			<p>High collision ratios can indicate sub-optimal hash codes.
+				This is not a memory problem (a better hash code does not save
+				space) but rather performance problem because of the linear access
+				inside the buckets.
+				To find out who is
+				responsible for the collections with a poor collision ratio, use the
+				<xref href="immediate_dominators.dita" scope="local">immediate
+					dominators</xref>
+				command.
+				See the <xref 
+					href="../../tasks/analyzingjavacollectionusage.dita#task_analyzingjavacollectionusage/mapcollision" scope="local">
+					Map Collision Ratio</xref> query.
+			</p>
+		</section>
+	</refbody>
+</reference>

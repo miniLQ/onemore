@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2023 SAP AG and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        IBM Corporation - more links
+ -->
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd" >
+<reference id="ref_findingmemoryleak" xml:lang="en-us">
+	<title>Finding Memory Leak</title>
+	<shortdesc />
+
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2023 SAP AG and others.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+
+
+	<refbody>
+		<section>
+			<p>
+				The following 4-step approach proved to be most
+				efficient to detect memory issues:
+			</p>
+			<ol>
+				<li>
+					Get an overview of the heap dump. See:
+					<i>Overview</i>
+				</li>
+				<li>
+					Find big memory chunks (single objects or groups of
+					objects).
+				</li>
+				<li>Inspect the content of this memory chunk.</li>
+				<li>
+					If the content of the memory chunk is too big check
+					who keeps this memory chunk alive
+				</li>
+			</ol>
+			<p>
+				This sequence of actions is automated in Memory Analyzer by the <xref href="../tasks/runningleaksuspectreport.dita">Leak Suspects Report</xref>.
+			</p>
+			<p>
+				The following table contains a list of queries that are
+				most helpful in analyzing memory leak issues.
+			</p>
+			<simpletable relcolwidth="2* 3*" id="findingmemoryleak">
+				<strow id="dominator_tree">
+					<stentry>Dominator Tree</stentry>
+					<stentry>
+						In Dominator Tree every node is responsible for
+						keeping its children alive. The tree is sorted
+						by the retained size, so you find single big
+						objects easily. When there is no single object
+						responsible for big memory consumption it is
+						helpful to group the result by class and class
+						loader to reveal big memory chunks.
+					</stentry>
+				</strow>
+				<strow id="top_consumers">
+					<stentry>Top Consumers</stentry>
+					<stentry>
+						Top Consumers query returns information about
+						the biggest objects grouped by class, class
+						loader, and package.
+					</stentry>
+				</strow>
+				<strow id="path_to_GC_roots">
+					<stentry>Paths to GC Roots</stentry>
+					<stentry>
+						Paths to GC Roots query helps to identify who is
+						responsible for keeping a single object in the
+						heap. It is reasonably to run this query on a
+						possible suspect (memory accumulation point),
+						which you can find e.g. using Big Drops in
+						Dominator Tree Query (see
+						<i>Big Drop</i>
+						entry further down for more details).
+					</stentry>
+				</strow>
+				<strow id="duplicate_classes">
+				    <stentry>Duplicate Classes</stentry>
+					<stentry>
+						Lists classes loaded multiple times. Grouping the result by class loader points to the class loaders that load the same class multiple times. Possible cause: Several versions of the same library are deployed.
+					</stentry>
+					</strow>
+				<strow id="leaking_bundles">
+					<stentry>Leaking Bundles</stentry>
+					<stentry>
+					   For snapshots for older versions of Eclopse, list bundles which are stale and 
+					   should have been garbage collected.
+					   For newer versions of Eclipse, the duplicate classes query might be an alternative.
+					</stentry>
+				</strow>
+				<strow id="big_drops">
+				    <stentry>Big Drops in Dominator Tree Query</stentry>
+					<stentry>
+						Displays memory accumulation points in the dominator tree. Displayed are objects with a big difference between the retained size of the parent and the children and the first "interesting" dominator of the accumulation point. These are places where the memory of many small objects is accumulated under one object. 
+					</stentry>
+				</strow>
+				<strow id="leak_suspects">
+				    <stentry>Leak Suspects Report</stentry>
+					<stentry>
+						The Leak Suspects query analyzes the heap dump, searches for memory leak and provides an illustrative description of the identified suspects. 
+					</stentry>
+				</strow>
+			</simpletable>
+		</section>
+	</refbody>
+</reference>

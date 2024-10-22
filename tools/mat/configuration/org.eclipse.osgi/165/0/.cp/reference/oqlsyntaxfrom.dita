@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        IBM Corporation - autocompletion
+ -->
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd" >
+<reference id="ref_oqlsyntaxfrom" xml:lang="en-us">
+	<title>FROM Clause</title>
+	<shortdesc />
+
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2023 SAP AG and others.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+
+	<refbody>
+		<section>
+			<title>Specify the class</title>
+			<p>
+				The <codeph>FROM</codeph> clause defines the classes on which to operate.
+				Specify the class by one of the following means:
+			</p>
+			<b>by class name:</b>
+			<codeblock>SELECT * FROM java.lang.String</codeblock>
+			<b>by a regular expression matching the class name:</b>
+			<codeblock>SELECT * FROM "java\.lang\..*"</codeblock>
+			<b>by the object address of the class:</b>
+			<codeblock>SELECT * FROM 0x2b7468c8</codeblock>
+			<b>by the object addresses of more than one class:</b>
+			<codeblock>SELECT * FROM 0x2b7468c8,0x2b74aee0</codeblock>
+			<b>by the object id of the class:</b>
+			<codeblock>SELECT * FROM 20815</codeblock>
+			<b>by the object ids of more than one class:</b>
+			<codeblock>SELECT * FROM 20815,20975</codeblock>
+			<b>by a sub select:</b>
+			<codeblock>SELECT * FROM ( SELECT *
+                FROM java.lang.Class c
+                WHERE c implements org.eclipse.mat.snapshot.model.IClass )</codeblock>
+			<p>
+				The statement returns all objects in the heap. The
+				<codeph>implements</codeph>
+				check is necessary, as the heap dump can contain
+				<codeph>java.lang.Class</codeph>
+				instances caused by proxy classes or classes representing
+				primitive types such as
+				<codeph>int.class</codeph> or <codeph>Integer.TYPE</codeph>.
+				The following query has
+				the same effect, which calls a method directly on
+				the ISnapshot object:
+			</p>
+			<codeblock>SELECT * FROM ${snapshot}.getClasses()</codeblock>
+		</section>
+		<section>
+			<title>Include sub classes</title>
+			<p>
+				Use the
+				<codeph>INSTANCEOF</codeph>
+				keyword to include objects of sub-classes into the
+				query:
+			</p>
+			<codeblock>SELECT * FROM INSTANCEOF java.lang.ref.Reference</codeblock>
+			<p>
+				The resulting table contains, amongst others,
+				WeakReference and SoftReference objects because both
+				classes extend from
+				<codeph>java.lang.ref.Reference</codeph>
+				. By the way, the same result has the following query
+			</p>
+			<codeblock>SELECT * FROM ${snapshot}.getClassesByName("java.lang.ref.Reference", true)</codeblock>
+		</section>
+		<section>
+			<title>
+				Prevent interpretation of the from term as classes
+			</title>
+			<p>
+				Use the OBJECTS keyword if you do not want to process
+				the term as classes.
+				Specify the object or objects by one of the following means:
+			</p>
+			<b>by class name:</b>
+			<codeblock>SELECT * FROM OBJECTS java.lang.String</codeblock>
+			<p>
+				The result is just one object, the java.lang.String
+				class object.
+			</p>
+			<b>by the object address of the particular object:</b>
+			<codeblock>SELECT * FROM OBJECTS 0x2b7468c8</codeblock>
+			<b>by the object addresses of particular objects:</b>
+			<codeblock>SELECT * FROM OBJECTS 0x2b7468c8,0x2b746868</codeblock>
+			<b>by the object id of the particular object:</b>
+			<codeblock>SELECT * FROM OBJECTS 20815</codeblock>
+			<b>by the object ids of particular objects:</b>
+			<codeblock>SELECT * FROM OBJECTS 20815,20814</codeblock>
+			<b>by a sub expression (Memory Analyzer 1.4 or later):</b>
+			<codeblock>SELECT * FROM OBJECTS (1 + ${snapshot}.GCRoots.length)</codeblock>
+			<b>by a sub select returning an object list</b>
+			<codeblock>SELECT v, v.@length FROM OBJECTS ( SELECT OBJECTS s.value FROM java.lang.String s  ) v</codeblock>
+			<b>In Memory Analyzer 1.10 and later, sub-selects are now also permitted which have select items.</b>
+			<codeblock>SELECT v,v.s,v.val FROM OBJECTS ( SELECT s,s.value as val FROM java.lang.String s  ) v</codeblock>
+			See <xref format="html" scope="peer" href="https://wiki.eclipse.org/MemoryAnalyzer/OQL#Sub_SELECT_with_select_items">Wiki Sub select with select items</xref>
+			for more details.
+			<note>
+				Please note, that currently the <codeph>FROM OBJECTS</codeph> term is in
+				the test phase!
+			</note>
+		</section>
+		<section id="unindexed">
+			<title>
+				Unindexed objects
+			</title>
+			<p>
+			Normally heap objects are indexed in the snapshot and are referred to
+			by an object id, not an address.
+			If objects have been discarded from the snapshot during parsing,
+			either because they are unreachable, or because of the discard option
+			then sometimes they can still be accessed in OQL.
+			If you know the object address, then a query such as
+			<codeblock>SELECT * FROM OBJECTS 0x2b7468c8</codeblock>
+			will retrieve it.
+			The result of the query is different however. Instead of the
+			object being processed as an object id and displayed in a 
+			list objects query tree view, it is returned as part of a list
+			of IObject and is displayed as a table view.
+			</p>
+			<p>Unindexed objects will not be returned as a result of
+			<ul>
+				<li><codeph>outbound()</codeph>
+				</li>
+				<li><codeph>inbound()</codeph>
+				</li>
+				<li><codeph>dominators()</codeph>
+				</li>
+				<li><codeph>dominatorof()</codeph>
+				</li>
+			</ul>
+			and will cause an error if supplied as an argument to those
+			functions.
+			The built-in function <codeph>classof()</codeph> does work
+			with unindexed objects.
+			</p>
+			<p>See how unindexed objects appear in the inspector view when
+			retrieved by OQL. Note the 
+			<image href="../mimes/message_warning.png">
+				<alt>yellow warning triangle icon</alt>
+			</image>
+			 warning triangle and the <msgph>Unindexed</msgph>
+			in the inspector view top panel, and the <msgph>Unindexed</msgph> suffix
+			in the object view. The retained size is 0 as the retained size is not
+			calculated for unindexed objects.
+			<image href="../mimes/inspector_unindexed.png" scale="66">
+				<alt>Inspector View with unindexed object"</alt>
+			</image>
+			</p>
+			<note>
+				Please note, that currently the unindexed objects facility is in
+				the test phase!
+			</note>
+		</section>
+		<section>
+			<title>
+				Autocompletion
+			</title>
+			<p>
+				The OQL pane now has autocompletion for class names, class name regular expressions,
+				field names, attributes and methods. 
+				See <xref href="tipsandtricks.dita#oqlcompletion">OQL autocompletion</xref>.
+			</p>
+		</section>
+	</refbody>
+</reference>

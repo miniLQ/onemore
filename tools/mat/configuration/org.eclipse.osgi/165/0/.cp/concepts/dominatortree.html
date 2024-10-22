@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="concept" />
+<meta name="DC.title" content="Dominator Tree" />
+<meta name="DC.relation" scheme="URI" content="shallowretainedheap.html" />
+<meta name="copyright" content="Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="concept_dominatortree" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>Dominator Tree</title>
+</head>
+<body id="concept_dominatortree">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Dominator Tree</h1>
+
+	
+	
+	<div class="body conbody">
+		<p class="p">Memory Analyzer provides a dominator tree of the object graph. 
+		    The transformation of the object reference graph into a
+			dominator tree allows you to easily identify the biggest chunks of
+			retained memory and the keep-alive dependencies among objects. 
+			Below is an informal definition of the terms.</p>
+
+		<p class="p">
+			An object x
+			<strong class="ph b">dominates</strong>
+			an object y if every path in the object graph from the start (or the
+			root) node to y must go through x.
+		</p>
+
+		<p class="p">
+			The
+			<strong class="ph b">immediate dominator</strong>
+			x of some object y is the dominator closest to the object y.
+		</p>
+
+		<p class="p">
+			A
+			<strong class="ph b">dominator tree</strong>
+			is built out of the object graph. In the dominator tree each object
+			is the immediate dominator of its children, so dependencies between
+			the objects are easily identified.
+		</p>
+
+		<p class="p">The dominator tree has the following important properties:</p>
+
+		<ul class="ul">
+			<li class="li">
+				The objects belonging to the sub-tree of
+				<span class="keyword">x</span>
+				(i.e. the objects dominated by
+				<span class="keyword">x</span>
+				) represent the <a class="xref" href="shallowretainedheap.html">retained set</a> of
+				<span class="keyword">x</span>
+				.
+			</li>
+
+			<li class="li">
+				If
+				<span class="keyword">x</span>
+				is the immediate dominator of
+				<span class="keyword">y</span>
+				, then the immediate dominator of
+				<span class="keyword">x</span>
+				also dominates
+				<span class="keyword">y</span>
+				, and so on.
+			</li>
+
+			<li class="li">The edges in the dominator tree do not directly correspond to
+				object references from the object graph.</li>
+
+		</ul>
+
+		<img class="image" src="../mimes/m2268b281.png" alt="Object graph transformed to dominator tree" />
+
+	</div>
+
+	<div class="related-links">
+<div class="linklist relinfo relconcepts" xml:lang="en-us" lang="en-us"><strong>Related concepts</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="shallowretainedheap.html">Shallow vs. Retained Size</a></li></ul></div>
+</div>
+</body>
+</html>

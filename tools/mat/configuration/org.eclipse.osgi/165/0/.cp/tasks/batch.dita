@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2019,2022 IBM Corporation.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        Andrew Johnson/IBM - initial API and implementation
+ -->
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd" >
+<task id="task_batch" xml:lang="en-us">
+	<title>Batch mode</title>
+	<prolog>
+		<copyright>
+			<copyryear year="2019"></copyryear>
+			<copyryear year="2022"></copyryear>
+			<copyrholder>
+				Copyright (c) 2019,2022 IBM Corporation.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+
+	<taskbody>
+		<context>
+			<p>Memory Analyzer can be operated in batch mode to process heap dumps
+			without user input.</p>
+		</context>
+		<steps>
+			<step>
+				<note>On Windows, use <filepath><cmdname>.\mat\ParseHeapDump.bat</cmdname></filepath> instead of <filepath><cmdname>./mat/ParseHeapDump.sh</cmdname></filepath></note>
+				<cmd>Run <filepath><cmdname>./mat/ParseHeapDump.sh</cmdname></filepath> <filepath><varname>myheapdump.hprof</varname></filepath> <parmname>org.eclipse.mat.api:suspects</parmname>
+				</cmd>
+				<choices>
+					<choice>For a simple suspects report use <parmname>org.eclipse.mat.api:suspects</parmname>
+					See <xref type="task" href="runningleaksuspectreport.dita#task_runningleaksuspectreport">running leak suspect report</xref> for more details.</choice>
+					<choice>For an overview report use <parmname>org.eclipse.mat.api:overview</parmname>
+					This report is included at the beginning of the leak suspects report
+					and shows:
+					<ul>
+					 	<li>Heap Dump Overview</li> 
+						<li>System Properties</li> 
+						<li>Thread Overview</li>
+						<li>Top Consumers</li>
+						<li>Class Histogram</li>
+					</ul></choice>
+					<choice>For a report on memory usage by component use <parmname>org.eclipse.mat.api:top_components</parmname>
+					See <xref type="reference" href="../reference/inspections/component_report.dita">Component report</xref> for more details
+					of the report run on each of the top components by memory usage.</choice>
+					<choice>To compare two heap dumps use <filepath><cmdname>./mat/ParseHeapDump.sh</cmdname></filepath> <varname>myheapdump.hprof</varname> <option>-snapshot2=</option><varname>myheapdump2.hprof</varname> <parmname>org.eclipse.mat.api:compare</parmname></choice>
+					<choice>To compare two heap dumps for memory leaks with a leak suspects report use <filepath><cmdname>./mat/ParseHeapDump.sh</cmdname></filepath> <varname>myheapdump.hprof</varname> <option>-baseline=</option><varname>myheapdump2.hprof</varname> <parmname>org.eclipse.mat.api:suspects2</parmname>
+					See <xref type="note" href="runningleaksuspectreport.dita#task_runningleaksuspectreport/compare">running leak suspect report by snapshot comparison</xref> for more details.</choice>
+					<choice>To export a new copy of the heap dump with redactions use a command like
+					<codeblock>
+<filepath><cmdname>./mat/ParseHeapDump.sh</cmdname></filepath>
+<filepath><varname>myheapdump.hprof</varname></filepath>
+<option>-output=</option><filepath><varname>myheapdump2.hprof</varname></filepath>
+<option>-redact=</option><parmname>BASIC</parmname>
+<option>-map=</option><filepath><varname>myheapdump2.map</varname></filepath>
+<parmname>org.eclipse.mat.hprof:export</parmname>
+					</codeblock>
+					See <xref type="task" href="exportdump.dita">export heap dump</xref> for more details.
+					</choice>
+					<choice>To run a single query on a heap dump and produce an HTML report use <codeph><filepath><cmdname>./mat/ParseHeapDump.sh</cmdname></filepath> <filepath><varname>myheapdump.hprof</varname></filepath> <option>-command=</option><varname>histogram</varname> <parmname>org.eclipse.mat.api:query</parmname></codeph>
+					See <xref type="reference" href="../reference/inspections/query_report.dita">Query Report</xref> for more details.</choice>
+				</choices>
+			</step>
+			<step>
+				<cmd>Choose additional options to control the parse and report generation.</cmd>
+				<info>
+				Command line options controlling the parse.
+				</info>
+				<substeps>
+				<substep>
+				<cmd>
+					<option>-keep_unreachable_objects</option> means that all
+					objects are retained in the snapshot, even if they are not reachable from
+					an ordinary GC root.</cmd>
+				</substep>
+				<substep>
+				<cmd>
+					<option>-snapshot_identifier=</option><varname>identifier</varname>
+					Selects one snapshot when there is the choice of several in the heap dump file.
+					For HPROF files this might be of the form <userinput>#1</userinput> or
+					<userinput>#2</userinput>.
+					For DTFJ system dump files this might be of the form
+					<userinput><varname>Address space ID</varname>.<varname>Process ID</varname>.<varname>Runtime ID</varname></userinput>.
+					If there are
+					<xref format="dita" href="acquiringheapdump.dita#task_acquiringheapdump/multiple">
+					multiple snapshots</xref> in a heap dump file and a specific snapshot is not
+					selected then the parse will fail with a 
+					<xref href="../doc/org/eclipse/mat/snapshot/MultipleSnapshotsException.html" format="html"><systemoutput><apiname>org.eclipse.mat.snapshot.MultipleSnapshotsException</apiname></systemoutput></xref>
+					which will list appropriate possible snapshot identifiers to use with this
+					option.
+				</cmd>
+				</substep>
+				<substep id="discard">
+				<note>Experimental</note>
+				<cmd><option>-discard_ratio=</option><varname>percentage</varname>.
+					Option to discard a fraction of the objects from huge dumps.
+				</cmd>
+				<info>See <xref format="dita" href="configure_mat.dita#task_configure_mat/discard">discard configuration</xref>
+				for an explanation of these discard options.</info>
+				</substep>
+				<substep>
+				<note>Experimental</note>
+				<cmd><option>-discard_pattern=</option><varname>regex</varname>.
+					A regular expression matching the class names of objects to be discarded.
+				</cmd>
+				</substep>
+				<substep>
+				<note>Experimental</note>
+				<cmd><option>-discard_offset=</option><varname>offset value</varname>.
+					Controls which particular objects are discarded.
+				</cmd>
+				</substep>
+				<substep>
+				<note>Experimental</note>
+				<cmd><option>-discard_seed=</option><varname>random number generator seed</varname>.
+					Controls which particular objects are discarded.
+				</cmd>
+				</substep>
+				<substep id="report_options">
+					<cmd>Other report options</cmd>
+					<stepxmp>
+						<p>Other parameters controlling output include the following:</p>
+						<simpletable>
+							<sthead>
+								<stentry>Argument</stentry>
+								<stentry>Description</stentry>
+							</sthead>
+							<strow>
+								<stentry><option>-limit=</option><varname>number of entries</varname></stentry>
+								<stentry>Controls the number of entries generated in an output table.
+								See <xref href="../doc/org/eclipse/mat/report/Params.Rendering.html#LIMIT" format="html"><apiname>org.eclipse.mat.report.Params.Rendering.LIMIT</apiname></xref>
+								</stentry>
+							</strow>
+							<strow>
+								<stentry><option>-format=</option><varname>type of output</varname></stentry>
+								<stentry>Controls the type of the output (HTML, CSV, or TXT).
+								See <xref href="../doc/org/eclipse/mat/report/Params.html#FORMAT" format="html"><apiname>org.eclipse.mat.report.Params.FORMAT</apiname></xref>
+								</stentry>
+							</strow>
+							<strow>
+								<stentry><option>-html.show_table_headings</option></stentry>
+								<stentry>Controls whether table headings should be shown for tables.
+								See <xref href="../doc/org/eclipse/mat/report/Params.Html.html#SHOW_TABLE_HEADER" format="html"><apiname>org.eclipse.mat.report.Params.Html.SHOW_TABLE_HEADER</apiname></xref>
+								</stentry>
+							</strow>
+							<strow>
+								<stentry><option>-html.show_totals</option></stentry>
+								<stentry>Controls whether totals should be shown for tables.
+								See <xref href="../doc/org/eclipse/mat/report/Params.Html.html#SHOW_TOTALS" format="html"><apiname>org.eclipse.mat.report.Params.Html.SHOW_TOTALS</apiname></xref>
+								</stentry>
+							</strow>
+						</simpletable>
+					</stepxmp>
+				</substep>
+				</substeps>
+				<stepresult>
+					<msgblock>
+Task: Parsing myheapdump.hprof
+[Task: Parsing .\Downloads\myheapdump.hprof
+[
+Subtask: Scanning .\Downloads\myheapdump.hprof
+[.................
+[INFO] Detected compressed references, because with uncompressed 64-bit references the array at 0x5c4bd4258 would overlap the array at 0x5c4bd4230
+[....................
+[INFO] Wrote threads call stacks to .\Downloads\myheapdump.threads
+[....................
+[INFO] Heap .\Downloads\myheapdump.hprof contains 116,716 objects
+[....................
+Subtask: Extracting objects from .\Downloads\myheapdump.hprof
+[...................................................................................Task: Removing unreachable objects
+[
+Subtask: Searching for unreachable objects
+[
+Subtask: Marking reachable objects
+[.
+Subtask: Re-indexing objects
+[..
+Subtask: Re-indexing classes
+[...
+Subtask: Writing .\Downloads\myheapdump.idx.index
+[....
+Subtask: Writing .\Downloads\myheapdump.o2c.index
+[.....
+Subtask: Writing .\Downloads\myheapdump.a2s.index
+[......
+Subtask: Re-indexing outbound index
+[.......
+Subtask: Writing .\Downloads\myheapdump.inbound.index
+[........
+Subtask: Writing .\Downloads\myheapdump.outbound.index
+[.........
+Subtask: Writing .\Downloads\myheapdump.o2hprof.index
+[.........Task: Calculating Dominator Tree
+[
+Subtask: Dominator Tree calculation
+[
+Subtask: Depth-first search
+[....................
+Subtask: Computing dominators
+[..............................................
+Subtask: Calculate retained sizes
+[............................................................
+Subtask: Create dominators index file
+[................................................................................]
+
+Subtask: Test 'Heap Dump Overview' of section 'System Overview'
+[
+Subtask: Test 'System Properties' of section 'System Overview'
+[
+Subtask: Extracting Key Value Pairs...
+[
+Subtask: Test 'Thread Overview' of section 'System Overview'
+[
+Subtask: Searching Threads...
+[
+Subtask: Test 'Top Consumers' of section 'System Overview'
+[
+Subtask: Creating histogram
+[
+Subtask: Grouping by package
+[
+Subtask: Test 'Biggest Objects (Overview)' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Objects' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Classes (Overview)' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Classes' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Class Loaders (Overview)' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Class Loaders' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Packages' of section 'Top Consumers'
+[
+Subtask: Test 'Class Histogram' of section 'System Overview'
+[
+Subtask: Test 'Leaks' of section 'Leak Suspects'
+[
+Subtask: Finding problem suspects
+[
+Subtask: Searching suspicious single objects ...
+[
+Subtask: Searching suspicious groups of objects ...
+[
+Subtask: building histogram
+[
+Subtask: Preparing results
+[
+Subtask: building histogram
+[
+Subtask: building histogram
+[
+Subtask: Finding paths
+[
+Subtask: Test 'Overview' of section 'Leaks'
+[
+Subtask: Test 'Problem Suspect 1' of section 'Leaks'
+[
+Subtask: Test 'Description' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Shortest Paths To the Accumulation Point' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Shortest Paths To the Accumulation Point' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Accumulated Objects in Dominator Tree' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Accumulated Objects in Dominator Tree' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Accumulated Objects by Class in Dominator Tree' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Accumulated Objects by Class in Dominator Tree' of section 'Problem Suspect 1'
+[
+Subtask: Test 'All Accumulated Objects by Class' of section 'Problem Suspect 1'
+[
+Subtask: Test 'All Accumulated Objects by Class' of section 'Problem Suspect 1'
+[]
+					</msgblock>
+				</stepresult>
+			</step>
+			<step>
+				<cmd>
+					Unzip the report <filepath><varname>myheapdump_Leak_Suspects.zip</varname></filepath>
+				</cmd>
+			</step>
+			<step>
+				<cmd>
+					View the <filepath><parmname>index.html</parmname></filepath>
+				</cmd>
+			</step>
+			
+		</steps>
+		<result>
+			<p>The result is a HTML report.</p>
+		</result>
+	</taskbody>
+</task>

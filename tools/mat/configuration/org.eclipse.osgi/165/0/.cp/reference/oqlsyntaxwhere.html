@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="WHERE Clause" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.relation" scheme="URI" content="../reference/oqlsyntax.html" />
+<meta name="copyright" content="Copyright (c) 2008, 2020 SAP AG and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2008, 2020 SAP AG and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ref_oqlsyntaxwhere" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>WHERE Clause</title>
+</head>
+<body id="ref_oqlsyntaxwhere">
+
+	<h1 class="title topictitle1" id="ariaid-title1">WHERE Clause</h1>
+
+	
+
+	
+
+	<div class="body refbody"><p class="shortdesc"></p>
+
+		<div class="section"><h2 class="title sectiontitle">
+				&gt;=, &lt;=, &gt;, &lt;, [ NOT ] LIKE, [ NOT ] IN, IMPLEMENTS
+				(relational operations)
+			</h2>
+			<p class="p">
+				The <code class="ph codeph">WHERE</code> clause specifies search conditions, that
+				remove unwanted data from the query result. The
+				following operators, are in order of precedence. The
+				operators are evaluated in the specified order:
+
+			</p>
+
+			
+			<pre class="pre codeblock"><code>SELECT * FROM java.lang.String s WHERE s.count &gt;= 100</code></pre>
+			<pre class="pre codeblock"><code>SELECT * FROM java.lang.String s WHERE toString(s) LIKE ".*day"</code></pre>
+			<div class="p">
+			<pre class="pre codeblock"><code>SELECT * FROM java.lang.String s WHERE s.value NOT IN dominators(s)</code></pre>
+			The right hand side of <code class="ph codeph">IN</code> can be a Java <span class="keyword apiname">java.util.List</span>, Java <span class="keyword apiname">Object[]</span>
+			array, a Java <span class="keyword apiname">int[]</span> array, or a result table from another
+			<code class="ph codeph">SELECT</code>, in which case the item is searched among the entries
+			in the first column.
+			If the right hand side is a Java <span class="keyword apiname">int[]</span> array and the left
+			hand side is an <span class="keyword apiname">IObject</span> then the object ID is searched for
+			in the array.
+			</div>
+
+			<div class="p">
+			<pre class="pre codeblock"><code>SELECT * FROM java.lang.Class c WHERE c IMPLEMENTS org.eclipse.mat.snapshot.model.IClass</code></pre>
+			<code class="ph codeph">IMPLEMENTS</code> works when the left hand side is any object or an integer
+			which is considered as an object ID and the actual IObject is used for the test.
+			</div>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">=, != (equality operations)</h2>
+			
+			<pre class="pre codeblock"><code>SELECT * FROM java.lang.String s WHERE toString(s) = "monday"</code></pre>
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">AND (conditional AND operation)</h2>
+			
+			<pre class="pre codeblock"><code>SELECT * FROM java.lang.String s WHERE s.count &gt; 100 AND s.@retainedHeapSize &gt; s.@usedHeapSize</code></pre>
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">OR (conditional OR operation)</h2>
+			
+			<pre class="pre codeblock"><code>SELECT * FROM java.lang.String s WHERE s.count &gt; 1000 OR s.value.@length &gt; 1000</code></pre>
+			<p class="p">
+				Operators can be applied to expressions, constant
+				literals and sub queries. Valid expressions are
+				explained in the next sections.
+			</p>
+
+		</div>
+
+		<div class="section"><h2 class="title sectiontitle">Literal Expression</h2>
+			
+			<p class="p">Boolean, String, Integer, Long, Character, Float, Double and null literals:</p>
+
+			<pre class="pre codeblock"><code>SELECT * FROM java.lang.String s
+         WHERE ( s.count &gt; 1000 ) = true
+           OR toString(s) = "monday"
+           OR dominators(s).size() = 0
+           OR s.@retainedHeapSize &gt; 1024L
+           OR s.value != null AND s.value.@valueArray.@length &gt;= 1 AND s.value.@valueArray.get(0) = 'j'
+           </code></pre>
+           <pre class="pre codeblock"><code>SELECT * FROM instanceof java.lang.Number s
+         WHERE s.value &gt; -1 
+           OR s.value &gt; -1L
+           OR s.value &gt; 0.1
+           OR s.value &gt; -0.1E-2F
+           OR s.value &gt; 0.1D
+           OR s.value &gt; -0.1E-2D
+           OR s.value &gt; 0.1
+           OR s.value &gt; -0.1E-2F
+           OR s.value &gt; 0.1D
+           OR s.value &gt; -0.1E-2D
+           </code></pre>
+		</div>
+
+	</div>
+
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="../reference/oqlsyntax.html">OQL Syntax</a></div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,34 @@
+10月 22, 2024 6:26:55 下午 org.eclipse.birt.chart.device.swt.SwtDisplayServer <init>
+信息: SWT Display Server: win32 v4,963
+10月 22, 2024 6:26:58 下午 org.eclipse.birt.chart.device.swt.R31Enhance <clinit>
+信息: Advanced SWT graphics functions enabled.
+10月 22, 2024 6:26:58 下午 org.eclipse.birt.chart.device.swt.SwtRendererImpl setProperty
+信息: Using graphics context org.eclipse.swt.graphics.GC@GC {-234800410}
+10月 22, 2024 6:26:58 下午 org.eclipse.birt.chart.script.AbstractScriptHandler register
+信息: Trying to load Chart Java event handler class...
+10月 22, 2024 6:26:58 下午 org.eclipse.birt.chart.script.AbstractScriptHandler register
+信息: A Chart Java event handler class [class org.eclipse.mat.impl.chart.StorageUnitRenderScript] has been loaded successfully.
+10月 22, 2024 6:26:58 下午 org.eclipse.birt.chart.render.EmptyWithoutAxes renderSeries
+信息: org.eclipse.birt.chart.render.EmptyWithoutAxes: renderSeries() [1/2]
+10月 22, 2024 6:26:58 下午 org.eclipse.birt.chart.extension.render.Pie renderSeries
+信息: {0}: renderSeries() [{1}/{2}]org.eclipse.birt.chart.extension.render.Pie22
+10月 22, 2024 6:27:03 下午 org.eclipse.birt.chart.device.swt.SwtRendererImpl setProperty
+信息: Using graphics context org.eclipse.swt.graphics.GC@GC {-352239081}
+10月 22, 2024 6:27:03 下午 org.eclipse.birt.chart.script.AbstractScriptHandler register
+信息: Trying to load Chart Java event handler class...
+10月 22, 2024 6:27:03 下午 org.eclipse.birt.chart.script.AbstractScriptHandler register
+信息: A Chart Java event handler class [class org.eclipse.mat.impl.chart.StorageUnitRenderScript] has been loaded successfully.
+10月 22, 2024 6:27:03 下午 org.eclipse.birt.chart.render.EmptyWithoutAxes renderSeries
+信息: org.eclipse.birt.chart.render.EmptyWithoutAxes: renderSeries() [1/2]
+10月 22, 2024 6:27:03 下午 org.eclipse.birt.chart.extension.render.Pie renderSeries
+信息: {0}: renderSeries() [{1}/{2}]org.eclipse.birt.chart.extension.render.Pie22
+10月 22, 2024 6:28:58 下午 org.eclipse.birt.chart.device.swt.SwtRendererImpl setProperty
+信息: Using graphics context org.eclipse.swt.graphics.GC@GC {-1073658877}
+10月 22, 2024 6:28:58 下午 org.eclipse.birt.chart.script.AbstractScriptHandler register
+信息: Trying to load Chart Java event handler class...
+10月 22, 2024 6:28:58 下午 org.eclipse.birt.chart.script.AbstractScriptHandler register
+信息: A Chart Java event handler class [class org.eclipse.mat.impl.chart.StorageUnitRenderScript] has been loaded successfully.
+10月 22, 2024 6:28:58 下午 org.eclipse.birt.chart.render.EmptyWithoutAxes renderSeries
+信息: org.eclipse.birt.chart.render.EmptyWithoutAxes: renderSeries() [1/2]
+10月 22, 2024 6:28:58 下午 org.eclipse.birt.chart.extension.render.Pie renderSeries
+信息: {0}: renderSeries() [{1}/{2}]org.eclipse.birt.chart.extension.render.Pie22

@@ -1,0 +1,559 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2021 SAP AG and IBM Corporation.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        IBM Corporation - additional collection classes
+ -->
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd" >
+<task id="task_analyzingjavacollectionusage" xml:lang="en-us">
+	<title>Analyzing Java Collection Usage</title>
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2020 SAP AG, IBM Corporation and others.
+				All rights reserved. This program and the accompanying materials
+				are made available under the terms of the Eclipse Public License 2.0
+				which accompanies this distribution, and is available at
+				https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+
+	<taskbody>
+		<context>
+			<p>A collection is an object that are used to store, retrieve and
+				manipulate the data. Memory Analyzer offers the following queries to
+				analyze java collections:</p>
+			<table rowsep="1" colsep="1">
+				<tgroup cols="2">
+					<tbody>
+						<row id="arrayfillratio">
+							<entry>
+								<b><cmdname>Array Fill Ratio</cmdname> Query</b>
+							</entry>
+							<entry>Prints a frequency distribution of fill ratios of
+								non-primitive arrays. The fill ratio is the proportion of
+								non-null elements in the array. The arrays are then accumulated
+								into as many segments as parameterized. Primitive arrays cannot
+								have null values so this query works only on object arrays.
+							</entry>
+						</row>
+						<row id="arraybysize">
+							<entry>
+								<b><cmdname>Arrays Grouped by Size</cmdname> Query</b>
+							</entry>
+							<entry>Distribution histogram of given arrays grouped
+								by the size.</entry>
+						</row>
+						<row id="collectionfillratio">
+							<entry>
+								<b><cmdname>Collection Fill Ratio</cmdname> Query</b>
+							</entry>
+							<entry>
+								<p>Prints a frequency distribution of fill ratios of given
+									collections. The following collections can be used for the
+									query:</p>
+								<ul>
+									<li>
+										<codeblock>java.awt.RenderingHints</codeblock>
+									</li>
+									<li>
+										<codeblock>java.beans.beancontext.BeanContextSupport</codeblock>
+									</li>
+									<li>
+										<codeblock>java.lang.ThreadLocal$ThreadLocalMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ArrayDeque</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ArrayList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Arrays$ArrayList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$CheckedCollection</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$CheckedMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$CheckedSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$EmptyList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$EmptyMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$EmptySet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SetFromMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SingletonList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SingletonSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SynchronizedCollection</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SynchronizedSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$UnmodifiableCollection</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$UnmodifiableSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ArrayBlockingQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentLinkedDeque</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentLinkedQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentSkipListMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.CopyOnWriteArrayList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.DelayQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.LinkedBlockingDeque</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.LinkedBlockingQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.LinkedTransferQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.SynchronousQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.EnumMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.EnumSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.HashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.HashSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Hashtable</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.IdentityHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$List0</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$Set1</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.LinkedHashSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.LinkedList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.PriorityQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Properties</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.TreeSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.WeakHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.jar.Attributes</codeblock>
+									</li>
+									<li>
+										<codeblock>javax.script.SimpleBindings</codeblock>
+									</li>
+								</ul>
+								<p>One additional custom collection (e.g. non-JDK) collection
+									can be specified by the 'collection', 'size_attribute' and
+									'array_attribute' argument.</p>
+							</entry>
+						</row>
+						<row id="collectionsbysize">
+							<entry>
+								<b><cmdname>Collections Grouped By Size</cmdname> Query</b>
+							</entry>
+							<entry>
+								<p>Distribution histogram of given collections by
+									their size. The following collections can be used for the
+									query. Known collections:</p>
+								<ul>
+									<li>
+										<codeblock>java.awt.RenderingHints</codeblock>
+									</li>
+									<li>
+										<codeblock>java.beans.beancontext.BeanContextSupport</codeblock>
+									</li>
+									<li>
+										<codeblock>java.lang.ThreadLocal$ThreadLocalMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ArrayDeque</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ArrayList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Arrays$ArrayList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$CheckedCollection</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$CheckedMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$CheckedSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$EmptyList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$EmptyMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$EmptySet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SetFromMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SingletonList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SingletonMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SingletonSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SynchronizedCollection</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SynchronizedMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SynchronizedSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$UnmodifiableCollection</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$UnmodifiableMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$UnmodifiableSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ArrayBlockingQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentLinkedDeque</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentLinkedQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentSkipListMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentSkipListSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.CopyOnWriteArrayList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.CopyOnWriteArraySet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.DelayQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.LinkedBlockingDeque</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.LinkedBlockingQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.LinkedTransferQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.SynchronousQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.EnumMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.EnumSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.HashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.HashSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Hashtable</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.IdentityHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$List0</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$List1</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$List2</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$ListN</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$MapN</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$Set0</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$Set1</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$Set2</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$SetN</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.jar.Attributes</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.LinkedHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.LinkedHashSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.LinkedList</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.PriorityQueue</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Properties</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.TreeMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.TreeSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Vector</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.WeakHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>javax.script.SimpleBindings</codeblock>
+									</li>
+									<li>
+										<codeblock>javax.swing.UIDefaults</codeblock>
+									</li>
+								</ul>
+								<p>One additional custom collection (e.g. non-JDK) collection
+									can be specified by the 'collection', 'size_attribute' and
+									'array_attribute' argument.</p>
+							</entry>
+						</row>
+						<row>
+							<entry>
+								<b><cmdname>Extract List Values</cmdname> Query</b>
+							</entry>
+							<entry>
+								<p>Lists elements of a single LinkedList, ArrayList, Vector, 
+								CopyOnWriteArrayList, PriorityQueue, ArrayDeque
+									object.</p>
+								
+							</entry>
+						</row>
+						<row>
+							<entry>
+								<b><cmdname>Hash Entries</cmdname> Query</b>
+							</entry>
+							<entry>
+								<p>Extracts the key-value pairs from hash maps and
+									hashtables.</p>
+							</entry>
+						</row>
+						<row>
+							<entry>
+								<b><cmdname>Extract Hash Set Values</cmdname> Query</b>
+							</entry>
+							<entry>
+								<p>Lists elements of a single HashSet.</p>
+							</entry>
+						</row>
+						<row id="mapcollision">
+							<entry>
+								<b><cmdname>Map Collision Ratio</cmdname> Query</b>
+							</entry>
+							<entry>
+								<p>Prints a frequency distribution of the collision ratios
+									of map-like collections. The following map-like collections can
+									be used for the query.</p>
+								<ul>
+									<li>
+										<codeblock>java.util.HashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Properties</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Hashtable</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.WeakHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentHashMap$Segment</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.HashSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentSkipListMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.concurrent.ConcurrentSkipListSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$CheckedMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$CheckedSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SynchronizedMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$SynchronizedSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$UnmodifiableMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.Collections$UnmodifiableSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.LinkedHashMap</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.LinkedHashSet</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.ImmutableCollections$MapN</codeblock>
+									</li>
+									<li>
+										<codeblock>java.util.jar.Attributes</codeblock>
+									</li>
+									<li>
+										<codeblock>java.awt.RenderingHints</codeblock>
+									</li>
+									<li>
+										<codeblock>java.beans.beancontext.BeanContextSupport</codeblock>
+									</li>
+									<li>
+										<codeblock>java.lang.ThreadLocal$ThreadLocalMap</codeblock>
+									</li>
+									<li>
+										<codeblock>javax.script.SimpleBindings</codeblock>
+									</li>
+									<li>
+										<codeblock>javax.swing.UIDefaults</codeblock>
+									</li>
+								</ul>
+								<p> One additional custom map-like (e.g. non-JDK) collection can
+									be specified by the 'collection', 'size_attribute' and
+									'array_attribute' argument.</p>
+							</entry>
+						</row>
+						<row id="primitivearrayconstvalue">
+							<entry>
+								<b><cmdname>Primitive Arrays with a Constant Value</cmdname> Query</b>
+							</entry>
+							<entry>
+								Lists a summary of all primitive arrays (from a selection) which are filled with one and the
+								same value.
+								Arrays with the same length and constant value are grouped together.
+							</entry>							
+						</row>
+					</tbody>
+				</tgroup>
+			</table>
+			<p>
+				All these queries are accessible from the toolbar drop-down menu:
+				<menucascade>
+					<uicontrol>Open Query Browser</uicontrol>
+					<uicontrol>Java Collections</uicontrol>
+				</menucascade>
+			</p>
+			<p>
+				There are also available from the pop-up context menu using mouse button 2 on a selection of objects from a previous query.
+				Unsuitable queries for the selection are filtered out and are not shown, so for example a <cmdname>Hash Entries</cmdname> query
+				would not be offered for a selection of <codeph>ArrayList</codeph> objects.
+				All the collection queries can be seen from the pop-up context menu using:
+				<menucascade>
+					<uicontrol>Search Queries...</uicontrol>
+					<uicontrol>Java Collections</uicontrol>
+				</menucascade>
+				Any query can then be selected and run.
+			</p>
+		</context>
+	</taskbody>
+</task>

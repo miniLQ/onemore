@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2020 SAP AG and IBM Corporation.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        Andrew Johnson (IBM Corporation) - fixes
+ -->
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd" >
+<reference id="task_analyzingclassloader" xml:lang="en-us">
+	<title>Analyze Class Loader</title>
+	<shortdesc>
+		Class loaders load classes into the memory of the JVM. When
+		analyzing the heap, class loaders are very important for two reasons:
+		First, applications typically load components using separate class
+		loaders. Second, the loaded classes are usually stored in a separate space (e.g. the perm space)
+		which can also be depleted.
+	</shortdesc>
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2010 SAP AG and others.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+	
+	<refbody>
+		<section>
+			<title>Class Loader Explorer</title>
+			<p>
+				To get an overview, run the
+				<menucascade>
+					<uicontrol>Query Browser</uicontrol>
+					<uicontrol>Java Basics</uicontrol>
+					<uicontrol>Class Loader Explorer</uicontrol>
+				</menucascade>
+				inspection on the heap dump.
+
+				<ul>
+					<li>The Memory Analyzer attaches a meaningful label to the class
+						loader - in the case of OSGi bundles it is the bundle id. Looking
+						out for duplicate entries!</li>
+					<li>Next to the class loader name, the table contains the defined
+						classes and the number of live instances. If one and the same
+						component is loaded multiple times, the number of live instances
+						can indicate which class loaders is more alive and which one
+						should be garbage collected.</li>
+				</ul>
+			</p>
+
+			<image href="analyzingclassloader_explorer.png">
+				<alt>Class Loader Explorer</alt>
+			</image>
+
+			<p>
+				Find more information in this blog posting:
+				<xref format="html" scope="external"
+					href="http://dev.eclipse.org/blogs/memoryanalyzer/2008/05/17/the-unknown-generation-perm/">The Unknown Generation: Perm</xref>
+			</p>
+
+		</section>
+	</refbody>
+</reference>

@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2011, 2020 SAP AG and IBM Corporation.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial documentation
+        IBM Corporation - documentation on IBM specific dumps
+ -->
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd" >
+<task id="task_comparingdata" xml:lang="en-us">
+	<title>Comparing Objects</title>
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2011, 2020 SAP AG and IBM Corporation.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+
+	<taskbody>
+		<context>
+		    <p><b>Introduction</b></p>
+			<p>
+		    Before looking into the capabilities that Memory Analyzer offers in the area of comparison
+		    let us make some explanation. Object IDs which are provided in the heap dump formats supported by MAT
+		    are just the addresses at which the objects are located. As objects are often moved and 
+		    reordered by the JVM during a GC these addressed change. Therefore they cannot be used to compare the objects.
+		    This basically means that if one compares two different heap dumps (although from the same process) it is not
+		    possible to point to the concrete objects different between the two heap dumps.
+		    However, one can still perform comparison on the aggregated results (e.g. the class histogram)
+		    and analyze how the amount of object and the memory they take has changed.
+			</p>
+
+			<p>
+				Memory Analyzer offers the possibility to compare not only the global class histograms of two different
+				heap dumps, but an arbitrary number of table-formatted or tree-formatted results - for example the 
+				retained sets of three different objects. It doesn't matter if the tables or trees which 
+				are compared come from one and the same or different heap dumps.
+			</p>
+			<p>
+				This means that one has the possibility to do things like:
+				<ul>
+				<li>Compare the retained set of a specific package across several heap dumps</li>
+				<li>Compare how the retained sets for application objects A1, A2 and A3 (all in the 
+				same heap dump) differ from each other</li>
+				</ul> 
+			</p>
+			<p>				
+				Here is a quick description how to compare several retained set tables.
+			</p>
+		</context>
+				
+		<steps>
+			<step>
+			<cmd>
+				<b>Move all tables to be compared to the Compare Basket</b>
+			</cmd>
+			<info>
+			<p>
+				All queries which are executed in Memory Analyzer can be seen in the Navigation History View.
+				From this view one can add the results to be compared to the Compare Basket. 
+				The Navigation History is still per heap dump, therefore if one wants to compare 
+				tables from different heap dumps then they have to be added one by one.
+				Multiple tables from one heap dump can be added at a time.
+			</p>
+			<p>Trees can be compared as well, and the comparison result is then a tree.
+			<xref href="queryingheapobjects.dita">Object Query Language (OQL)</xref> results
+			can also be compared, though only the last result from each OQL editor can be 
+			added to the Compare Basket. If another query is issued then the previous result
+			will be removed from the basket. If two OQL results need to be compared then
+			two OQL editors should be opened.</p>
+			<p>If the tables or trees are filtered then the filtered result will be used for the
+			comparison. If there are derived data columns such calculated retained sizes then these
+			will be included in the comparison.</p>
+			</info>
+			<stepresult>
+				<image href="../mimes/nn_add_to_compare_basket.png">
+					<alt>Move from Navigation History to Compare Basket</alt>
+				</image>
+			</stepresult>
+			</step>
+			<step>
+			<cmd>
+				<b>Modify the order of the tables</b>
+			</cmd>
+			<info>
+			<p>
+				Using the tool bar of the Compare Basket one can modify the order in which tables 
+				should be compared, i.e. select which result should be the baseline, which comes second, etc...
+			</p>
+			</info>
+			<stepresult>
+				<image href="../mimes/nn_compare_basket.png">
+					<alt>Modify the Tables Order in the Compare Basket</alt>
+				</image>
+			</stepresult>
+			</step>
+			<step>
+			<cmd>
+				<b>Execute the comparison</b>
+			</cmd>
+			<choices>
+			<choice>
+				Once the preferred order is achieved just click the execute button...
+			<p>
+				<image href="../mimes/nn_click_compare.png">
+					<alt>Click Compare</alt>
+				</image>
+			</p>
+			</choice>
+			<choice>
+				or to compare a subset of the tables, bring up the context menu on selected table entries.
+				When comparing tables from one and the same heap dump, it is now possible
+			to perform different set operations on the comparison result.
+				<image href="../mimes/compare_basket_context_menu.png">
+					<alt>Context menu in the Compare Basket</alt>
+				</image>
+				<p>The comparison query has several options to control the comparison in
+				more detail.
+				<dl>
+					<dlentry>
+						<dt>-mode</dt>
+						<dd>Whether to show absolute values in columns, or the difference from the base table, or the difference from the preceding table.</dd>
+					</dlentry>
+					<dlentry>
+						<dt>-setop</dt>
+						<dd>Whether to just show the raw tables, or only a particular set operation, or all the tables and the set operations as context menus.</dd>
+					</dlentry>
+					<dlentry>
+						<dt>-keycolumn</dt>
+						<dd>The number of the column to be matched between the tables (default of column 1).</dd>
+					</dlentry>
+					<dlentry>
+						<dt>-mask</dt>
+						<dd>Regular expression to mask part of the key, for example addresses using: <userinput>\s@ 0x[0-9a-f]+</userinput> or an array index using <userinput>^\[[0-9]+\]$</userinput>
+						The same object in two consecutive heap dumps may have a different address if it has been moved 
+						by garbage collection. Two corresponding objects from two different heap dumps will have different addresses.
+						If these two objects are to matched by the comparison then the addresses need to be removed from the display value
+						of the key. This option allows this to happen.</dd>
+					</dlentry>
+					<dlentry>
+						<dt>-replace</dt>
+						<dd>Replacement text for mask matches. This will be displayed as part of the key column.
+							Regular expression terms <userinput>$0</userinput>, <userinput>$1</userinput> may be used to
+							extract the value of groups defined by the <parmname>mask</parmname> option.
+						</dd>
+					</dlentry>
+					<dlentry>
+						<dt>-prefix</dt>
+						<dd>Whether to include the prefix of the key column in the match &#x2014; for example the field name or array index in a path.</dd>
+					</dlentry>
+					<dlentry>
+						<dt>-suffix</dt>
+						<dd>Whether to include the suffix of the key column in the match &#x2014; for example the GC root type.</dd>
+					</dlentry>
+					<dlentry>
+						<dt>-x</dt>
+						<dd>The key can be extended by adding field references to be matched. The extra key values are specified as follows:
+							<parmname>extra</parmname> ::= <userinput><varname>className</varname>[:<varname>field</varname>[,<varname>field</varname>]]</userinput>
+							Example:
+								<userinput>java.lang.Module:name</userinput>
+							If the object is an instance of that type then the values of those fields are resolved and added to the key. If the fields are omitted then the class specific name of the object itself is resolved.
+						</dd>
+					</dlentry>
+					<dlentry>
+						<dt>-xfile</dt>
+						<dd>Read extra key values from the file. Each line must have the same format as for the -x argument.</dd>
+					</dlentry>
+				</dl>
+				</p>
+			</choice>
+			</choices>
+			<stepresult>
+			<p>
+				... and see the result.
+			</p>
+			<p>
+				<image href="../mimes/nn_compared_tables_absolute.png">
+					<alt>Comparison table</alt>
+				</image>
+			</p>
+			</stepresult>
+			</step>
+			<step>
+			<cmd>
+				<b>Customize the displayed result</b>
+			</cmd>
+			<info>
+			<p>
+				By default the absolute values of all tables will be shown for every compared property,
+				e.g. number of objects, shallow size, etc... One can now change between deltas and
+				absolute values, as well as select which columns should be compared:
+			</p>
+			<p>
+				<image href="../mimes/nn_select_compare_option.png">
+					<alt>Switch between Absolute Values and Deltas</alt>
+				</image>
+				<image href="../mimes/nn_select_columns.png">
+					<alt>Select Columns To Be Compared</alt>
+				</image>				
+			</p>
+			</info>
+			<stepresult>
+			<p>
+				<image href="../mimes/nn_compared_result_delta.png">
+					<alt>Modified Comparison Result</alt>
+				</image>
+			</p>
+			</stepresult>
+			</step>
+			<step>
+			<cmd>
+				<b>Context menu with set operations</b>
+			</cmd>
+			<info>
+				<p>If the tables have been compared using <menucascade><uicontrol>Compare tables and trees with all set operations</uicontrol>
+					</menucascade> then it is possible to perform different set operations on the comparison result using the
+					context menu.
+					Set operations only operate when there are two or more tables or trees from the current snapshot.
+					In this situation, even if another comparison query has been chosen, then the menu toolbar contain a <menucascade><uicontrol>Choose set operation ...</uicontrol></menucascade>
+					menu which will select which set operations appear on the context menu.
+				</p>
+				<image href="../mimes/setops_menu.png">
+					<alt>Set Operations context menu</alt>
+				</image>
+			</info>
+			</step>
+			<step>
+			<cmd>
+				<b>Comparison reports</b>
+			</cmd>
+			<info>
+				There are some reports which operate by comparing two snapshots.
+				The <cmdname>Leak Suspects by Snapshot Comparison</cmdname> report
+				available from the Overview pane runs a special <xref href="runningleaksuspectreport.dita">Leak Suspects report</xref>
+				which operates by comparing the dominator trees of the two snapshots and detects larger changes in retained sizes between
+				corresponding objects.
+				The query is also available from <menucascade><uicontrol>Leak Suspects</uicontrol><uicontrol>Compare Snapshots Leak Report</uicontrol></menucascade>
+				and in <xref type="task" href="batch.dita">batch mode</xref>.
+			</info>
+			</step>
+		</steps>
+	</taskbody>
+</task>

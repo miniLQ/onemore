@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2023 SAP AG and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial implementation
+        IBM Corporation - alt text
+ -->
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd" >
+<reference id="ref_inspections_top_consumers" xml:lang="en-us">
+	<title>Top Consumers</title>
+	<shortdesc>Find out which classes, class loaders and packages are using the most memory.
+	</shortdesc>
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2021 SAP AG and others.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+	
+	<refbody>
+		<section>
+			<title>Motivation</title>
+			<p>This shows the important components which are using the most memory.</p>
+		</section>
+		<section>
+			<title>Arguments</title>
+			<simpletable>
+				<sthead>
+					<stentry>Argument</stentry>
+					<stentry>Description</stentry>
+				</sthead>
+				<strow>
+					<stentry>objects</stentry>
+					<stentry>Set of objects to include in the analysis.</stentry>
+				</strow>
+				<strow>
+					<stentry>t</stentry>
+					<stentry>Threshold (in percent of the total heap size) which objects have to exceed to be included in the analysis.</stentry>
+				</strow>
+			</simpletable>
+		</section>
+		<section id="result">
+			<title>Result</title>
+			<image href="../../mimes/m3131b4b6.png">
+				<alt>
+					The result of the query, showing a pie chart of the biggest objects
+					and a tree view of the biggest objects, showing the shallow heap
+					and retained size.
+				</alt>
+			</image>
+			<p>See <xref href="../../tasks/listbiggestobjects.dita">List Biggest Objects</xref>
+			for more information. 
+			See <xref href="../tipsandtricks.dita#ref_tips/piechartlinks">Pie Chart Links</xref>
+			for links from pie charts.</p>
+		</section>
+	</refbody>
+</reference>

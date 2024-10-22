@@ -1,0 +1,219 @@
+Signature-Version: 1.0
+Created-By: 11.0.21 (Eclipse Adoptium)
+SHA-256-Digest-Manifest: uWI0vQHvPhLK1h6eMh0PzSD3XJswFRRqAIY+zN4X9tM=
+SHA-256-Digest-Manifest-Main-Attributes: 7dtVqrp1Ri01X8NJZpC2Td21m1Ds+Uz
+ wfHDMXMIrkVs=
+
+Name: intro/introContent.xml
+SHA-256-Digest: NBogjN5RWRz0DU5Ecn0l95n21hb9FqPgNXGts54i1DU=
+
+Name: about.properties
+SHA-256-Digest: BLZRJ+ORsXFaEWQjBY9skoa/cmDHhyHyWKeYx2Mdbxc=
+
+Name: plugin.xml
+SHA-256-Digest: /qH4yNwXzOsco7c4o5mQaxAW02CD9blqxtoRS7zsinQ=
+
+Name: org/eclipse/mat/ui/rcp/actions/ShowViewMenu.class
+SHA-256-Digest: UoZO+RtH5MsdkAQ/mqFNbX1rR8h5Tc5jziXelKAwpRM=
+
+Name: org/eclipse/mat/ui/rcp/actions/AddHistoryToMenuAction$1.class
+SHA-256-Digest: SFgNdBt+kuHF3edZGREF+B/zojRVMedtZZh+nTEKXlc=
+
+Name: org/eclipse/mat/ui/rcp/actions/VersionIntroContentProvider.class
+SHA-256-Digest: ZtpN1kRQntUHx0k9dOTeWKRkuRj/S5wiK0x/xuBe1D4=
+
+Name: org/eclipse/mat/ui/rcp/actions/OpenPreferenceAction$1.class
+SHA-256-Digest: Uxlrahw3A4ZrKdl6aiclGZAMFFWX3CVtCmLkgMn6nNA=
+
+Name: icons/memory_analyzer_256.png
+SHA-256-Digest: gI2LL7VBCTz085OHbkY98nkPCFG3MnUpNBpcjsuRc7g=
+
+Name: intro/css/icons/arrow.gif
+SHA-256-Digest: F+QZdSRvybBUTBgECBVCyQENu0Xhp0U9RmuTPT7qUHc=
+
+Name: intro/css/icons/heapdump.gif
+SHA-256-Digest: NwIfde2Xb0tHr1gEZIKTwRndLAtw7AI3Ssd/qf9pFKw=
+
+Name: icons/memory_analyzer.icns
+SHA-256-Digest: hs/xm3ay2ExQMRGXoIUFHuGYEkxQeFAI5VdiJg+rpF8=
+
+Name: org/eclipse/mat/ui/rcp/actions/OpenEditorAction.class
+SHA-256-Digest: 2okOnhCmLPBXB331z/JMakJaGRdsFvQz1nUg08I4NnY=
+
+Name: splash.png
+SHA-256-Digest: uSpEdT0v1qUMMu0X7g0eTurVURaFlshxvSRkpeKdDUE=
+
+Name: about.ini
+SHA-256-Digest: WJHDOyfOM72ASQG8powMrL3fe2siwPcryHsU5zdJdNY=
+
+Name: plugin.properties
+SHA-256-Digest: wpcSHXN1guQi/zT3WBF1wGdeOUQ1k42SwuUWTpeTY0o=
+
+Name: intro/css/pictograms/help.gif
+SHA-256-Digest: acsC5kLX4GWMr8a4uJNOPIIdARIHFsZnv1ZDeOJP92Q=
+
+Name: org/eclipse/mat/ui/rcp/actions/OpenPreferenceAction.class
+SHA-256-Digest: hyUtBFDfQIbfUBqvgK2qHuD13lLby/JZTDarjbdDjpI=
+
+Name: plugin_customization.ini
+SHA-256-Digest: iKhj7+IE3rlrg8CudpNN7OtFkun12xWMrq8HYo0Zjpw=
+
+Name: org/eclipse/mat/ui/rcp/actions/AddHistoryToMenuAction$2.class
+SHA-256-Digest: XdLixy7A0G/N8ns2RIlDRzHT4+6JStyg4MmZIGnU9zw=
+
+Name: org/eclipse/mat/ui/rcp/ApplicationActionBarAdvisor.class
+SHA-256-Digest: Z/w0XSBa0ncMO5Ts0utRtvV17E+oI1kX/0gFLQXBxpw=
+
+Name: org/eclipse/mat/ui/rcp/actions/ShowViewAction.class
+SHA-256-Digest: Caa2hKpYmtI9VPgzeDTuAskZyfYtklZDB1qdFIdRuBg=
+
+Name: org/eclipse/mat/ui/rcp/actions/SnapshotHistoryIntroContentProvider
+ $2.class
+SHA-256-Digest: 3rrwnZSAMHinM/Y0h9mG1BBL88LKqvEHeTvvgbf9EO8=
+
+Name: icons/open_snapshot.gif
+SHA-256-Digest: q6e/dQBa7t3sZeJasLJCCSJKafZYU1NPmNFpVsxQ1bY=
+
+Name: intro/css/overview.css
+SHA-256-Digest: IdmJCHZ0CRfYnO2FM0S4brS3G41Y0Vf1fFEqxV1ABB8=
+
+Name: org/eclipse/mat/ui/rcp/Application$1.class
+SHA-256-Digest: J+ERkDhfPI9NXYnEb/PqIcys+pTV7+XlaiR5w6alSQc=
+
+Name: intro/css/icons/workbench_off.gif
+SHA-256-Digest: o1ZxyO6G3rCNwfV3cYShGdE04r65G5+X0y7qgKxdDws=
+
+Name: icons/memory_analyzer_32.png
+SHA-256-Digest: hO8e8BhCP7V9hJMqs7FC49ysBmhKrPFNYvfnRmClpjA=
+
+Name: intro/css/pictograms/web.gif
+SHA-256-Digest: VK08A56YYT8VL+fOO/PeCKeXOSoQJ8ybBgsEFi553bw=
+
+Name: icons/eclipse_lg.gif
+SHA-256-Digest: V3v5zjXMHCDc2Fbohg2525m0mt/x8elkDkFO2aBMlLg=
+
+Name: intro/css/icons/tutorials_off.gif
+SHA-256-Digest: A6DHzO7lhbOvLIKfAzFpZRUIGvGoH0B8rKqz9iQslsg=
+
+Name: icons/help.gif
+SHA-256-Digest: TK37vzWRKKZGyTEG7bIPBRixc1JstzwrDQfncMdFGBo=
+
+Name: org/eclipse/mat/ui/rcp/ApplicationWorkbenchAdvisor.class
+SHA-256-Digest: AgAkt6VpWY0twJxiPCYNzEhs+HuRtI4WRv7cFweWP3M=
+
+Name: org/eclipse/mat/ui/rcp/actions/SnapshotHistoryIntroContentProvider
+ $1.class
+SHA-256-Digest: OJjL4IPSMFO7vLuxIzRgMxhQTCxB4/CM40siipzCBfc=
+
+Name: icons/memory_analyzer_32.gif
+SHA-256-Digest: GTdkNsZA92Vf4tIroyifQ2eobg6OvevyVNT8V2Ur9Rc=
+
+Name: org/eclipse/mat/ui/rcp/actions/OpenPreferenceAction$Node.class
+SHA-256-Digest: Yz644uDsnBp3rg3L0SnI1jz7Q51odlLIbCxWMHAk46g=
+
+Name: org/eclipse/mat/ui/rcp/actions/SnapshotHistoryIntroContentProvider
+ .class
+SHA-256-Digest: VixLXAE5hTlWHZMrqfmroh8ldMFnPt3Em0U06dM8nrA=
+
+Name: intro/css/icons/overview_off.gif
+SHA-256-Digest: BZKEdnto0n+Fa2Fz8vWhOECgXdoCu6CcfiMpvjx0yS0=
+
+Name: intro/css/pictograms/parse.gif
+SHA-256-Digest: Z6/HvgbrpF4vkEltMZ35g/cF7v0JkgfXk06bHR5F/50=
+
+Name: intro/css/icons/resource.gif
+SHA-256-Digest: lUy3qcfd04c7NPSuE2GwLYewVmewY2hC1zJ7ipNXxKA=
+
+Name: org/eclipse/mat/ui/rcp/messages.properties
+SHA-256-Digest: z7SpK/yoitpH7UgT+vVIocq2tu58MXuJ5CWGW2sdGUo=
+
+Name: icons/memory_analyzer_64.png
+SHA-256-Digest: GG7MuUhUtmWtNUBIkMn/xMgOS2NWmmR3EykVmyuLX2s=
+
+Name: org/eclipse/mat/ui/rcp/ApplicationWorkbenchWindowAdvisor.class
+SHA-256-Digest: WxijejJaNC/HUU6f7PMnNfJlS5AyYhYR/loHm4Vh9Po=
+
+Name: about.mappings
+SHA-256-Digest: 0nOmnBZrZTCNLFNA3WLzo29z35NSR8ttTZz9KLuArSA=
+
+Name: org/eclipse/mat/ui/rcp/actions/AddHistoryToMenuAction.class
+SHA-256-Digest: EtJkzqdzrLLfO9hJanOqgRtLsxrNuZq6DRzVZyK8hAE=
+
+Name: intro/css/icons/tutorials_small.gif
+SHA-256-Digest: +rkn78QDzbxl91S8HBIUfcLr/ylxxKfD1g0uQbbbyGA=
+
+Name: org/eclipse/mat/ui/rcp/RCPPlugin.class
+SHA-256-Digest: zFHvPmoPoZvOV1nc72NiIK1sNPGvoUeES0WbujV7qXc=
+
+Name: intro/css/tutorials.css
+SHA-256-Digest: 458OCGkHL/eqa0onne34Uve6H0oa71QYKI1AOyMF9t4=
+
+Name: intro/css/shared.css
+SHA-256-Digest: tcyJru8FRSwY63DpvqBULSHChRdNXvsE0GQqN4TFqGU=
+
+Name: org/eclipse/mat/ui/rcp/actions/AddHistoryToMenuAction$2$1.class
+SHA-256-Digest: OqGE+9Ynp1clruSQvRI7psrpOFwMexllLA15BejBFzo=
+
+Name: intro/css/icons/overview_on.gif
+SHA-256-Digest: QuMHp67Vvt2qHtZl78VIZIY80OF1uRKQmqWwihYmhVw=
+
+Name: org/eclipse/mat/ui/rcp/actions/OpenHelp.class
+SHA-256-Digest: lr0DtEgoOeCFnOWeUznI5mZINcfAzl8OniSF5D6O+4Q=
+
+Name: intro/css/icons/overview_small.gif
+SHA-256-Digest: j8LDnU5HeDJ/oYsGIQcvxNgPLx27ftVYFfJ2BQDTQhY=
+
+Name: META-INF/maven/org.eclipse.mat/org.eclipse.mat.ui.rcp/pom.properti
+ es
+SHA-256-Digest: 1tY106WqjD6k15Tg8ML3++KvMYLRfs65rxDsqwufn3g=
+
+Name: org/eclipse/mat/ui/rcp/actions/OpenPreferenceAction$PreferenceRegi
+ stry.class
+SHA-256-Digest: YUrAR9qYLIkcFyaA2Fp7Oy6Vu8xGRnuQVX5vHALR+8o=
+
+Name: icons/memory_analyzer_16.gif
+SHA-256-Digest: uJJG5igx2QtFXr9otZWrvrfahpFfjxB33nJFU4pGz+I=
+
+Name: intro/css/pictograms/acquire.gif
+SHA-256-Digest: /vY3/9eGHHQBEDPxSE76XwsYdYlv0A+Xt43CcAaPJZs=
+
+Name: license.html
+SHA-256-Digest: zVM/vJgU0kRLZDQ3qmgeRgMh5WQ38NzJh/8vJedLd0s=
+
+Name: org/eclipse/mat/ui/rcp/Application.class
+SHA-256-Digest: q6agQtQaQ7HhZhjYHlKsUyq/lelMylXXta/1AHjZuWU=
+
+Name: icons/memory_analyzer_48.png
+SHA-256-Digest: A7c/EpxgpfNXJbnXcS92mzUDE7KB9z4eOBQiYcKfXP4=
+
+Name: intro/css/standby.css
+SHA-256-Digest: waExgOumB1AAOtUY6rEUL7Pnr1ZN+hhl6SQFxA0vzA4=
+
+Name: about.html
+SHA-256-Digest: ncO+WCNUIJ0JLCOl/ot53yopwTqvvtVu0qSgblesdYo=
+
+Name: icons/copy.gif
+SHA-256-Digest: HfUSwmXrWQ7Zo295HM+QpGBbl0Tpxr0/Mgc+yn44Wg8=
+
+Name: intro/css/icons/workbench_on.gif
+SHA-256-Digest: mKRurKl4XqEq+PO9DjkyOGdFzxNBjG5ygbGEvGubY/k=
+
+Name: icons/memory_analyzer_128.png
+SHA-256-Digest: ZbbaTzs8+iUd0QDP6p4ipIJvMwaWPng4Na8z9k7DxYQ=
+
+Name: org/eclipse/mat/ui/rcp/Messages.class
+SHA-256-Digest: q5gATljgblLEizvTVHwZnIeXgkss3lcC/a3kEYE8Paw=
+
+Name: META-INF/maven/org.eclipse.mat/org.eclipse.mat.ui.rcp/pom.xml
+SHA-256-Digest: TbBzQD8Fpe15rWGxDGZsLLUVQ9kkXJ3VPpPL/4x6P8U=
+
+Name: org/eclipse/mat/ui/rcp/actions/OpenPreferenceAction$1NewPreference
+ Dialog.class
+SHA-256-Digest: zMduxxFG2oS1uswwEuhF4CtaZ7F/FF//vnUzVZrAwyA=
+
+Name: intro/css/pictograms/new.gif
+SHA-256-Digest: H3DvB5VE81NUHXqRP2O11r11lZmBMRoHdqUJlAeL26E=
+
+Name: intro/css/icons/tutorials_on.gif
+SHA-256-Digest: qpGfBKgHgOOR1nnsFZnqOjYgKByq3RmiSczsIHuujHQ=
+

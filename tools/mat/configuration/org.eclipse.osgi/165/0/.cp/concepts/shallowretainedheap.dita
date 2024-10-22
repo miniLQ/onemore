@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        IBM Corporation - updates for validation
+ -->
+<!DOCTYPE concept PUBLIC "-//OASIS//DTD DITA 1.1 Concept//EN" "concept.dtd" >
+<concept id="concept_shallowretainedsize" xml:lang="en-us">
+	<title>Shallow vs. Retained Heap</title>
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+	
+	<conbody>
+		<p>
+			<b>Shallow heap</b>
+			is the memory consumed by one object. An object needs 32 or 64 bits
+			(depending on the OS architecture) per reference, 4 bytes per
+			Integer, 8 bytes per Long, etc. Depending on the heap dump format the
+			size may be adjusted (e.g. aligned to 8, etc...) to model better the 
+			real consumption of the VM.
+		</p>
+		<p>
+			<b>Retained set</b>
+			of X is the set of objects which would be removed by GC when X is garbage 
+			collected.
+		</p>
+		<p>
+			<b>Retained heap</b>
+			of X is the sum of shallow sizes of all objects in the retained set
+			of X, i.e. memory kept alive by X.
+		</p>
+		<p>Generally speaking, shallow heap of an object is its size
+			in the heap and retained size of the same object is the amount of
+			heap memory that will be freed when the object is garbage collected.
+		</p>
+		<p>The retained set for a leading set of objects, such as all
+			objects of a particular class or all objects of all classes loaded by
+			a particular class loader or simply a bunch of arbitrary objects, is
+			the set of objects that is released if all objects of that leading
+			set become unaccessible. The retained set includes these objects as
+			well as all other objects only accessible through these objects. The
+			retained size is the total heap size of all objects contained in the
+			retained set.</p>
+		<image href="../mimes/62ff1436.png">
+			<alt>Example object graph</alt>
+		</image>
+		<p>The Minimum Retained Size gives a good (under)estimation of the
+			retained size which is calculated ways faster than the
+			exact retained size of a set of objects. It only depends on the
+			number of objects in the inspected set, not the number of objects in
+			the heap dump.</p>
+	</conbody>
+</concept>

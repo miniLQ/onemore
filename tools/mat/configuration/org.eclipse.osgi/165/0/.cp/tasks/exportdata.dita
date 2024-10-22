@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2023 SAP AG and IBM Corporation.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        IBM Corporation - formatting
+ -->
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd" >
+<task id="task_exportdata" xml:lang="en-us">
+	<title>Export Data</title>
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others.
+			    All rights reserved. This program and the accompanying materials
+			    are made available under the terms of the Eclipse Public License 2.0
+			    which accompanies this distribution, and is available at
+			    https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+
+	<taskbody>
+		<context>
+			<p>Analyzed data can be exported from the heap editor either
+				by:</p>
+			<ul>
+				<li>
+					Using the toolbar export menu (you can choose between export to
+					HTML, CSV, and TXT)
+					<p>
+						<image href="../mimes/export_to.png">
+							<alt>screen shot export menu</alt>
+						</image>
+					</p>
+				</li>
+				<li>Copy and paste to Notes view, e-mail or any text-based file.
+				</li>
+				<li>
+					Using context menu
+					<cmdname>Copy</cmdname>
+					to copy and paste address, class name or value of an object. The content of 
+					huge arrays can be saved to a file using the Save Value to File option.
+					<p>
+						<image href="../mimes/copy.png">
+							<alt>screen shot showing Copy options</alt>
+						</image>
+					</p>
+				</li>
+			</ul>
+		</context>
+	</taskbody>
+</task>

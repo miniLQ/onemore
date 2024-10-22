@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+    
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+        SAP AG - initial API and implementation
+        IBM Corporation - more updates including alternate text
+ -->
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd" >
+<reference id="ref_queryarguments" xml:lang="en-us">
+	<title>Selecting Queries</title>
+	<shortdesc />
+
+	<prolog>
+		<copyright>
+			<copyryear year=""></copyryear>
+			<copyrholder>
+				Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others.
+				All rights reserved. This program and the accompanying materials
+				are made available under the terms of the Eclipse Public License 2.0
+				which accompanies this distribution, and is available at
+				https://www.eclipse.org/legal/epl-2.0/
+			</copyrholder>
+		</copyright>
+	</prolog>
+
+
+	<refbody>
+		<section>
+			<p> Memory Analyzer provides a set of queries to analyze a heap dump. These
+				queries are grouped into several categories. </p>
+			<p> You can select a query out of the drop-down toolbar menu. </p>
+			<image href="../mimes/189608b9.png" align="left" placement="break">
+				<alt>Screen shot selecting Leak Identification > Top Consumers query</alt>
+			</image>
+			<p> In the menu you can also access the list of already executed queries via the
+				<menucascade><uicontrol>History</uicontrol></menucascade> entry. 
+				The Query Selector which can be
+				quickly accessed with the
+				<uicontrol>ctrl+Q</uicontrol> or <uicontrol platform="macOS">command+Q</uicontrol> 
+				key combination.</p>
+			<image href="../mimes/select_queries.png" align="left" placement="break">
+				<alt>Query selection pop-up showing history and other queries</alt>
+			</image>
+			<p> The Query Selector consists of an input field, where you can search for
+				queries, below the input field you can find the history of already executed
+				queries and below the history the list of all available queries grouped by
+				their category. When a query is selected, a detailed description of the query
+				is displayed at the bottom. This description contains also the information
+				about the arguments for this query. To execute the query either double-click
+				or press <uicontrol>enter</uicontrol>.
+			</p>
+			<p>The input field can also be used to execute queries via the command line.
+			Either type the command name you want together with the arguments, or copy the
+				example arguments from a command in the list by using 
+			<uicontrol>ctrl+enter</uicontrol> or <uicontrol platform="macOS">command+enter</uicontrol>
+			on macOS) or mouse button 2. Then execute the query
+			by pressing <uicontrol>enter</uicontrol> which will execute the command directly
+			if all required arguments have been specified,
+			or will bring up the arguments wizard if other arguments are required.
+			Pressing <uicontrol>shift+enter</uicontrol>
+			will always bring up the arguments wizard if there any arguments which could be changed. 
+			</p>
+			<p>
+			Try the <xref format="html" scope="peer" href="javascript:executeCommand(%22org.eclipse.mat.ui.query.browser.QueryBrowser%22)">
+			<b>Query Browser</b></xref>
+				or the <xref format="html" scope="peer" href="javascript:executeCommand(%22org.eclipse.mat.ui.query.browser.QueryHistory%22)">
+			<b>Query History Browser</b></xref> now.
+			</p>
+			<p>
+				The query browser (&quot;Search Queries...&quot;) is also available in the context menu.
+*				The query browser is easier to use as it can display
+				some or all the queries, and shows also the help for each query.
+				It offers only queries valid for the current selection. For example, queries
+				operating on the whole dump would only be offered in the drop down menu from the
+				task bar. Queries operating on single objects would not be offered from the
+				content menu when multiple objects or rows are selected.
+				The pop-up context menu excludes queries where the selection
+				does not include any objects of the type required by the query.
+				Those queries would still be available using the query browser.
+			</p>
+			<p>
+				<image href="../mimes/search_queries_context.png">
+					<alt>Search Queries Context Menu</alt>
+				</image>
+			</p>
+			<p>
+				<image href="../mimes/search_queries.png">
+					<alt>Start Typing To Limit the Selection...</alt>
+				</image>
+			</p>
+			<p> If a query has arguments a wizard is opened up when the query is selected. All
+				arguments are displayed in an table, the mandatory arguments are bold. In
+				the message area at the top information is displayed about the mandatory
+				arguments. At the bottom the detailed description is displayed like in the
+				query selector. </p>
+			<image href="../mimes/36c94924.png" align="left" placement="break">
+				<alt>Argument wizard for Collection Fill Ratio query, showing help information</alt>
+			</image>
+			
+			<p id="arguments">
+				<b>Providing Query Arguments</b>
+			</p>
+			<p>To add the arguments to a query you may use a query browser or an arguments
+				dialog.</p>
+			<image href="../mimes/arguments_wizard.png" align="left"
+				placement="break"/>
+			<p>Mandatory arguments are in boldface. Tooltips and help infopop that are
+				below the dialog provide argument description. The message area of the dialog
+				itself shows information about the selected argument or an error message if
+				you have entered a not valid value. Some queries require a set of objects as an
+				argument. You can provide those objects using the simple or the advanced
+				mode of the dialog. On the figure below you can see the simple mode. A set of
+				objects is defined by a pattern. </p>
+			<image href="../mimes/arguments_pattern.png" align="left"
+				placement="break"/>
+			<p id="pattern">
+				<b>Pattern Syntax</b>
+			</p>
+			<p>The metacharacters that are supported by a pattern are:<b>(</b>, <b>[</b>, <b>{</b> ,<b>\</b>, <b>^</b>, <b>-</b>, <b>$</b>, <b>|</b>, <b>]</b>,
+				<b>}</b>, <b>)</b>, <b>?</b>, <b>*</b> and <b>+</b>.</p>
+			<simpletable relcolwidth="2* 2*">
+				<sthead>
+					<stentry>
+						Pattern Syntax
+					</stentry>
+					<stentry>Details</stentry>
+				</sthead>
+				<strow>
+					<stentry>
+						<codeblock>[abc]</codeblock>
+					</stentry>
+					<stentry>
+						a, b, or c (simple class)
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>[^abc]</codeblock>
+					</stentry>
+					<stentry>
+						Any character except a, b, or c (negation)
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>outbounds( object )</codeblock>
+					</stentry>
+					<stentry>outbound referrer</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>[a-zA-Z]</codeblock>
+					</stentry>
+					<stentry>a through z, or A through Z, inclusive (range)</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>[a-d[m-p]]</codeblock>
+					</stentry>
+					<stentry>a through d, or m through p: [a-dm-p] (union)</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>[a-z&amp;&amp;[def]]</codeblock>
+					</stentry>
+					<stentry>
+						d, e, or f (intersection)
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>[a-z&amp;&amp;[^bc]]</codeblock>
+					</stentry>
+					<stentry>
+						a through z, except for b and c: [ad-z] (subtraction)
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>[a-z&amp;&amp;[^m-p]]</codeblock>
+					</stentry>
+					<stentry>
+						a through z, and not m through p: [a-lq-z] (subtraction)
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>\d</codeblock>
+					</stentry>
+					<stentry>
+						A digit: [0-9]
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>\D</codeblock>
+					</stentry>
+					<stentry>
+						A non-digit: [^0-9]
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>\s</codeblock>
+					</stentry>
+					<stentry>
+						A whitespace character: [ \t\n\x0B\f\r]
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>\S</codeblock>
+					</stentry>
+					<stentry>
+						 A non-whitespace character: [^\s]
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>\w</codeblock>
+					</stentry>
+					<stentry>
+						 A word character: [a-zA-Z_0-9]
+					</stentry>
+				</strow>
+				<strow>
+					<stentry>
+						<codeblock>\W</codeblock>
+					</stentry>
+					<stentry>
+						 A non-word character: [^\w]
+					</stentry>
+				</strow>
+			</simpletable>				
+ 
+			<p>In advanced mode, you can define a set of objects with a pattern, object
+				addresses or an Object Query Language (OQL) query. Icons and help messages
+				give you information about the type of the argument.</p>
+			<image href="../mimes/arguments_advanced.png" align="left"
+				placement="break"/>
+			<p>You may enter a single parameter per line, such as a pattern, an object
+				address, or an OQL query. Additional line for this type of the argument is
+				added automatically, thus multiple arguments can be entered.</p>
+			<p id="address">
+				<b>Object Address Syntax</b>
+			</p>
+			<p>The object address has a hexadecimal form, that is it starts with the
+				hex-prefix 0x and consists of one or more letters A-F and digits 0-9.</p>
+			<p>
+				<b>Example:</b> 0x36d99c88</p>
+			
+			<p id="oql_query">For more information about OQL, refer to the <xref href="oqlsyntax.dita" type="reference">OQL syntax details</xref></p>
+			
+			<p id="include_class_instance">
+				<b>-include_class_instance</b>
+			</p>
+			<p>
+				If there is a class pattern then the class object will also be returned as well as the instances.
+			</p>
+			
+			<p id="include_subclasses">
+				<b>-include_subclasses</b>
+			</p>
+			<p>
+				If there is a class pattern then instances of that class and instances of subclasses
+				of that class will be returned.
+			</p>
+			
+			<p id="include_loaded_instances">
+				<b>-include_loaded_instances</b>
+			</p>
+			<p>
+				If the object or objects are all class loaders then the classes loaded by those loaders
+				will be returned as well as the class loaders.
+			</p>
+			
+			<p id="retained">
+				<b>-retained</b>
+			</p>
+			<p>
+				The objects retained by the selected objects will also be returned.
+			</p>
+			
+			<p id="verbose">
+				<b>-verbose</b>
+			</p>
+			<p>
+				Can only be set via the command line with the query browser.
+				Used to see how objects are returned from the specified heap object argument.
+			</p>
+		</section>
+	</refbody>
+	<related-links><link href="querymatrix.dita" type="reference"><linktext>Query Matrix</linktext></link></related-links>
+</reference>

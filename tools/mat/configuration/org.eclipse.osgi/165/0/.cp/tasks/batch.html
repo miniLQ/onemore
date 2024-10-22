@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="task" />
+<meta name="DC.title" content="Batch mode" />
+<meta name="copyright" content="Copyright (c) 2019,2022 IBM Corporation. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ 2019 2022" type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2019,2022 IBM Corporation. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ 2019 2022" type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="task_batch" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>Batch mode</title>
+</head>
+<body id="task_batch">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Batch mode</h1>
+
+	
+
+	<div class="body taskbody">
+		<div class="section context">
+			<p class="p">Memory Analyzer can be operated in batch mode to process heap dumps
+			without user input.</p>
+
+		</div>
+
+		<ol class="ol steps"><li class="li step stepexpand">
+				<div class="note"><span class="notetitle">Note:</span> On Windows, use <span class="ph filepath"><span class="keyword cmdname">.\mat\ParseHeapDump.bat</span></span> instead of <span class="ph filepath"><span class="keyword cmdname">./mat/ParseHeapDump.sh</span></span></div>
+
+				<span class="ph cmd">Run <span class="ph filepath"><span class="keyword cmdname">./mat/ParseHeapDump.sh</span></span> <span class="ph filepath"><var class="keyword varname">myheapdump.hprof</var></span> <span class="keyword parmname">org.eclipse.mat.api:suspects</span>
+				</span>
+				<ul class="ul choices">
+					<li class="li choice">For a simple suspects report use <span class="keyword parmname">org.eclipse.mat.api:suspects</span>
+					See <a class="xref" href="runningleaksuspectreport.html#task_runningleaksuspectreport">running leak suspect report</a> for more details.</li>
+
+					<li class="li choice">For an overview report use <span class="keyword parmname">org.eclipse.mat.api:overview</span>
+					This report is included at the beginning of the leak suspects report
+					and shows:
+					<ul class="ul">
+					 	<li class="li">Heap Dump Overview</li>
+ 
+						<li class="li">System Properties</li>
+ 
+						<li class="li">Thread Overview</li>
+
+						<li class="li">Top Consumers</li>
+
+						<li class="li">Class Histogram</li>
+
+					</ul>
+</li>
+
+					<li class="li choice">For a report on memory usage by component use <span class="keyword parmname">org.eclipse.mat.api:top_components</span>
+					See <a class="xref" href="../reference/inspections/component_report.html" title="Analyze a component for possible memory waste and other inefficiencies.">Component report</a> for more details
+					of the report run on each of the top components by memory usage.</li>
+
+					<li class="li choice">To compare two heap dumps use <span class="ph filepath"><span class="keyword cmdname">./mat/ParseHeapDump.sh</span></span> <var class="keyword varname">myheapdump.hprof</var> <span class="keyword option">-snapshot2=</span><var class="keyword varname">myheapdump2.hprof</var> <span class="keyword parmname">org.eclipse.mat.api:compare</span></li>
+
+					<li class="li choice">To compare two heap dumps for memory leaks with a leak suspects report use <span class="ph filepath"><span class="keyword cmdname">./mat/ParseHeapDump.sh</span></span> <var class="keyword varname">myheapdump.hprof</var> <span class="keyword option">-baseline=</span><var class="keyword varname">myheapdump2.hprof</var> <span class="keyword parmname">org.eclipse.mat.api:suspects2</span>
+					See <a class="xref" href="runningleaksuspectreport.html#task_runningleaksuspectreport__compare">running leak suspect report by snapshot comparison</a> for more details.</li>
+
+					<li class="li choice">To export a new copy of the heap dump with redactions use a command like
+					<pre class="pre codeblock"><code>
+<span class="ph filepath"><span class="keyword cmdname">./mat/ParseHeapDump.sh</span></span>
+<span class="ph filepath"><var class="keyword varname">myheapdump.hprof</var></span>
+<span class="keyword option">-output=</span><span class="ph filepath"><var class="keyword varname">myheapdump2.hprof</var></span>
+<span class="keyword option">-redact=</span><span class="keyword parmname">BASIC</span>
+<span class="keyword option">-map=</span><span class="ph filepath"><var class="keyword varname">myheapdump2.map</var></span>
+<span class="keyword parmname">org.eclipse.mat.hprof:export</span>
+					</code></pre>
+					See <a class="xref" href="exportdump.html">export heap dump</a> for more details.
+					</li>
+
+					<li class="li choice">To run a single query on a heap dump and produce an HTML report use <code class="ph codeph"><span class="ph filepath"><span class="keyword cmdname">./mat/ParseHeapDump.sh</span></span> <span class="ph filepath"><var class="keyword varname">myheapdump.hprof</var></span> <span class="keyword option">-command=</span><var class="keyword varname">histogram</var> <span class="keyword parmname">org.eclipse.mat.api:query</span></code>
+					See <a class="xref" href="../reference/inspections/query_report.html" title="Run a single query to produce a report in batch mode.">Query Report</a> for more details.</li>
+
+				</ul>
+
+			</li>
+<li class="li step stepexpand">
+				<span class="ph cmd">Choose additional options to control the parse and report generation.</span>
+				<div class="itemgroup info">
+				Command line options controlling the parse.
+				</div>
+				<ol type="a" class="ol substeps">
+				<li class="li substep substepexpand">
+				<span class="ph cmd">
+					<span class="keyword option">-keep_unreachable_objects</span> means that all
+					objects are retained in the snapshot, even if they are not reachable from
+					an ordinary GC root.</span>
+				</li>
+
+				<li class="li substep substepexpand">
+				<span class="ph cmd">
+					<span class="keyword option">-snapshot_identifier=</span><var class="keyword varname">identifier</var>
+					Selects one snapshot when there is the choice of several in the heap dump file.
+					For HPROF files this might be of the form <kbd class="ph userinput">#1</kbd> or
+					<kbd class="ph userinput">#2</kbd>.
+					For DTFJ system dump files this might be of the form
+					<kbd class="ph userinput"><var class="keyword varname">Address space ID</var>.<var class="keyword varname">Process ID</var>.<var class="keyword varname">Runtime ID</var></kbd>.
+					If there are
+					<a class="xref" href="acquiringheapdump.html#task_acquiringheapdump__multiple">
+					multiple snapshots</a> in a heap dump file and a specific snapshot is not
+					selected then the parse will fail with a 
+					<a class="xref" href="../doc/org/eclipse/mat/snapshot/MultipleSnapshotsException.html"><samp class="ph systemoutput"><span class="keyword apiname">org.eclipse.mat.snapshot.MultipleSnapshotsException</span></samp></a>
+					which will list appropriate possible snapshot identifiers to use with this
+					option.
+				</span>
+				</li>
+
+				<li class="li substep substepexpand" id="task_batch__discard">
+				<div class="note"><span class="notetitle">Note:</span> Experimental</div>
+
+				<span class="ph cmd"><span class="keyword option">-discard_ratio=</span><var class="keyword varname">percentage</var>.
+					Option to discard a fraction of the objects from huge dumps.
+				</span>
+				<div class="itemgroup info">See <a class="xref" href="configure_mat.html#task_configure_mat__discard">discard configuration</a>
+				for an explanation of these discard options.</div>
+				</li>
+
+				<li class="li substep substepexpand">
+				<div class="note"><span class="notetitle">Note:</span> Experimental</div>
+
+				<span class="ph cmd"><span class="keyword option">-discard_pattern=</span><var class="keyword varname">regex</var>.
+					A regular expression matching the class names of objects to be discarded.
+				</span>
+				</li>
+
+				<li class="li substep substepexpand">
+				<div class="note"><span class="notetitle">Note:</span> Experimental</div>
+
+				<span class="ph cmd"><span class="keyword option">-discard_offset=</span><var class="keyword varname">offset value</var>.
+					Controls which particular objects are discarded.
+				</span>
+				</li>
+
+				<li class="li substep substepexpand">
+				<div class="note"><span class="notetitle">Note:</span> Experimental</div>
+
+				<span class="ph cmd"><span class="keyword option">-discard_seed=</span><var class="keyword varname">random number generator seed</var>.
+					Controls which particular objects are discarded.
+				</span>
+				</li>
+
+				<li class="li substep substepexpand" id="task_batch__report_options">
+					<span class="ph cmd">Other report options</span>
+					<div class="itemgroup stepxmp">
+						<p class="p">Other parameters controlling output include the following:</p>
+
+						<table cellpadding="4" cellspacing="0" summary="" border="1" class="simpletable"><col style="width:50%" /><col style="width:50%" /><thead><tr class="sthead">
+								<th style="vertical-align:bottom;text-align:left;" id="d7108e349" class="stentry">Argument</th>
+
+								<th style="vertical-align:bottom;text-align:left;" id="d7108e352" class="stentry">Description</th>
+
+							</tr>
+</thead><tbody><tr class="strow">
+								<td style="vertical-align:top;" headers="d7108e349" class="stentry"><span class="keyword option">-limit=</span><var class="keyword varname">number of entries</var></td>
+
+								<td style="vertical-align:top;" headers="d7108e352" class="stentry">Controls the number of entries generated in an output table.
+								See <a class="xref" href="../doc/org/eclipse/mat/report/Params.Rendering.html#LIMIT"><span class="keyword apiname">org.eclipse.mat.report.Params.Rendering.LIMIT</span></a>
+								</td>
+
+							</tr>
+<tr class="strow">
+								<td style="vertical-align:top;" headers="d7108e349" class="stentry"><span class="keyword option">-format=</span><var class="keyword varname">type of output</var></td>
+
+								<td style="vertical-align:top;" headers="d7108e352" class="stentry">Controls the type of the output (HTML, CSV, or TXT).
+								See <a class="xref" href="../doc/org/eclipse/mat/report/Params.html#FORMAT"><span class="keyword apiname">org.eclipse.mat.report.Params.FORMAT</span></a>
+								</td>
+
+							</tr>
+<tr class="strow">
+								<td style="vertical-align:top;" headers="d7108e349" class="stentry"><span class="keyword option">-html.show_table_headings</span></td>
+
+								<td style="vertical-align:top;" headers="d7108e352" class="stentry">Controls whether table headings should be shown for tables.
+								See <a class="xref" href="../doc/org/eclipse/mat/report/Params.Html.html#SHOW_TABLE_HEADER"><span class="keyword apiname">org.eclipse.mat.report.Params.Html.SHOW_TABLE_HEADER</span></a>
+								</td>
+
+							</tr>
+<tr class="strow">
+								<td style="vertical-align:top;" headers="d7108e349" class="stentry"><span class="keyword option">-html.show_totals</span></td>
+
+								<td style="vertical-align:top;" headers="d7108e352" class="stentry">Controls whether totals should be shown for tables.
+								See <a class="xref" href="../doc/org/eclipse/mat/report/Params.Html.html#SHOW_TOTALS"><span class="keyword apiname">org.eclipse.mat.report.Params.Html.SHOW_TOTALS</span></a>
+								</td>
+
+							</tr>
+</tbody></table>
+
+					</div>
+				</li>
+
+				</ol>
+
+				<div class="itemgroup stepresult">
+					<pre class="pre msgblock">
+Task: Parsing myheapdump.hprof
+[Task: Parsing .\Downloads\myheapdump.hprof
+[
+Subtask: Scanning .\Downloads\myheapdump.hprof
+[.................
+[INFO] Detected compressed references, because with uncompressed 64-bit references the array at 0x5c4bd4258 would overlap the array at 0x5c4bd4230
+[....................
+[INFO] Wrote threads call stacks to .\Downloads\myheapdump.threads
+[....................
+[INFO] Heap .\Downloads\myheapdump.hprof contains 116,716 objects
+[....................
+Subtask: Extracting objects from .\Downloads\myheapdump.hprof
+[...................................................................................Task: Removing unreachable objects
+[
+Subtask: Searching for unreachable objects
+[
+Subtask: Marking reachable objects
+[.
+Subtask: Re-indexing objects
+[..
+Subtask: Re-indexing classes
+[...
+Subtask: Writing .\Downloads\myheapdump.idx.index
+[....
+Subtask: Writing .\Downloads\myheapdump.o2c.index
+[.....
+Subtask: Writing .\Downloads\myheapdump.a2s.index
+[......
+Subtask: Re-indexing outbound index
+[.......
+Subtask: Writing .\Downloads\myheapdump.inbound.index
+[........
+Subtask: Writing .\Downloads\myheapdump.outbound.index
+[.........
+Subtask: Writing .\Downloads\myheapdump.o2hprof.index
+[.........Task: Calculating Dominator Tree
+[
+Subtask: Dominator Tree calculation
+[
+Subtask: Depth-first search
+[....................
+Subtask: Computing dominators
+[..............................................
+Subtask: Calculate retained sizes
+[............................................................
+Subtask: Create dominators index file
+[................................................................................]
+
+Subtask: Test 'Heap Dump Overview' of section 'System Overview'
+[
+Subtask: Test 'System Properties' of section 'System Overview'
+[
+Subtask: Extracting Key Value Pairs...
+[
+Subtask: Test 'Thread Overview' of section 'System Overview'
+[
+Subtask: Searching Threads...
+[
+Subtask: Test 'Top Consumers' of section 'System Overview'
+[
+Subtask: Creating histogram
+[
+Subtask: Grouping by package
+[
+Subtask: Test 'Biggest Objects (Overview)' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Objects' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Classes (Overview)' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Classes' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Class Loaders (Overview)' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Class Loaders' of section 'Top Consumers'
+[
+Subtask: Test 'Biggest Top-Level Dominator Packages' of section 'Top Consumers'
+[
+Subtask: Test 'Class Histogram' of section 'System Overview'
+[
+Subtask: Test 'Leaks' of section 'Leak Suspects'
+[
+Subtask: Finding problem suspects
+[
+Subtask: Searching suspicious single objects ...
+[
+Subtask: Searching suspicious groups of objects ...
+[
+Subtask: building histogram
+[
+Subtask: Preparing results
+[
+Subtask: building histogram
+[
+Subtask: building histogram
+[
+Subtask: Finding paths
+[
+Subtask: Test 'Overview' of section 'Leaks'
+[
+Subtask: Test 'Problem Suspect 1' of section 'Leaks'
+[
+Subtask: Test 'Description' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Shortest Paths To the Accumulation Point' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Shortest Paths To the Accumulation Point' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Accumulated Objects in Dominator Tree' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Accumulated Objects in Dominator Tree' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Accumulated Objects by Class in Dominator Tree' of section 'Problem Suspect 1'
+[
+Subtask: Test 'Accumulated Objects by Class in Dominator Tree' of section 'Problem Suspect 1'
+[
+Subtask: Test 'All Accumulated Objects by Class' of section 'Problem Suspect 1'
+[
+Subtask: Test 'All Accumulated Objects by Class' of section 'Problem Suspect 1'
+[]
+					</pre>
+
+				</div>
+			</li>
+<li class="li step stepexpand">
+				<span class="ph cmd">
+					Unzip the report <span class="ph filepath"><var class="keyword varname">myheapdump_Leak_Suspects.zip</var></span>
+				</span>
+			</li>
+<li class="li step stepexpand">
+				<span class="ph cmd">
+					View the <span class="ph filepath"><span class="keyword parmname">index.html</span></span>
+				</span>
+			</li>
+</ol>
+
+		<div class="section result">
+			<p class="p">The result is a HTML report.</p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

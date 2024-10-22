@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="task" />
+<meta name="DC.title" content="Running Leak Suspect Report" />
+<meta name="copyright" content="Copyright (c) 2008, 2023 SAP AG and IBM Corporation. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2008, 2023 SAP AG and IBM Corporation. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="task_runningleaksuspectreport" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>Running Leak Suspect Report</title>
+</head>
+<body id="task_runningleaksuspectreport">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Running Leak Suspect Report</h1>
+
+	
+
+	<div class="body taskbody">
+		<div class="section context">
+			In the toolbar select the drop-down menu
+			<span class="ph menucascade"><span class="ph uicontrol">Run Expert System Test</span><abbr title="and then"> &gt; </abbr><span class="ph uicontrol">Leak Suspects</span></span>
+			.
+			<br /><img class="image" src="../mimes/leak_report.png" alt="screen shot of starting to run a leak suspect report" /><br />
+			<p class="p">As a result an HTML report will be opened. It contains an overview
+				of the heap dump and leak suspect info.
+			</p>
+
+			<br /><img class="image" src="../mimes/leaksuspects.png" alt="screen shot of leak suspects" /><br />
+			<p class="p">This report will be stored together with the heap dump and can be
+				displayed when you open the heap dump again.
+			</p>
+
+			<p class="p">Some of the sections in the leak suspects report have links to
+				rerun the individual
+				queries which make up the report. This can be
+				useful for further analysis.
+				See <a class="xref" href="../reference/tipsandtricks.html#ref_tips__piechartlinks">Pie Chart Links</a>
+				for links from pie charts.
+			</p>
+
+			<br /><img class="image" src="../mimes/leaksuspects1.png" alt="screen shot of leak suspect details showing links" /><br />
+			<p class="p">The standard leak suspects report operates just using the heap
+				dump data,
+				which is a snapshot from a particular moment. It does not
+				use any time
+				information as to when objects were allocated.
+			</p>
+
+			<p class="p">
+				The starting point is the
+				<a class="xref" href="../concepts/dominatortree.html">dominator tree</a>
+				.
+				The biggest items at the top level of the dominator tree are
+				analyzed,
+				and if an item retains a significant
+				amount of memory
+				(default is 10%) then that item could be the cause of the
+				memory leak
+				because if it were no longer referenced then all that memory could
+				be
+				freed.
+			</p>
+
+			<p class="p">It could be that single objects do not retain a significant amount
+				of memory
+				but many objects all of one type do. This is a second class
+				of leak
+				suspect.
+				This type is found using the dominator tree, grouped
+				by class.
+			</p>
+
+			<p class="p">
+				Further analysis is then done on each leak suspect. For a single
+				object
+				leak suspect the retained objects are analyzed in the
+				dominator tree to
+				see if there is an
+				<dfn class="term">accumulation point</dfn>
+				.
+
+				An accumulation point is an object with a big difference between
+				the
+				retained size of itself and the largest
+				retained size of a child
+				object. These are places where the memory of many
+				small objects is
+				accumulated under one object.
+			</p>
+
+			<p class="p">
+				If the leak suspect is a thread then
+				thread related information such
+				as
+				the call stack is shown, together
+				with interesting stack frames
+				which have local variables
+				referring to objects on the path to the
+				accumulation point.
+				If the
+				leak suspect is a class loader then this is mentioned as being
+				an
+				interesting component of the application.
+				If the leak suspect is a
+				class then its class loader is mentioned as
+				being
+				an interesting
+				component of the application.
+			</p>
+
+			<p class="p">
+				The
+				<span class="keyword wintitle">Shortest Paths To the Accumulation Point</span>
+				shows a
+				path from a
+				<a class="xref" href="../concepts/gcroots.html">garbage collection root</a>
+				to the accumulation
+				point.
+				There will be other paths, otherwise an object on the path
+				would
+				retain the leak suspect, so itself would be considered a
+				leak
+				suspect. If the root is a thread object then thread related
+				information is also shown.
+			</p>
+
+			<p class="p">
+				The
+				<span class="keyword wintitle">Accumulated Objects in Dominator Tree</span>
+				shows
+				the dominator tree from the leak suspect to the accumulation
+				point and
+				also the objects that the accumulation point retains. This
+				helps understand the context of the leak, and what is being
+				accumulated.
+				The
+				<span class="keyword wintitle">Accumulated Objects by Class in Dominator Tree</span>
+				shows just
+				the children in the dominator tree of the accumulation
+				point, grouped
+				by
+				class. This is useful if there are many objects, as
+				there will be fewer
+				types than objects.
+				<span class="keyword wintitle">All Accumulated Objects by Class</span>
+				shows all the objects
+				retained by the accumulation point, including
+				the accumulation point,
+				but grouped by class so it easier to see what
+				is taking up the
+				heap space.
+			</p>
+
+			<p class="p">
+				If the leak suspect is a group of objects then
+				these objects are all of the same type (class) which are
+				at the top level of the dominator tree. Each individual
+				object is not retained by a single other object.
+				The query
+				attempts to
+				find an
+				object which indirectly refers to all of those
+				objects. This is
+				also called an
+				<dfn class="term">accumulation point</dfn>
+				but is
+				below the leak suspects in the dominator tree, rather than
+				above
+				the leak suspect object in the single object case.
+
+				The accumulation point is a single object through which
+				there is a path from the GC roots to most of the objects.
+				There will be other paths to the suspect objects, otherwise
+				the accumulation point would be a leak suspect in its own
+				right.
+				The accumulation point is useful in understanding the leak
+				as it shows one reason that the suspect objects are
+				<a class="xref" href="../concepts/reachability.html">reachable</a>
+				and so alive.
+				The standard options for the query ignore weak, soft, phantom and finalizer
+				references when finding paths.
+				In the report, the text <samp class="ph systemoutput">Most of these instances are referenced from one instance of</samp>
+				introduces the accumulation point.
+			</p>
+
+			<p class="p">
+				The query also attempts to find an <em class="ph i">interesting</em>
+				(not a standard Java class
+				<code class="ph codeph">java.</code> <code class="ph codeph">javax.</code> <code class="ph codeph">com.sun.</code> <code class="ph codeph">jdk.</code>) Java object which directly or indirectly refers
+				to the accumulation point. This means that if the accumulation
+				point is a array or object inside a standard Java collection then
+				the interesting object might be part of the application itself.
+				The text in the report <samp class="ph systemoutput">The instance is referenced by</samp> introduces this interesting object.
+			</p>
+
+			<p class="p">
+				If the shortest path from the GC roots to accumulation point starts with a thread,
+				then thread related information such as the call stack is shown, together
+				with interesting stack frames which have local variables referring to objects on the path to the accumulation point.
+			</p>
+
+			<p class="p">
+				If the leak suspect is a group of objects then
+				the biggest few
+				objects are shown by
+				<span class="keyword wintitle">Biggest Instances (Overview)</span> which is a pie chart and
+				<span class="keyword wintitle">Biggest Instances</span>
+				which is a histogram.
+				If there are many objects and none uses more than 1% of the leak
+				then these is omitted.
+			</p>
+
+			<p class="p">
+				<span class="keyword wintitle">Suspect Objects by Class</span>
+				This is a histogram showing the suspect objects. They
+				will all be of the same type. This section makes it easy to
+				continue analysis of the leak by click on the link
+				to view the suspects interactively.
+			</p>
+
+			<p class="p">
+				<span class="keyword wintitle">All Objects by Class Retained by Suspect Objects</span>
+				This shows all the objects retained by the suspect and helps explain
+				why all the memory is being used. Perhaps instead of removing
+				the leak the problem can be reduced by changing the application
+				code to have fewer or smaller objects referenced from the suspects.
+			</p>
+
+			<p class="p">
+				<span class="keyword wintitle">Common Path To the Accumulation Point</span>
+				shows a shortest path
+				from a GC root to the accumulation point,
+				giving a guide as to
+				what in the application refers to the
+				accumulation point.
+				By default this path ignores weak, soft, phantom and finalizer
+				references when finding paths.
+				If the root of this path is a thread then some
+				interesting thread
+				related information is also extracted.
+			</p>
+
+			<p class="p">
+				<span class="keyword wintitle">Accumulated Objects in Dominator Tree</span>
+				<span class="keyword wintitle">Accumulated Objects by Class in Dominator Tree</span>
+				These show the accumulation point in the dominator tree, showing
+				how it is retained, and the objects it retains.
+			</p>
+
+			<p class="p">
+				<span class="keyword wintitle">All Accumulated Objects by Class</span>
+				This shows the objects retained by the accumulation point.
+			</p>
+
+			<p class="p">
+				<span class="keyword wintitle">Reference Pattern </span>
+				If the leak suspect is a group of objects but there is not an
+				accumulation point then the reference pattern shows the
+				merged shortest paths to GC roots.
+			</p>
+
+			<p class="p">
+				<span class="keyword wintitle">Keywords </span>
+				The keyword section has words which could be useful to match this problem to previous problem instances.
+			</p>
+
+
+			<p class="p">
+				Learn more in this blog posting:
+				<a class="xref" href="https://memoryanalyzer.blogspot.com/2008/05/automated-heap-dump-analysis-finding.html" target="_blank">
+				Automated Heap Dump Analysis: Finding Memory Leaks with One Click
+				</a>
+				.
+			</p>
+
+			<div class="note" id="task_runningleaksuspectreport__compare"><span class="notetitle">Note:</span> 
+				There is also a leak suspects report made by comparing two
+				snapshots.
+				This is available via
+				<span class="ph menucascade"><span class="ph uicontrol">Leak Identification</span><abbr title="and then"> &gt; </abbr><span class="ph uicontrol">Compare Snapshots Leak Report</span></span>
+				or from the
+				<span class="keyword wintitle">Overview</span>
+				panel as
+				<span class="keyword cmdname">Leak Suspects by Snapshot Comparison</span>
+				which includes leak suspects and a system overview from comparing
+				two snapshots.
+				This works by comparing the dominator tree of the two
+				snapshots,
+				identifying
+				big changes in the size of items in the
+				dominator tree as possible
+				leaks.
+			</div>
+
+		</div>
+
+		<div class="li step p">
+				<span class="ph cmd">
+			In the toolbar select the drop-down menu
+			<span class="ph menucascade"><span class="ph uicontrol">Run Expert System Test</span><abbr title="and then"> &gt; </abbr><span class="ph uicontrol">Leak Suspects</span></span>
+			and generate the report.
+				</span>
+			</div>
+
+		<div class="section result">
+			The result is an HTML page giving information on of all the suspects.
+			Various sections can be expanded to give more detail.
+			If the HTML page is viewed inside of Eclipse Memory Analyzer then links allow
+			further examination of objects.
+		</div>
+
+		<div class="section tasktroubleshooting">
+			If the HTML page does not display properly inside Eclipse Memory Analyzer, consult
+			<a class="xref" href="report.html">Problems displaying reports</a>.
+		</div>
+
+		<div class="example">
+			<p class="p">
+				Examples of summaries of leak suspects:
+			</p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 1</span><br />
+One instance of "org.eclipse.mat.ui.compare.CompareBasketView$ComparePolicy" <br />
+loaded by "org.eclipse.mat.ui" occupies 487,234,584 (28.60%) bytes. <br />
+The memory is accumulated in one instance of "java.lang.Object[]", <br />
+loaded by "&lt;system class loader&gt;", which occupies 487,234,328 (28.60%) bytes.<br />
+<br />
+Keywords<br />
+org.eclipse.mat.ui.compare.CompareBasketView$ComparePolicy<br />
+org.eclipse.mat.ui<br />
+java.lang.Object[]<br />
+				</samp></p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 2</span><br />
+The thread java.lang.Thread @ 0xe0c2ac98 main keeps local variables with total size 5,394,048 (68.41%) bytes.<br />
+The memory is accumulated in one instance of "org.eclipse.mat.tests.CreateCollectionDump", loaded by "jdk.internal.loader.ClassLoaders$AppClassLoader @ 0xe0c137a0", which occupies 5,393,416 (68.40%) bytes.<br />
+The stacktrace of this Thread is available. See stacktrace. See stacktrace with involved local variables.<br />
+<br />
+Keywords<br />
+org.eclipse.mat.tests.CreateCollectionDump<br />
+jdk.internal.loader.ClassLoaders$AppClassLoader @ 0xe0c137a0<br />
+org.eclipse.mat.tests.CreateCollectionDump.main([Ljava/lang/String;)V<br />
+CreateCollectionDump.java:174<br />
+				</samp></p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 3</span><br />
+The classloader/component "com.ibm.dtfj.j9" occupies 551,743,560 (55.09%) bytes. <br />
+The memory is accumulated in one instance of "com.ibm.j9ddr.corereaders.minidump.WindowsProcessAddressSpace", <br />
+loaded by "com.ibm.dtfj.j9", which occupies 540,840,744 (54.00%) bytes.<br />
+<br />
+Keywords<br />
+com.ibm.dtfj.j9<br />
+com.ibm.j9ddr.corereaders.minidump.WindowsProcessAddressSpace<br />
+				</samp></p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 4</span><br />
+The class "java.lang.ref.Finalizer", loaded by "&lt;system class loader&gt;",<br />
+occupies 188,628,792 (18.83%) bytes. <br />
+The memory is accumulated in one instance of "com.ibm.dtfj.java.j9.JavaRuntime", <br />
+loaded by "com.ibm.dtfj.j9", which occupies 186,736,528 (18.64%) bytes.<br />
+<br />
+Keywords<br />
+java.lang.ref.Finalizer<br />
+com.ibm.dtfj.java.j9.JavaRuntime<br />
+com.ibm.dtfj.j9<br />
+				</samp></p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 5</span><br />
+19,414,929 instances of "int[]", <br />
+loaded by "&lt;system class loader&gt;" occupy 716,412,176 (42.05%) bytes. <br />
+These instances are referenced from one instance of "java.lang.Object[]", <br />
+loaded by "&lt;system class loader&gt;", which occupies 77,659,616 (4.56%) bytes.<br />
+<br />
+Keywords<br />
+int[]<br />
+java.lang.Object[]<br />
+				</samp></p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 6</span><br />
+2 instances of "org.eclipse.mat.parser.internal.SnapshotImpl", <br />
+loaded by "org.eclipse.mat.parser" occupy 261,910,656 (15.37%) bytes. <br />
+<br />
+Biggest instances:<br />
+  org.eclipse.mat.parser.internal.SnapshotImpl @ 0x6ff5af620 - 136,622,272 (8.02%) bytes. <br />
+  org.eclipse.mat.parser.internal.SnapshotImpl @ 0x6c2f6ce38 - 125,288,384 (7.35%) bytes. <br />
+These instances are referenced from one instance of "org.eclipse.swt.widgets.Display", <br />
+loaded by "org.eclipse.swt", which occupies 20,104 (0.00%) bytes.<br />
+<br />
+Keywords<br />
+org.eclipse.mat.parser.internal.SnapshotImpl<br />
+org.eclipse.mat.parser<br />
+org.eclipse.swt.widgets.Display<br />
+org.eclipse.swt<br />
+				</samp></p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 7</span><br />
+1,868 instances of "java.lang.Class", <br />
+loaded by "&lt;system class loader&gt;" occupy 1,000,176 (12.68%) bytes. <br />
+<br />
+Biggest instances:<br />
+ class sun.util.calendar.ZoneInfoFile @ 0xffe065a0 - 151,368 (1.92%) bytes. <br />
+<br />
+Keywords<br />
+java.lang.Class<br />
+				</samp></p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 8</span><br />
+One instance of "java.util.concurrent.ForkJoinTask[]" loaded by "&lt;system class loader&gt;" occupies 279.27 MB (40.12%) bytes. The instance is referenced by java.util.concurrent.ForkJoinWorkerThread @ 0xd53a1bf0 ForkJoinPool.commonPool-worker-0 , loaded by "&lt;system class loader&gt;". <br />
+<br />
+The thread java.util.concurrent.ForkJoinWorkerThread @ 0xd53a1bf0 ForkJoinPool.commonPool-worker-0 keeps local variables with total size 120.71 KB (0.02%) bytes.<br />
+The memory is accumulated in one instance of "java.util.concurrent.ForkJoinTask[]", loaded by "&lt;system class loader&gt;", which occupies 279.27 MB (40.12%) bytes.<br />
+The stacktrace of this Thread is available. See stacktrace. See stacktrace with involved local variables.<br />
+<br />
+Keywords<br />
+java.util.concurrent.ForkJoinTask[]<br />
+java.util.concurrent.ForkJoinPool$WorkQueue.execLocalTasks()V<br />
+ForkJoinPool.java:1040<br />
+				</samp></p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 9</span><br />
+1,417 instances of "org.eclipse.mat.hprof.SeekableStream$PosStream", loaded by "org.eclipse.mat.hprof" occupy 74,697,464 (31.80%) bytes. <br />
+<br />
+Most of these instances are referenced from one instance of "java.util.TreeMap$Entry", loaded by "&lt;system class loader&gt;", which occupies 56,560 (0.02%) bytes. The instance is referenced by "org.eclipse.mat.hprof.SeekableStream @ 0x6053cd130", loaded by "org.eclipse.mat.hprof". <br />
+<br />
+Keywords<br />
+org.eclipse.mat.hprof.SeekableStream$PosStream<br />
+org.eclipse.mat.hprof<br />
+java.util.TreeMap$Entry<br />
+org.eclipse.mat.hprof.SeekableStream<br />
+				</samp></p>
+
+				<p class="lines"><samp class="ph systemoutput"><span class="keyword wintitle">Problem Suspect 10</span><br />
+				84,857 instances of "org.eclipse.swt.widgets.TreeItem", loaded by "org.eclipse.swt" occupy 30,539,432 (13.00%) bytes. <br />
+<br />
+Most of these instances are referenced from one instance of "org.eclipse.swt.widgets.TreeItem[]", loaded by "org.eclipse.swt", which occupies 339,216 (0.14%) bytes. <br />
+<br />
+Thread "java.lang.Thread @ 0x604802e10 main" has a local variable or reference to "org.eclipse.swt.widgets.Shell @ 0x604e4d848" which is on the shortest path to "org.eclipse.swt.widgets.TreeItem[84800] @ 0x61bc96500". The thread java.lang.Thread @ 0x604802e10 main keeps local variables with total size 41,544 (0.02%) bytes.<br />
+<br />
+Significant stack frames and local variables<br />
+	org.eclipse.mat.ui.internal.diagnostics.DiagnosticsWizardAction.run()V (DiagnosticsWizardAction.java:45)<br />
+		org.eclipse.swt.widgets.Shell @ 0x604e4d848 retains 2,616 (0.00%) bytes<br />
+<br />
+The stacktrace of this Thread is available. See stacktrace. See stacktrace with involved local variables.<br />
+<br />
+Keywords<br />
+org.eclipse.swt.widgets.TreeItem<br />
+org.eclipse.swt<br />
+org.eclipse.swt.widgets.TreeItem[]<br />
+org.eclipse.mat.ui.internal.diagnostics.DiagnosticsWizardAction.run()V<br />
+DiagnosticsWizardAction.java:45<br />
+				</samp></p>
+
+		</div>
+
+	</div>
+
+</body>
+</html>

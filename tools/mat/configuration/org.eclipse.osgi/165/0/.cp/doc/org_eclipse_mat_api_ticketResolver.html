@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Trouble Ticket Resolver</title>
+<style type="text/css">@import url("book.css");</style>
+<style type="text/css">@import url("schema.css");</style>
+</HEAD>
+<BODY>
+<H1 style="text-align:center">Trouble Ticket Resolver</H1>
+<p></p>
+<h6 class="CaptionFigColumn SchemaHeader">Identifier: </h6>org.eclipse.mat.api.ticketResolver<p></p>
+<h6 class="CaptionFigColumn SchemaHeader">Since: </h6>0.7.0
+<p></p>
+
+<h6 class="CaptionFigColumn SchemaHeader">Description: </h6><p>Whenever the Leak Suspect report finds a suspect, it asks the configured
+trouble ticket resolver to provide more details. For example, the ticket resolver
+could provide a Bugzilla product and component and thereby enable an administrator
+to file a precise bug report.</p><p></p>
+<h6 class="CaptionFigColumn SchemaHeader">Configuration Markup:</h6>
+<p></p>
+<p class="code SchemaDtd">&lt;!ELEMENT <a name="e.extension">extension</a> (<a href="#e.resolver">resolver</a>)+&gt;</p>
+<p class="code SchemaDtd">&lt;!ATTLIST extension</p>
+<p class="code SchemaDtdAttlist">point&nbsp;CDATA #REQUIRED</p><p class="code SchemaDtdAttlist">id&nbsp;&nbsp;&nbsp;&nbsp;CDATA #IMPLIED</p><p class="code SchemaDtdAttlist">name&nbsp;&nbsp;CDATA #IMPLIED</p>&gt;</p>
+<p></p>
+<ul class="ConfigMarkupAttlistDesc">
+</ul>
+<br><p class="code SchemaDtd">&lt;!ELEMENT <a name="e.resolver">resolver</a> EMPTY&gt;</p>
+<p class="code SchemaDtd">&lt;!ATTLIST resolver</p>
+<p class="code SchemaDtdAttlist">impl&nbsp;CDATA #REQUIRED</p>&gt;</p>
+<p></p>
+<ul class="ConfigMarkupAttlistDesc">
+<li><b>impl</b> - implementor of <a href="org/eclipse/mat/snapshot/extension/ITroubleTicketResolver.html"><samp>org.eclipse.mat.snapshot.extension.ITroubleTicketResolver</samp></a>.</li>
+</ul>
+<br><h6 class="CaptionFigColumn SchemaHeader">Examples: </h6>Following is an example of a request resolver declaration: 
+<p>
+<pre class="Example"><span class="code SchemaTag">
+   &lt;extension point=</span><span class="code SchemaCstring">&quot;org.eclipse.mat.api.ticketResolver&quot;</span><span class="code SchemaTag">&gt;
+      &lt;resolver impl=</span><span class="code SchemaCstring">&quot;com.acme.IssueTrackerResolver&quot;</span><span class="code SchemaTag">/&gt;
+   &lt;/extension&gt;
+</span></pre>
+</p>
+<p></p>
+
+<h6 class="CaptionFigColumn SchemaHeader">API Information: </h6>The value of the impl attribute must represent an implementor of <samp>org.eclipse.mat.snapshot.extension.ITroubleTicketResolver</samp>.
+<p></p>
+
+<br>
+<p class="note SchemaCopyright">
+Copyright (c) 2008,2010 SAP AG and IBM Corporation.<br>
+All rights reserved. This program and the accompanying materials are made 
+available under the terms of the Eclipse Public License 2.0 which 
+accompanies this distribution, and is available at 
+<a href="https://www.eclipse.org/legal/epl-2.0/">https://www.eclipse.org/legal/epl-2.0/</a>
+
+</p>
+</BODY>
+</HTML>

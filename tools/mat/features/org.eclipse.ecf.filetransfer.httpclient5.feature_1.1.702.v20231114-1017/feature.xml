@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="org.eclipse.ecf.filetransfer.httpclient5.feature"
+      label="%featureName"
+      version="1.1.702.v20231114-1017"
+      provider-name="%providerName">
+
+   <description url="%descriptionURL">
+      %description
+   </description>
+
+   <copyright>
+      %copyright
+   </copyright>
+
+   <license url="%licenseURL">
+      %license
+   </license>
+
+   <requires>
+      <import feature="org.eclipse.ecf.filetransfer.feature" version="3.9.0" match="compatible"/>
+   </requires>
+
+   <plugin
+         id="org.eclipse.ecf.provider.filetransfer.httpclient5"
+         download-size="84"
+         install-size="185"
+         version="1.1.0.v20230423-0417"
+         unpack="false"/>
+
+   <plugin
+         id="org.eclipse.ecf.provider.filetransfer.httpclient5.win32"
+         os="win32"
+         download-size="24"
+         install-size="50"
+         version="1.1.0.v20230423-0417"
+         unpack="false"/>
+
+   <plugin
+         id="org.apache.commons.commons-codec"
+         download-size="352"
+         install-size="672"
+         version="1.16.0"
+         unpack="false"/>
+
+   <plugin
+         id="org.apache.httpcomponents.client5.httpclient5"
+         download-size="881"
+         install-size="2081"
+         version="5.2.1.v20230802-0806"
+         unpack="false"/>
+
+   <plugin
+         id="org.apache.httpcomponents.client5.httpclient5-win"
+         os="win32"
+         download-size="24"
+         install-size="45"
+         version="5.2.1.v20230802-0847"
+         unpack="false"/>
+
+   <plugin
+         id="org.apache.httpcomponents.core5.httpcore5"
+         download-size="909"
+         install-size="1996"
+         version="5.2.3.v20230922-1600"
+         unpack="false"/>
+
+   <plugin
+         id="org.apache.httpcomponents.core5.httpcore5-h2"
+         download-size="255"
+         install-size="567"
+         version="5.2.3.v20230922-1600"
+         unpack="false"/>
+
+</feature>

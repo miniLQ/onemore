@@ -1,0 +1,17 @@
+eclipse.preferences.version=1
+repositories/https\:__download.eclipse.org_mat_latest_update-site/count=1
+repositories/https\:__download.eclipse.org_mat_latest_update-site/enabled=true
+repositories/https\:__download.eclipse.org_mat_latest_update-site/nickname=Memory Analyzer
+repositories/https\:__download.eclipse.org_mat_latest_update-site/uri=https\://download.eclipse.org/mat/latest/update-site/
+repositories/https\:__download.eclipse.org_mat_snapshots_update-site/count=1
+repositories/https\:__download.eclipse.org_mat_snapshots_update-site/enabled=false
+repositories/https\:__download.eclipse.org_mat_snapshots_update-site/nickname=Memory Analyzer latest development build
+repositories/https\:__download.eclipse.org_mat_snapshots_update-site/uri=https\://download.eclipse.org/mat/snapshots/update-site/
+repositories/https\:__download.eclipse.org_releases_2023-12/count=1
+repositories/https\:__download.eclipse.org_releases_2023-12/enabled=true
+repositories/https\:__download.eclipse.org_releases_2023-12/nickname=Eclipse 2023-12
+repositories/https\:__download.eclipse.org_releases_2023-12/uri=https\://download.eclipse.org/releases/2023-12/
+repositories/https\:__public.dhe.ibm.com_ibmdl_export_pub_software_websphere_runtimes_tools_dtfj/count=1
+repositories/https\:__public.dhe.ibm.com_ibmdl_export_pub_software_websphere_runtimes_tools_dtfj/enabled=true
+repositories/https\:__public.dhe.ibm.com_ibmdl_export_pub_software_websphere_runtimes_tools_dtfj/nickname=IBM Diagnostic Tool Framework for Java
+repositories/https\:__public.dhe.ibm.com_ibmdl_export_pub_software_websphere_runtimes_tools_dtfj/uri=https\://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/runtimes/tools/dtfj/

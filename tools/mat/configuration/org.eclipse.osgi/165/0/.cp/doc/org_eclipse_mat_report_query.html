@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Query</title>
+<style type="text/css">@import url("book.css");</style>
+<style type="text/css">@import url("schema.css");</style>
+</HEAD>
+<BODY>
+<H1 style="text-align:center">Query</H1>
+<p></p>
+<h6 class="CaptionFigColumn SchemaHeader">Identifier: </h6>org.eclipse.mat.api.query<p></p>
+<h6 class="CaptionFigColumn SchemaHeader">Since: </h6>0.7.0
+<p></p>
+
+<h6 class="CaptionFigColumn SchemaHeader">Description: </h6>The Memory Analyzer can be extended by Queries. Queries
+are pieces of Java Code that implement specific inspections
+on the heap dump. Depending on the input parameters,
+queries are shown in the Query Drop-Down menu and/or in the
+context menu of a heap object.<p></p>
+<h6 class="CaptionFigColumn SchemaHeader">Configuration Markup:</h6>
+<p></p>
+<p class="code SchemaDtd">&lt;!ELEMENT <a name="e.extension">extension</a> (<a href="#e.query">query</a>)+&gt;</p>
+<p class="code SchemaDtd">&lt;!ATTLIST extension</p>
+<p class="code SchemaDtdAttlist">point&nbsp;CDATA #REQUIRED</p><p class="code SchemaDtdAttlist">id&nbsp;&nbsp;&nbsp;&nbsp;CDATA #IMPLIED</p><p class="code SchemaDtdAttlist">name&nbsp;&nbsp;CDATA #IMPLIED</p>&gt;</p>
+<p></p>
+<ul class="ConfigMarkupAttlistDesc">
+</ul>
+<br><p class="code SchemaDtd">&lt;!ELEMENT <a name="e.query">query</a> EMPTY&gt;</p>
+<p class="code SchemaDtd">&lt;!ATTLIST query</p>
+<p class="code SchemaDtdAttlist">impl&nbsp;CDATA #REQUIRED</p>&gt;</p>
+<p></p>
+<ul class="ConfigMarkupAttlistDesc">
+<li><b>impl</b> - implementor of <a href="org/eclipse/mat/query/IQuery.html"><samp>org.eclipse.mat.query.IQuery</samp></a></li>
+</ul>
+<br><h6 class="CaptionFigColumn SchemaHeader">Examples: </h6><p>
+Following is an example of a query declaration: 
+<pre class="Example"><span class="code SchemaTag">
+   &lt;extension point=</span><span class="code SchemaCstring">&quot;org.eclipse.mat.report.query&quot;</span><span class="code SchemaTag">&gt;
+      &lt;query impl=</span><span class="code SchemaCstring">&quot;org.eclipse.mat.demo.DemoQuery&quot;</span><span class="code SchemaTag">/&gt;
+   &lt;/extension&gt;
+</span></pre>
+</p>
+<p>
+This is the Java code.
+<pre class="Example"><span class="code SchemaTag">
+@CommandName("DemoQuery")
+public class org.eclipse.mat.demo.DemoQuery implements IQuery
+{
+    @Argument
+    public ISnapshot snapshot;
+    
+    @Argument
+    public boolean myflag;
+    
+    public IResult execute(IProgressListener listener) throws Exception
+    {
+        ...
+    }
+}
+</span></pre>
+</p>
+<p>
+This is the translatable text in <code>annotations.properties</code> in the same package.
+<pre class="Example"><span class="code SchemaTag">
+DemoQuery.name = Demonstration Query
+DemoQuery.help = A sample query.
+DemoQuery.myflag.help = A boolean flag to control the query.
+</span></pre>
+</p>
+<p></p>
+
+<h6 class="CaptionFigColumn SchemaHeader">API Information: </h6>The value of the impl attribute must represent an implementor of <samp>org.eclipse.mat.query.IQuery</samp>.
+The public fields in the query can be tagged with the <code>@Argument</code> annotation so they can be filled in by the query wizard. Argument types include
+<dl>
+<dt>ISnapshot</dt>
+<dd>the snapshot</dd>
+<dt>IHeapObjectArgument</dt>
+<dd>one or more objects</dd>
+<dt>int</dt>
+<dd>a single object - when tagged with <code>@Argument(advice = Advice.HEAP_OBJECT)</code></dd>
+<dt>int[]</dt>
+<dd>multiple objects - when tagged with <code>@Argument(advice = Advice.HEAP_OBJECT)</code></dd>
+<dt>boolean</dt>
+<dd>a flag</dd>
+</dl>
+Queries can be tagged with 
+<ul>
+<li>@Name</li>
+<li>@Help</li>
+<li>@HelpURL</li>
+<li>@Icon</li>
+<li>@Menu</li>
+<li>@Category</li>
+<li>@CommandName</li>
+</ul>
+
+These annotations can also be held in an annotations.properties file for ease of translation.
+<p></p>
+
+<h6 class="CaptionFigColumn SchemaHeader">Supplied Implementation: </h6>The Memory Analyzer supplies a number of queries itself. Check out the <samp>org.eclipse.mat.inspections</samp> package for more samples.
+<p></p>
+
+<br>
+<p class="note SchemaCopyright">
+Copyright (c) 2008, 2010 SAP AG and IBM Corporation.<br>
+All rights reserved. This program and the accompanying materials are made 
+available under the terms of the Eclipse Public License 2.0 which 
+accompanies this distribution, and is available at 
+<a href="https://www.eclipse.org/legal/epl-2.0/">https://www.eclipse.org/legal/epl-2.0/</a>
+
+</p>
+</BODY>
+</HTML>

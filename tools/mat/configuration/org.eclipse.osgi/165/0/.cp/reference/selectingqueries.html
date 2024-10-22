@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<meta name="generator" content="DITA-OT" /><meta name="DC.type" content="reference" />
+<meta name="DC.title" content="Selecting Queries" />
+<meta name="abstract" content="" />
+<meta name="description" content="" />
+<meta name="DC.relation" scheme="URI" content="querymatrix.html" />
+<meta name="copyright" content="Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.rights.owner" content="Copyright (c) 2008, 2023 SAP AG, IBM Corporation and others. All rights reserved. This program and the accompanying materials are made available under the terms of the Eclipse Public License 2.0 which accompanies this distribution, and is available at https://www.eclipse.org/legal/epl-2.0/ " type="primary" />
+<meta name="DC.format" content="XHTML" />
+<meta name="DC.identifier" content="ref_queryarguments" />
+<meta name="DC.language" content="en-us" />
+<link rel="stylesheet" type="text/css" href="../styles/commonltr.css" />
+<title>Selecting Queries</title>
+</head>
+<body id="ref_queryarguments">
+
+	<h1 class="title topictitle1" id="ariaid-title1">Selecting Queries</h1>
+
+	
+
+	
+
+
+	<div class="body refbody"><p class="shortdesc"></p>
+
+		<div class="section">
+			<p class="p"> Memory Analyzer provides a set of queries to analyze a heap dump. These
+				queries are grouped into several categories. </p>
+
+			<p class="p"> You can select a query out of the drop-down toolbar menu. </p>
+
+			<br /><div class="imageleft"><img class="image imageleft" src="../mimes/189608b9.png" alt="Screen shot selecting Leak Identification &gt; Top Consumers query" /></div><br />
+			<p class="p"> In the menu you can also access the list of already executed queries via the
+				<span class="ph menucascade"><span class="ph uicontrol">History</span></span> entry. 
+				The Query Selector which can be
+				quickly accessed with the
+				<span class="ph uicontrol">ctrl+Q</span> or <span class="ph uicontrol">command+Q</span> 
+				key combination.</p>
+
+			<br /><div class="imageleft"><img class="image imageleft" src="../mimes/select_queries.png" alt="Query selection pop-up showing history and other queries" /></div><br />
+			<p class="p"> The Query Selector consists of an input field, where you can search for
+				queries, below the input field you can find the history of already executed
+				queries and below the history the list of all available queries grouped by
+				their category. When a query is selected, a detailed description of the query
+				is displayed at the bottom. This description contains also the information
+				about the arguments for this query. To execute the query either double-click
+				or press <span class="ph uicontrol">enter</span>.
+			</p>
+
+			<p class="p">The input field can also be used to execute queries via the command line.
+			Either type the command name you want together with the arguments, or copy the
+				example arguments from a command in the list by using 
+			<span class="ph uicontrol">ctrl+enter</span> or <span class="ph uicontrol">command+enter</span>
+			on macOS) or mouse button 2. Then execute the query
+			by pressing <span class="ph uicontrol">enter</span> which will execute the command directly
+			if all required arguments have been specified,
+			or will bring up the arguments wizard if other arguments are required.
+			Pressing <span class="ph uicontrol">shift+enter</span>
+			will always bring up the arguments wizard if there any arguments which could be changed. 
+			</p>
+
+			<p class="p">
+			Try the <a class="xref" href="javascript:executeCommand(%22org.eclipse.mat.ui.query.browser.QueryBrowser%22)">
+			<strong class="ph b">Query Browser</strong></a>
+				or the <a class="xref" href="javascript:executeCommand(%22org.eclipse.mat.ui.query.browser.QueryHistory%22)">
+			<strong class="ph b">Query History Browser</strong></a> now.
+			</p>
+
+			<p class="p">
+				The query browser ("Search Queries...") is also available in the context menu.
+*				The query browser is easier to use as it can display
+				some or all the queries, and shows also the help for each query.
+				It offers only queries valid for the current selection. For example, queries
+				operating on the whole dump would only be offered in the drop down menu from the
+				task bar. Queries operating on single objects would not be offered from the
+				content menu when multiple objects or rows are selected.
+				The pop-up context menu excludes queries where the selection
+				does not include any objects of the type required by the query.
+				Those queries would still be available using the query browser.
+			</p>
+
+			<p class="p">
+				<img class="image" src="../mimes/search_queries_context.png" alt="Search Queries Context Menu" />
+			</p>
+
+			<p class="p">
+				<img class="image" src="../mimes/search_queries.png" alt="Start Typing To Limit the Selection..." />
+			</p>
+
+			<p class="p"> If a query has arguments a wizard is opened up when the query is selected. All
+				arguments are displayed in an table, the mandatory arguments are bold. In
+				the message area at the top information is displayed about the mandatory
+				arguments. At the bottom the detailed description is displayed like in the
+				query selector. </p>
+
+			<br /><div class="imageleft"><img class="image imageleft" src="../mimes/36c94924.png" alt="Argument wizard for Collection Fill Ratio query, showing help information" /></div><br />
+			
+			<p class="p" id="ref_queryarguments__arguments">
+				<strong class="ph b">Providing Query Arguments</strong>
+			</p>
+
+			<p class="p">To add the arguments to a query you may use a query browser or an arguments
+				dialog.</p>
+
+			<br /><div class="imageleft"><img class="image imageleft" src="../mimes/arguments_wizard.png" /></div><br />
+			<p class="p">Mandatory arguments are in boldface. Tooltips and help infopop that are
+				below the dialog provide argument description. The message area of the dialog
+				itself shows information about the selected argument or an error message if
+				you have entered a not valid value. Some queries require a set of objects as an
+				argument. You can provide those objects using the simple or the advanced
+				mode of the dialog. On the figure below you can see the simple mode. A set of
+				objects is defined by a pattern. </p>
+
+			<br /><div class="imageleft"><img class="image imageleft" src="../mimes/arguments_pattern.png" /></div><br />
+			<p class="p" id="ref_queryarguments__pattern">
+				<strong class="ph b">Pattern Syntax</strong>
+			</p>
+
+			<p class="p">The metacharacters that are supported by a pattern are:<strong class="ph b">(</strong>, <strong class="ph b">[</strong>, <strong class="ph b">{</strong> ,<strong class="ph b">\</strong>, <strong class="ph b">^</strong>, <strong class="ph b">-</strong>, <strong class="ph b">$</strong>, <strong class="ph b">|</strong>, <strong class="ph b">]</strong>,
+				<strong class="ph b">}</strong>, <strong class="ph b">)</strong>, <strong class="ph b">?</strong>, <strong class="ph b">*</strong> and <strong class="ph b">+</strong>.</p>
+
+			<table cellpadding="4" cellspacing="0" summary="" border="1" class="simpletable"><col style="width:50%" /><col style="width:50%" /><thead><tr class="sthead">
+					<th style="vertical-align:bottom;text-align:left;" id="d14958e203" class="stentry">
+						Pattern Syntax
+					</th>
+
+					<th style="vertical-align:bottom;text-align:left;" id="d14958e206" class="stentry">Details</th>
+
+				</tr>
+</thead><tbody><tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>[abc]</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						a, b, or c (simple class)
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>[^abc]</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						Any character except a, b, or c (negation)
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>outbounds( object )</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">outbound referrer</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>[a-zA-Z]</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">a through z, or A through Z, inclusive (range)</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>[a-d[m-p]]</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">a through d, or m through p: [a-dm-p] (union)</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>[a-z&amp;&amp;[def]]</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						d, e, or f (intersection)
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>[a-z&amp;&amp;[^bc]]</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						a through z, except for b and c: [ad-z] (subtraction)
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>[a-z&amp;&amp;[^m-p]]</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						a through z, and not m through p: [a-lq-z] (subtraction)
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>\d</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						A digit: [0-9]
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>\D</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						A non-digit: [^0-9]
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>\s</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						A whitespace character: [ \t\n\x0B\f\r]
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>\S</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						 A non-whitespace character: [^\s]
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>\w</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						 A word character: [a-zA-Z_0-9]
+					</td>
+
+				</tr>
+<tr class="strow">
+					<td style="vertical-align:top;" headers="d14958e203" class="stentry">
+						<pre class="pre codeblock"><code>\W</code></pre>
+					</td>
+
+					<td style="vertical-align:top;" headers="d14958e206" class="stentry">
+						 A non-word character: [^\w]
+					</td>
+
+				</tr>
+</tbody></table>
+				
+ 
+			<p class="p">In advanced mode, you can define a set of objects with a pattern, object
+				addresses or an Object Query Language (OQL) query. Icons and help messages
+				give you information about the type of the argument.</p>
+
+			<br /><div class="imageleft"><img class="image imageleft" src="../mimes/arguments_advanced.png" /></div><br />
+			<p class="p">You may enter a single parameter per line, such as a pattern, an object
+				address, or an OQL query. Additional line for this type of the argument is
+				added automatically, thus multiple arguments can be entered.</p>
+
+			<p class="p" id="ref_queryarguments__address">
+				<strong class="ph b">Object Address Syntax</strong>
+			</p>
+
+			<p class="p">The object address has a hexadecimal form, that is it starts with the
+				hex-prefix 0x and consists of one or more letters A-F and digits 0-9.</p>
+
+			<p class="p">
+				<strong class="ph b">Example:</strong> 0x36d99c88</p>
+
+			
+			<p class="p" id="ref_queryarguments__oql_query">For more information about OQL, refer to the <a class="xref" href="oqlsyntax.html">OQL syntax details</a></p>
+
+			
+			<p class="p" id="ref_queryarguments__include_class_instance">
+				<strong class="ph b">-include_class_instance</strong>
+			</p>
+
+			<p class="p">
+				If there is a class pattern then the class object will also be returned as well as the instances.
+			</p>
+
+			
+			<p class="p" id="ref_queryarguments__include_subclasses">
+				<strong class="ph b">-include_subclasses</strong>
+			</p>
+
+			<p class="p">
+				If there is a class pattern then instances of that class and instances of subclasses
+				of that class will be returned.
+			</p>
+
+			
+			<p class="p" id="ref_queryarguments__include_loaded_instances">
+				<strong class="ph b">-include_loaded_instances</strong>
+			</p>
+
+			<p class="p">
+				If the object or objects are all class loaders then the classes loaded by those loaders
+				will be returned as well as the class loaders.
+			</p>
+
+			
+			<p class="p" id="ref_queryarguments__retained">
+				<strong class="ph b">-retained</strong>
+			</p>
+
+			<p class="p">
+				The objects retained by the selected objects will also be returned.
+			</p>
+
+			
+			<p class="p" id="ref_queryarguments__verbose">
+				<strong class="ph b">-verbose</strong>
+			</p>
+
+			<p class="p">
+				Can only be set via the command line with the query browser.
+				Used to see how objects are returned from the specified heap object argument.
+			</p>
+
+		</div>
+
+	</div>
+
+	<div class="related-links">
+<div class="linklist relinfo relref" xml:lang="en-us" lang="en-us"><strong>Related reference</strong><br />
+<ul class="linklist">
+<li class="linklist"><a class="link" href="querymatrix.html" title="There is no exact algorithm for memory analysis. The following table divides existing heap dump queries by the usage categories.">Query Matrix</a></li></ul></div>
+</div>
+</body>
+</html>
