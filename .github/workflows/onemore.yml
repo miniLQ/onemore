@@ -56,7 +56,7 @@ jobs:
           prerelease: false
           body: |
             Changes in this Release 
-            https://github.com/miniLQ/onemore/compare/${{ last_tag }}...${{ current_tag }}
+            https://github.com/miniLQ/onemore/compare/${{ env.last_tag }}...${{ env.current_tag }}
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
