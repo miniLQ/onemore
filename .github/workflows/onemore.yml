@@ -15,6 +15,10 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
+      - name: Get tag name
+        id: get_tag
+        run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -36,12 +40,35 @@ jobs:
           windows-icon-from-ico: app/resource/images/logo.ico
 
       - name: Compress files
-        run:
-          Compress-Archive -Path build/  -DestinationPath release/onemore_${{ github.ref }}.zip 
-      
-      - name: upload artifacts
-        uses: actions/upload-artifact@v4
         with:
-          name: windows Build
-          path: release/onemore_${{ github.ref }}.zip
-    
+          tagname: ${{ steps.get_tag.outputs.tag }}
+        run:
+          Compress-Archive -Path build/  -DestinationPath release/onemore_${{ tagname }}.zip 
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          release_name: Release ${{ steps.get_tag.outputs.tag }}
+          draft: false
+          prerelease: false
+        
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/onemore_${{ tagname }}.zip
+          asset_name: onemore_${{ tagname }}.zip
+          asset_content_type: application/zip
+
+      # - name: upload artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: windows Build
+      #     tagname: ${{ steps.get_tag.outputs.tag }}
+      #     path: release/onemore_${{ tagname }}.zip 
