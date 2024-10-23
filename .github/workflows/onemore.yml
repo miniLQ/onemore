@@ -40,10 +40,8 @@ jobs:
           windows-icon-from-ico: app/resource/images/logo.ico
 
       - name: Compress files
-        with:
-          tagname: ${{ steps.get_tag.outputs.tag }}
         run:
-          Compress-Archive -Path build/  -DestinationPath release/onemore_${{ tagname }}.zip 
+          Compress-Archive -Path build/  -DestinationPath release/onemore_${{ steps.get_tag.outputs.tag }}.zip 
       
       - name: Create Release
         id: create_release
