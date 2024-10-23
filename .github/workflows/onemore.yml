@@ -35,28 +35,34 @@ jobs:
           disable-console: true
           windows-icon-from-ico: app/resource/images/logo.ico
 
+      - name: Get tag name
+        id: get_tag
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
+
+      - name: Get previous tag name
+        id: get_previous_tag
+        run: echo ::set-output name=tag::$(git describe --tags --abbrev=0 HEAD^)
+
       - name: Compress files
         env:
-          current_tag: $(git describe --tags --abbrev=0 HEAD)
+          current_tag:
         run:
           echo $current_tag
-          Compress-Archive -Path build/  -DestinationPath release/onemore_{{ current_tag }}.zip 
+          Compress-Archive -Path build/  -DestinationPath release/onemore_{{ steps.get_tag.outputs.tag }}.zip
       
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-          current_tag: $(git describe --tags --abbrev=0 HEAD)
-          last_tag: $(git describe --tags --abbrev=0 HEAD^)
         with:
-          tag_name: $(git describe --tags --abbrev=0 HEAD)
-          release_name: Release $(git describe --tags --abbrev=0 HEAD)
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          release_name: Release ${{ steps.get_tag.outputs.tag }}
           draft: false
           prerelease: false
           body: |
             Changes in this Release 
-            https://github.com/miniLQ/onemore/compare/${{ env.last_tag }}...${{ env.current_tag }}
+            https://github.com/miniLQ/onemore/compare/${{ steps.get_previous_tag.outputs.tag }}...${{ steps.get_tag.outputs.tag }}
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -64,8 +70,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/onemore_$(git describe --tags --abbrev=0 HEAD).zip
-          asset_name: onemore_$(git describe --tags --abbrev=0 HEAD).zip
+          asset_path: release/onemore_{{ steps.get_tag.outputs.tag }}.zip
+          asset_name: onemore_{{ steps.get_tag.outputs.tag }}.zip
           asset_content_type: application/zip
 
       # - name: upload artifacts
