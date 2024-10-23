@@ -35,17 +35,9 @@ jobs:
           disable-console: true
           windows-icon-from-ico: app/resource/images/logo.ico
 
-      - name: Get tag
-        id: get_tag
-        run: echo ::set-output name=tag::${{ github.ref }}
-
-      - name: Get tag name
-        id: get_tag_name
-        run: echo ::set-output name=tagname::${{ steps.get_tag.outputs.tag }}
-
       - name: Compress files
         run:
-          Compress-Archive -Path build/  -DestinationPath release/onemore_${{ steps.get_tag_name.outputs.tagname }}.zip 
+          Compress-Archive -Path build/  -DestinationPath release/onemore_$(git describe --tags --abbrev=0 HEAD).zip 
       
       - name: Create Release
         id: create_release
@@ -53,14 +45,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.get_tag_name.outputs.tagname }}
+          tag_name: $(git describe --tags --abbrev=0 HEAD)
           last_tag_name: $(git describe --tags --abbrev=0 HEAD^)
-          release_name: Release ${{ steps.get_tag_name.outputs.tagname }}
+          release_name: Release $(git describe --tags --abbrev=0 HEAD)
           draft: false
           prerelease: false
           body: |
             Changes in this Release
-            https://github.com/miniLQ/onemore/compare/${{ steps.create_release.outputs.last_tag_name }}...${{ steps.get_tag_name.outputs.tagname }}
+            https://github.com/miniLQ/onemore/compare/$(git describe --tags --abbrev=0 HEAD^)...$(git describe --tags --abbrev=0 HEAD)
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -68,8 +60,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/onemore_${{ steps.get_tag_name.outputs.tagname }}.zip
-          asset_name: onemore_${{ steps.get_tag_name.outputs.tagname }}.zip
+          asset_path: release/onemore_$(git describe --tags --abbrev=0 HEAD).zip
+          asset_name: onemore_$(git describe --tags --abbrev=0 HEAD).zip
           asset_content_type: application/zip
 
       # - name: upload artifacts
