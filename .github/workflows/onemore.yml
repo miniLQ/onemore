@@ -46,12 +46,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: $(git describe --tags --abbrev=0 HEAD)
-          last_tag_name: $(git describe --tags --abbrev=0 HEAD^)
           release_name: Release $(git describe --tags --abbrev=0 HEAD)
           draft: false
           prerelease: false
           body: |
-            Changes in this Release
+            Changes in this Release 
             https://github.com/miniLQ/onemore/compare/$(git describe --tags --abbrev=0 HEAD^)...$(git describe --tags --abbrev=0 HEAD)
 
       - name: Upload Release Asset
