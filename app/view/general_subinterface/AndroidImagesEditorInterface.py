@@ -215,8 +215,8 @@ class SettinsCard(GroupHeaderCardWidget):
         self.setBorderRadius(8)
 
         # 初始化参数
-        self.dumpfile = ""
-        self.vmlinuxfile = ""
+        self.output = ""
+        self.inputfile = ""
 
         # 设置状态提示
         self.stateTooltip = None
@@ -503,7 +503,7 @@ class LightBox(QWidget):
         self.hide()
 
 class AndroidImagesEditorCardsInfo(ScrollArea):
-    """ Linux Ramdump Parser Subinterface """
+    """ Android Images Editor Subinterface """
 
     def __init__(self, parent=None, routeKey=None):
         super().__init__(parent=parent)
@@ -565,16 +565,3 @@ class AndroidImagesEditorInterface:
         self.mainWindow.showInterface.setCurrentWidget(self.mainWindow.showInterface.findChild(AndroidImagesEditorCardsInfo, routeKey))
         self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.showInterface)
         self.mainWindow.tabBar.setCurrentIndex(self.mainWindow.tabBar.count() - 1)
-
-        #logger.info("[LIUQI] CurrentWidget: ".format(self.mainWindow.showInterface.currentWidget()))
-        #logger.info("[LIUQI] CurrentWidgetRoutekey: ".format(self.mainWindow.showInterface.currentWidget().objectName()))
-
-    # def onTabChanged(self, index):
-    #     objectName = self.mainWindow.tabBar.currentTab().routeKey()
-    #     logger.info("[LIUQI1] ObjectName: ", objectName)
-    #     logger.info("[LIUQI1] index: ", index)
-    #     logger.info("[LIUQI1] CurrentWidget: ", self.mainWindow.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
-    #     self.mainWindow.showInterface.setCurrentWidget(self.mainWindow.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
-    #     self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.showInterface)
-    #     self.mainWindow.tabBar.setCurrentIndex(index)
-    #     logger.info("[LIUQI1] CurrentWidgetRoutekey: ", self.mainWindow.showInterface.currentWidget().objectName())
