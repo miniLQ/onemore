@@ -35,9 +35,9 @@ jobs:
           disable-console: true
           windows-icon-from-ico: app/resource/images/logo.ico
 
-      - name: Unzip artifacts
+      - name: Compress files
         run:
-          zip -r release/onemore_${{ github.ref }}.zip build/
+          Compress-Archive -Path build/  -DestinationPath release/onemore_${{ github.ref }}.zip 
       
       - name: upload artifacts
         uses: actions/upload-artifact@v4
