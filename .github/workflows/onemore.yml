@@ -15,10 +15,6 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - name: Get tag name
-        id: get_tag
-        run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -39,9 +35,17 @@ jobs:
           disable-console: true
           windows-icon-from-ico: app/resource/images/logo.ico
 
+      - name: Get tag
+        id: get_tag
+        run: echo ::set-output name=tag::${{ github.ref }}
+
+      - name: Get tag name
+        id: get_tag_name
+        run: echo ::set-output name=tagname::${{ steps.get_tag.outputs.tag }}
+
       - name: Compress files
         run:
-          Compress-Archive -Path build/  -DestinationPath release/onemore_${{ steps.get_tag.outputs.tag }}.zip 
+          Compress-Archive -Path build/  -DestinationPath release/onemore_${{ steps.get_tag_name.outputs.tagname }}.zip 
       
       - name: Create Release
         id: create_release
@@ -49,19 +53,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.get_tag.outputs.tag }}
-          release_name: Release ${{ steps.get_tag.outputs.tag }}
+          tag_name: ${{ steps.get_tag_name.outputs.tagname }}
+          last_tag_name: $(git describe --tags --abbrev=0 HEAD^)
+          release_name: Release ${{ steps.get_tag_name.outputs.tagname }}
           draft: false
           prerelease: false
-        
+          body: |
+            Changes in this Release
+            https://github.com/miniLQ/onemore/compare/${{ steps.create_release.outputs.last_tag_name }}...${{ steps.get_tag_name.outputs.tagname }}
+
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/onemore_${{ steps.get_tag.outputs.tag }}.zip
-          asset_name: onemore_${{ steps.get_tag.outputs.tag }}.zip
+          asset_path: release/onemore_${{ steps.get_tag_name.outputs.tagname }}.zip
+          asset_name: onemore_${{ steps.get_tag_name.outputs.tagname }}.zip
           asset_content_type: application/zip
 
       # - name: upload artifacts
