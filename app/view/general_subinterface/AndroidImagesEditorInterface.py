@@ -195,7 +195,8 @@ class DescriptionCard(HeaderCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.descriptionLabel = BodyLabel(
-            '本工具为github上的开源项目，本人只是将此工具直接集成到onemore中\n作者：cfig\ngithub地址：https://github.com/cfig/Android_boot_image_editor', self)
+            '本工具为github上的开源项目，本人只是将此工具直接集成到onemore中\n作者：cfig\ngithub地址：https://github.com/cfig/Android_boot_image_editor\n'
+            '使用本工具前必须先保证安装好JDK11+的java环境!!!', self)
 
         self.descriptionLabel.setWordWrap(True)
         self.viewLayout.addWidget(self.descriptionLabel)
