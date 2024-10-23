@@ -36,14 +36,19 @@ jobs:
           windows-icon-from-ico: app/resource/images/logo.ico
 
       - name: Compress files
+        env:
+          current_tag: $(git describe --tags --abbrev=0 HEAD)
         run:
-          Compress-Archive -Path build/  -DestinationPath release/onemore_$(git describe --tags --abbrev=0 HEAD).zip 
+          echo $current_tag
+          Compress-Archive -Path build/  -DestinationPath release/onemore_{{ current_tag }}.zip 
       
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          current_tag: $(git describe --tags --abbrev=0 HEAD)
+          last_tag: $(git describe --tags --abbrev=0 HEAD^)
         with:
           tag_name: $(git describe --tags --abbrev=0 HEAD)
           release_name: Release $(git describe --tags --abbrev=0 HEAD)
@@ -51,12 +56,12 @@ jobs:
           prerelease: false
           body: |
             Changes in this Release 
-            https://github.com/miniLQ/onemore/compare/$(git describe --tags --abbrev=0 HEAD^)...$(git describe --tags --abbrev=0 HEAD)
+            https://github.com/miniLQ/onemore/compare/${{ last_tag }}...${{ current_tag }}
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: release/onemore_$(git describe --tags --abbrev=0 HEAD).zip
