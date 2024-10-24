@@ -8,25 +8,21 @@ from distutils.sysconfig import get_python_lib
 args = [
     'nuitka',
     '--standalone',
-    # '--windows-disable-console',
-    '--follow-import-to=app' ,
-    '--plugin-enable=pyqt6' ,
-    '--include-qt-plugins=sensible,styles' ,
-    '--msvc=latest',
-    '--show-memory' ,
-    '--show-progress' ,
-    '--windows-icon-from-ico=app/resource/images/logo.ico',
-    '--include-module=app',
-    '--nofollow-import-to=pywin',
-    '--follow-import-to=win32com,win32gui,win32print,qfluentwidgets,app',
-    '--output-dir=dist/main',
-    'main.py',
+    '--assume-yes-for-downloads',
+    '--mingw64',
+    '--windows-icon-from-ico=./app/resource/images/logo.ico',
+    '--enable-plugins=pyqt6',
+    '--show-memory',
+    '--show-progress',
+    '--windows-console-mode=disable',
+    '--output-dir=./build',
+    './main.py'
 ]
 
 os.system(' '.join(args))
 
 # copy site-packages to dist folder
-dist_folder = Path("dist/main/main.dist")
+dist_folder = Path("build/main.dist")
 site_packages = Path(get_python_lib())
 
 copied_libs = []
