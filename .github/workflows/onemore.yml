@@ -37,7 +37,7 @@ jobs:
 
       - name: Get tag name
         id: get_tag
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
+        run: echo ::set-output name=tag::${${{ github.ref }}#refs/tags/}
 
       - name: Get previous tag name
         id: get_previous_tag
@@ -60,9 +60,9 @@ jobs:
           release_name: Release ${{ steps.get_tag.outputs.tag }}
           draft: false
           prerelease: false
-          body: |
-            Changes in this Release 
-            https://github.com/miniLQ/onemore/compare/${{ steps.get_previous_tag.outputs.tag }}...${{ steps.get_tag.outputs.tag }}
+          # body: |
+          #   Changes in this Release 
+          #   https://github.com/miniLQ/onemore/compare/${{ steps.get_previous_tag.outputs.tag }}...${{ steps.get_tag.outputs.tag }}
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
