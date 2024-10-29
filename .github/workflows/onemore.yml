@@ -59,9 +59,12 @@ jobs:
       #     echo "previous_tag=${previous_tag}" >> $env:GITHUB_ENV
 
       - name: Compress files
-        run:
-          #echo $current_tag
-          Compress-Archive -Path build/  -DestinationPath release/onemore_${{ env.tag }}.zip
+        run: |
+          mkdir -p release/onemore_${{ env.tag }}
+          cp -r build/main.dist/* release/onemore_${{ env.tag }}/
+          cp -r app/resource release/onemore_${{ env.tag }}/app/resource
+          cp -r tools release/onemore_${{ env.tag }}/tools
+          Compress-Archive -Path release/onemore_${{ env.tag }} -DestinationPath release/onemore_${{ env.tag }}.zip
       
       - name: Create Release
         id: create_release
