@@ -46,17 +46,17 @@ class SettingInterface(ScrollArea):
             cfg.micaEnabled,
             self.personalGroup
         )
-        self.themeCard = ComboBoxSettingCard(
-            cfg.themeMode,
-            FIF.BRUSH,
-            self.tr('Application theme'),
-            self.tr("Change the appearance of your application"),
-            texts=[
-                self.tr('Light'), self.tr('Dark'),
-                self.tr('Use system setting')
-            ],
-            parent=self.personalGroup
-        )
+        # self.themeCard = ComboBoxSettingCard(
+        #     cfg.themeMode,
+        #     FIF.BRUSH,
+        #     self.tr('Application theme'),
+        #     self.tr("Change the appearance of your application"),
+        #     texts=[
+        #         self.tr('Light'), self.tr('Dark'),
+        #         self.tr('Use system setting')
+        #     ],
+        #     parent=self.personalGroup
+        # )
         self.zoomCard = ComboBoxSettingCard(
             cfg.dpiScale,
             FIF.ZOOM,
@@ -142,7 +142,7 @@ class SettingInterface(ScrollArea):
         self.settingLabel.move(36, 50)
 
         self.personalGroup.addSettingCard(self.micaCard)
-        self.personalGroup.addSettingCard(self.themeCard)
+        #self.personalGroup.addSettingCard(self.themeCard)
         self.personalGroup.addSettingCard(self.zoomCard)
         self.personalGroup.addSettingCard(self.languageCard)
 
