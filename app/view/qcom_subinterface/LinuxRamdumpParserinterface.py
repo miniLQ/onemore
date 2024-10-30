@@ -22,8 +22,10 @@ from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from app.common.config import ROOTPATH
 from app.common.logging import logger
+from app.common.utils import linuxPath2winPath
 
 GNU_TOOLS_PATH = os.path.join(ROOTPATH, 'tools', 'gnu-tools')
+PYTHON_BIN = os.path.join(ROOTPATH, 'tools', 'android-sdk', 'python', 'bin', 'python.exe')
 
 # 获取当前文件的路径
 current_path = Path(__file__).resolve().parent
@@ -311,6 +313,8 @@ class SettinsCard(GroupHeaderCardWidget):
         logger.info("Choose Button Clicked")
         # 弹出windows文件选择框
         self.dumpdir = QFileDialog.getExistingDirectory(self, "选择文件夹")
+        # 转成windows路径
+        self.dumpdir = linuxPath2winPath(self.dumpdir)
         # 打印选择的文件路径
         logger.info("Choose Dump Directory: {}".format(self.dumpdir))
         
@@ -327,6 +331,8 @@ class SettinsCard(GroupHeaderCardWidget):
         logger.info("vmlinux Button Clicked")
         # 弹出windows文件选择框
         self.vmlinuxfile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.txt)")
+        # 转成windows路径
+        self.vmlinuxfile = linuxPath2winPath(self.vmlinuxfile)
         # 打印选择的文件路径
         logger.info("Choose Vmlinux File: {}".format(self.vmlinuxfile))
 
@@ -443,7 +449,7 @@ class SettinsCard(GroupHeaderCardWidget):
             objdump64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-objdump.exe')
             self.output_path = os.path.join(self.dumpdir, 'parser_output')
 
-            command = 'python {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(ramdump_parse_tool_path,
+            command = '{} {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(PYTHON_BIN, ramdump_parse_tool_path,
                         self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.lineEdit.text())
         
             self.start_task(command, shell)

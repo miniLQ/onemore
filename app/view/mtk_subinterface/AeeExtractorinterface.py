@@ -22,6 +22,7 @@ from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from app.common.config import ROOTPATH
 from app.common.logging import logger
+from app.common.utils import linuxPath2winPath
 
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
@@ -263,6 +264,8 @@ class SettinsCard(GroupHeaderCardWidget):
     def ondbChooseButtonClicked(self):
         logger.info("db file Choose Button Clicked!")
         self.dbfile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.dbg)")
+        # 转换为windows路径
+        self.dbfile = linuxPath2winPath(self.dbfile)
         logger.info("db file: {}".format(self.dbfile))
 
         if self.dbfile == "":
@@ -326,7 +329,7 @@ class SettinsCard(GroupHeaderCardWidget):
                 shell = False
 
             aee_db_extract_path = os.path.join(TOOLS_PATH, "aee_db_extract")
-            command = "{} {}".format(os.path.join(aee_db_extract_path, "aee_extract.exe"), self.dbfile)
+            command = "{} {}".format(linuxPath2winPath(os.path.join(aee_db_extract_path, "aee_extract.exe")), self.dbfile)
 
             self.start_task(command, shell)
 

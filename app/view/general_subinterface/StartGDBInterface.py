@@ -22,6 +22,7 @@ from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from app.common.config import ROOTPATH
 from app.common.logging import logger
+from app.common.utils import linuxPath2winPath
 
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 GDBTOOL_PATH = os.path.join(TOOLS_PATH, "android-sdk", "bin")
@@ -295,6 +296,8 @@ class SettinsCard(GroupHeaderCardWidget):
         logger.info("coredump choose Button Clicked")
         # 弹出windows文件选择框
         self.coredumpfile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.img)")
+        # 转化为windows路径
+        self.coredumpfile = linuxPath2winPath(self.coredumpfile)
         # 打印选择的文件路径
         logger.info("Choose coredump File: {}".format(self.coredumpfile))
         
@@ -311,6 +314,8 @@ class SettinsCard(GroupHeaderCardWidget):
         logger.info("executable choose Button Clicked")
         # 弹出windows文件选择框
         self.executablefile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.img)")
+        # 转化为windows路径
+        self.executablefile = linuxPath2winPath(self.executablefile)
         # 打印选择的文件路径
         logger.info("Choose executable File: {}".format(self.executablefile))
 

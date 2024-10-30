@@ -22,6 +22,7 @@ from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from app.common.config import ROOTPATH
 from app.common.logging import logger
+from app.common.utils import linuxPath2winPath
 
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
@@ -268,6 +269,8 @@ class SettinsCard(GroupHeaderCardWidget):
     def ondbChooseButtonClicked(self):
         logger.info("db file Choose Button Clicked!")
         self.dbdir = QFileDialog.getExistingDirectory(self, "选择文件夹")
+        # 转换为windows路径
+        self.dbdir = linuxPath2winPath(self.dbdir)
         logger.info("db dir: {}".format(self.dbdir))
 
         if self.dbdir == "":
@@ -329,7 +332,7 @@ class SettinsCard(GroupHeaderCardWidget):
                 shell = False
 
             KeNEAnalyze_path = os.path.join(TOOLS_PATH, "SpOfflineDebugSuite")
-            command = "{} {} -ext 4".format(os.path.join(KeNEAnalyze_path, "Dispatcher.exe"), self.dbdir)
+            command = "{} {} -ext 4".format(linuxPath2winPath(os.path.join(KeNEAnalyze_path, "Dispatcher.exe")), self.dbdir)
 
             self.start_task(command, shell)
 

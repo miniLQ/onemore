@@ -22,6 +22,7 @@ from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from app.common.config import ROOTPATH
 from app.common.logging import logger
+from app.common.utils import linuxPath2winPath
 
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
@@ -273,11 +274,14 @@ class SettinsCard(GroupHeaderCardWidget):
         self.runButton.clicked.connect(self.runButtonClicked)
 
     def hproffilechooseButtonClicked(self):
-        logger.info("coredump choose Button Clicked")
+        logger.info("hprof choose Button Clicked")
         # 弹出windows文件选择框
         self.hproffile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.img)")
+        # self.hproffile转换成windows路径
+        self.hproffile = linuxPath2winPath(self.hproffile)
         # 打印选择的文件路径
         logger.info("Choose hprof File: {}".format(self.hproffile))
+
         
         if self.hproffile == "":
             self.hproffileButton.setText("选择")
@@ -350,15 +354,15 @@ class SettinsCard(GroupHeaderCardWidget):
             newfile = "output.hprof"
             # 获取self.hproffile的路径
             path = os.path.dirname(self.hproffile)
-            logger.info(path)
-            command = "{} {} {}".format(os.path.join(TOOLS_PATH, "android-sdk", "lib", "hprof-conv.exe"), self.hproffile, os.path.join(path, newfile))
+            command = "{} {} {}".format(linuxPath2winPath(os.path.join(TOOLS_PATH, "android-sdk", "lib", "hprof-conv.exe")), self.hproffile, linuxPath2winPath(os.path.join(path, newfile)))
+            logger.info(command)
             os.system(command)
 
-            command = "{} {}".format(os.path.join(TOOLS_PATH, "mat", "MemoryAnalyzer.exe"), os.path.join(path, newfile))
+            command = "{} {}".format(linuxPath2winPath(os.path.join(TOOLS_PATH, "mat", "MemoryAnalyzer.exe")), linuxPath2winPath(os.path.join(path, newfile)))
             logger.info(command)
             self.start_task(command, shell=False)
         else:
-            command = "{} {}".format(os.path.join(TOOLS_PATH, "mat", "MemoryAnalyzer.exe"), self.hproffile)
+            command = "{} {}".format(linuxPath2winPath(os.path.join(TOOLS_PATH, "mat", "MemoryAnalyzer.exe")), self.hproffile)
             logger.info(command)
             self.start_task(command, shell=False)
 

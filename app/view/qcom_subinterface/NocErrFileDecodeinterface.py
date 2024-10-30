@@ -23,8 +23,10 @@ from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from app.common.config import ROOTPATH
 from app.common.logging import logger
+from app.common.utils import linuxPath2winPath
 
 NOC_DECODE_TOOLS_PATH = os.path.join(ROOTPATH, 'tools', 'NOC_decode')
+PYTHON_BIN = os.path.join(ROOTPATH, 'tools', 'android-sdk', 'python', 'bin', 'python.exe')
 
 # 获取当前文件的路径
 current_path = Path(__file__).resolve().parent
@@ -399,9 +401,9 @@ class SettinsCard(GroupHeaderCardWidget):
         # runbuton按钮设置为不可点击
         self.runButton.setDisabled(True)
 
-        decodefile = os.path.join(NOC_DECODE_TOOLS_PATH, "NoC_error_decode_log.py")
+        decodefile = linuxPath2winPath(os.path.join(NOC_DECODE_TOOLS_PATH, "NoC_error_decode_log.py"))
 
-        command = "python {} {} {} -o {}".format(
+        command = "{} {} {} {} -o {}".format(PYTHON_BIN,
             decodefile, self.platformComboBox.currentText(), self.inputfile, self.output_path)
         self.start_task(command, shell)
     

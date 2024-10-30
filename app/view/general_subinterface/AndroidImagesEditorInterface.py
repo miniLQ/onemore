@@ -298,6 +298,8 @@ class SettinsCard(GroupHeaderCardWidget):
         self.output = QFileDialog.getExistingDirectory(self, "选择文件夹")
         # 打印选择的文件路径
         logger.info("Choose output Directory: {}".format(self.output))
+        # output转换为windows路径风格
+        self.output = os.path.normpath(self.output).replace(os.sep, os.path.normcase(os.sep))
         
         if self.output == "":
             self.outputButton.setText("选择")
@@ -314,6 +316,8 @@ class SettinsCard(GroupHeaderCardWidget):
         self.inputfile, _ = QFileDialog.getOpenFileName(self, "选择文件", "C:/", "All Files (*);;Text Files (*.img)")
         # 打印选择的文件路径
         logger.info("Choose image File: {}".format(self.inputfile))
+        # inputfile转换为windows路径风格
+        self.inputfile = os.path.normpath(self.inputfile).replace(os.sep, os.path.normcase(os.sep))
 
         if self.inputfile == "":
             # 设置vmlinuxButton的文字显示已选择
@@ -380,8 +384,8 @@ class SettinsCard(GroupHeaderCardWidget):
 
     def runButtonClicked(self):
         logger.info("Run Button Clicked")
-        logger.info("image file path: ".format(self.inputfile))
-        logger.info("output directory: ".format(self.output))
+        logger.info("image file path: {}".format(self.inputfile))
+        logger.info("output directory: {}".format(self.output))
 
         # if self.comboBox.currentText() == "始终显示":
         #     shell = True
@@ -409,9 +413,14 @@ class SettinsCard(GroupHeaderCardWidget):
             # command = "cp {} {} && CD {} && {} unpack && cp -r {} {}".format(
             #     self.inputfile, ANDROID_BOOT_IMAGE_EDITOR_PATH, ANDROID_BOOT_IMAGE_EDITOR_PATH, "gradlew.bat",
             #     os.path.join(ANDROID_BOOT_IMAGE_EDITOR_PATH, "build", "unzip_boot"), self.output)
-            command = "cp {} {} && CD {} && {} unpack && cp -r {} {} && {} clear".format(
-                self.inputfile, ANDROID_BOOT_IMAGE_EDITOR_PATH, ANDROID_BOOT_IMAGE_EDITOR_PATH, "gradlew.bat",
-                os.path.join(ANDROID_BOOT_IMAGE_EDITOR_PATH, "build", "unzip_boot"), self.output, "gradlew.bat")
+            command = "copy {} {} && CD /d {} && {} unpack && xcopy /Y /E /I {} {} && {} clear".format(
+                self.inputfile, 
+                os.path.normpath(ANDROID_BOOT_IMAGE_EDITOR_PATH).replace(os.sep, os.path.normcase(os.sep)),
+                os.path.normpath(ANDROID_BOOT_IMAGE_EDITOR_PATH).replace(os.sep, os.path.normcase(os.sep)),
+                "gradlew.bat",
+                os.path.normpath(os.path.join(ANDROID_BOOT_IMAGE_EDITOR_PATH, "build", "unzip_boot")).replace(os.sep, os.path.normcase(os.sep)),
+                os.path.normpath(os.path.join(self.output, "unzip_boot")).replace(os.sep, os.path.normcase(os.sep)), 
+                "gradlew.bat")
             self.start_task(command, shell=False)
     
 
