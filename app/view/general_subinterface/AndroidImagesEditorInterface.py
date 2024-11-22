@@ -183,7 +183,7 @@ class  Worker(QThread):
             line = process.stdout.readline()
             if not line:
                 break
-            logger.info(line.decode('gbk').strip())
+            #logger.info(line.decode('gbk').strip())
 
         self.signal.emit("SUCCESS")
         #self.signal.emit("ERROR")
@@ -308,6 +308,10 @@ class SettinsCard(GroupHeaderCardWidget):
             # 设置chooseButton的文字显示已选择
             self.outputButton.setText("已选择")
             self.outputGroup.setContent(self.output)
+        
+        if os.path.exists(os.path.join(self.output, "unzip_boot")):
+            logger.info("{}/unzip_boot is exist, so clear it.".format(self.output))
+            os.system("rmdir /s /q {}".format(os.path.join(self.output, "unzip_boot")))
 
 
     def imagechooseButtonClicked(self):

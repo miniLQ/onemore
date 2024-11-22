@@ -212,7 +212,7 @@ class GeneralInterface(ScrollArea):
 
         suffix = ":/qfluentwidgets/images/controls"
         resource_image_path = os.path.join(ROOTPATH, 'app', 'resource', 'images')
-        logger.info(resource_image_path)
+        #logger.info(resource_image_path)
         self.addCard("{}".format(os.path.join(resource_image_path, "Chicken.png")), "DTB2DTS", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
         self.addCard(f"{suffix}/TitleBar.png", "Android Image Unpack", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
         self.addCard(f"{suffix}/RatingControl.png", "StartGDB", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)

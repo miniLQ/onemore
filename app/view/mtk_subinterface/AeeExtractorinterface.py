@@ -30,7 +30,7 @@ TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 current_path = Path(__file__).resolve().parent
 # resource文件夹的路径, 位于当前文件的上两级目录
 resource_path = current_path.parent.parent / 'resource'
-logger.info("resource_path: {}".format(resource_path))
+#logger.info("resource_path: {}".format(resource_path))
 
 def isWin11():
     return sys.platform == 'win32' and sys.getwindowsversion().build >= 22000
