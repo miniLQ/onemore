@@ -449,6 +449,9 @@ class SettinsCard(GroupHeaderCardWidget):
             objdump64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-objdump.exe')
             self.output_path = os.path.join(self.dumpdir, 'parser_output')
 
+            if os.path.exists(self.output_path) == False:
+                os.makedirs(self.output_path)
+
             command = '{} {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(PYTHON_BIN, ramdump_parse_tool_path,
                         self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.lineEdit.text())
         
