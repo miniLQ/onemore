@@ -184,7 +184,7 @@ class  Worker(QThread):
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
         if self.shell == True:
-            command = "start cmd /c {}".format(self.command)
+            command = "start cmd /K {}".format(self.command)
         else:
             command = self.command
         logger.info("Run command: {}".format(self.command))
