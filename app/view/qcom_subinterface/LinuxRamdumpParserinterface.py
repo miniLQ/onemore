@@ -22,11 +22,9 @@ from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from app.common.config import ROOTPATH
 from app.common.logging import logger
-from app.common.utils import linuxPath2winPath
+from app.common.utils import linuxPath2winPath, is_python_installed
 
 GNU_TOOLS_PATH = os.path.join(ROOTPATH, 'tools', 'gnu-tools')
-PYTHON_BIN = os.path.join(ROOTPATH, 'tools', 'android-sdk', 'python', 'bin', 'python.exe')
-
 # 获取当前文件的路径
 current_path = Path(__file__).resolve().parent
 # resource文件夹的路径, 位于当前文件的上两级目录
@@ -382,6 +380,14 @@ class SettinsCard(GroupHeaderCardWidget):
             parent=self.window()
         )
 
+    def showNoPython(self):
+        Flyout.create(
+            icon=InfoBarIcon.ERROR,
+            title='No python',
+            content="请先安装python3环境并添加到环境变量",
+            target=self.runButton,
+            parent=self.window()
+        )
 
     def customSignalHandler(self, value):
         # 接收到解析命令结束的信号
@@ -416,6 +422,11 @@ class SettinsCard(GroupHeaderCardWidget):
         logger.info("Vmlinux file: {}".format(self.vmlinuxfile))
         logger.info("platform: {}".format(self.platformComboBox.currentText()))
         logger.info("extend parameters: {}".format(self.lineEdit.text()))
+
+        # 检查是否存在python环境
+        if is_python_installed() == False:
+            self.showNoPython()
+            return
 
         if self.comboBox.currentText() == "始终显示":
             shell = True
@@ -457,7 +468,7 @@ class SettinsCard(GroupHeaderCardWidget):
             if os.path.exists(self.output_path) == False:
                 os.makedirs(self.output_path)
 
-            command = '{} {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(PYTHON_BIN, ramdump_parse_tool_path,
+            command = 'python {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(ramdump_parse_tool_path,
                         self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.lineEdit.text())
         
             self.start_task(command, shell)
