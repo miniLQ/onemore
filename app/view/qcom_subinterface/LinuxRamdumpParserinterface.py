@@ -22,7 +22,7 @@ from qfluentwidgets.components.widgets.acrylic_label import AcrylicBrush
 
 from app.common.config import ROOTPATH
 from app.common.logging import logger
-from app.common.utils import linuxPath2winPath, is_python_installed
+from app.common.utils import linuxPath2winPath
 
 GNU_TOOLS_PATH = os.path.join(ROOTPATH, 'tools', 'gnu-tools')
 # 获取当前文件的路径
@@ -424,7 +424,7 @@ class SettinsCard(GroupHeaderCardWidget):
         logger.info("extend parameters: {}".format(self.lineEdit.text()))
 
         # 检查是否存在python环境
-        if is_python_installed() == False:
+        if sys.executable == None or sys.executable == "":
             self.showNoPython()
             return
 
