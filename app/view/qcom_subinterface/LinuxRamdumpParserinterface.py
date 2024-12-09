@@ -180,7 +180,7 @@ class  Worker(QThread):
 
     def run(self):
         logger.info("Worker Thread ID: {}".format(QThread.currentThreadId()))
-        logger.info("Run command: {}".format(self.command))
+        #logger.info("Run command: {}".format(self.command))
 
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -189,7 +189,8 @@ class  Worker(QThread):
             command = "start cmd /c {}".format(self.command)
         else:
             command = self.command
-        
+        logger.info("Run command: {}".format(self.command))
+
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         
         while True:
@@ -345,14 +346,14 @@ class SettinsCard(GroupHeaderCardWidget):
             self.vmlinuxGroup.setContent(self.vmlinuxfile)
 
     def comboBoxClicked(self, index):
-        logger.info("ComboBox Clicked: ".format(index))
+        logger.info("ComboBox Clicked: {}".format(index))
         # 打印当前选择的值
-        logger.info("Current Index: ".format(self.comboBox.currentText()))
+        logger.info("Current Index: {}".format(self.comboBox.currentText()))
 
     def platformComboBoxClicked(self, index):
-        logger.info("Platform ComboBox Clicked: ".format(index))
+        logger.info("Platform ComboBox Clicked: {}".format(index))
         # 打印当前选择的值
-        logger.info("Current Index: ".format(self.platformComboBox.currentText()))
+        logger.info("Current Index: {}".format(self.platformComboBox.currentText()))
 
     def showNoSelectFileFlyout(self):
         Flyout.create(
@@ -411,17 +412,17 @@ class SettinsCard(GroupHeaderCardWidget):
     def runButtonClicked(self):
         logger.info("Run Button Clicked")
         # 获取chooseButton/ vmlinuxButton/ comboBox/ platformComboBox/ lineEdit的值
-        logger.info("Dump directory: ".format(self.dumpdir))
-        logger.info("Vmlinux file: ".format(self.vmlinuxfile))
-        logger.info("platform: ".format(self.platformComboBox.currentText()))
-        logger.info("extend parameters: ".format(self.lineEdit.text()))
+        logger.info("Dump directory: {}".format(self.dumpdir))
+        logger.info("Vmlinux file: {}".format(self.vmlinuxfile))
+        logger.info("platform: {}".format(self.platformComboBox.currentText()))
+        logger.info("extend parameters: {}".format(self.lineEdit.text()))
 
         if self.comboBox.currentText() == "始终显示":
             shell = True
         else:
             shell = False
 
-        logger.info("Display terminal: ".format(shell))
+        logger.info("Display terminal: {}".format(shell))
 
         if self.dumpdir == "" or self.vmlinuxfile == "":
             self.showNoSelectFileFlyout()
@@ -443,11 +444,15 @@ class SettinsCard(GroupHeaderCardWidget):
             self.runButton.setDisabled(True)
 
             logger.info("Run parse with GNU tools path: {}".format(GNU_TOOLS_PATH))
-            ramdump_parse_tool_path = os.path.join(ROOTPATH, 'tools', 'linux-ramdump-parser-v2')
-            gdb64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'gdb.exe')
-            nm64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-nm.exe')
-            objdump64_path = os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-objdump.exe')
-            self.output_path = os.path.join(self.dumpdir, 'parser_output')
+            ramdump_parse_tool_path = linuxPath2winPath(os.path.join(ROOTPATH, 'tools', 'linux-ramdump-parser-v2'))
+            gdb64_path = linuxPath2winPath(os.path.join(GNU_TOOLS_PATH, 'bin', 'gdb.exe'))
+            nm64_path = linuxPath2winPath(os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-nm.exe'))
+            objdump64_path = linuxPath2winPath(os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-objdump.exe'))
+            self.output_path = linuxPath2winPath(os.path.join(self.dumpdir, 'parser_output'))
+
+            logger.info("gdb64_path: {}".format(gdb64_path))
+            logger.info("nm64_path: {}".format(nm64_path))
+            logger.info("objdump64_path: {}".format(objdump64_path))
 
             if os.path.exists(self.output_path) == False:
                 os.makedirs(self.output_path)
