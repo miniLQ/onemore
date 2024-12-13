@@ -81,13 +81,13 @@ class IrqParse(RamParser):
             chip_name_addr = ram_dump.read_word(chip + chip_name_offset)
             chip_name = ram_dump.read_cstring(chip_name_addr, 48)
 
-            if action != 0:
-                name_addr = ram_dump.read_word(action + action_name_offset)
-                name = ram_dump.read_cstring(name_addr, 48)
-                str = '{0:4} {1:12} {2:10} {3} {4:30} {5:10}'
-                print_out_str(
-                    str.format(irqnum, hex(hwirq), hex(affinity),
-                    irq_stats_str, name, chip_name))
+            #if action != 0:
+            name_addr = ram_dump.read_word(action + action_name_offset)
+            name = ram_dump.read_cstring(name_addr, 48)
+            str = '{0:4} {1:12} {2:10} {3} {4:30} {5:10}'
+            print_out_str(
+                str.format(irqnum, hex(hwirq), hex(affinity),
+                irq_stats_str, name, chip_name))
 
     def shift_to_maxindex(self, shift):
         radix_tree_map_shift = 6
@@ -266,17 +266,36 @@ class IrqParse(RamParser):
             chip_name_addr = ram_dump.read_word(chip + chip_name_offset)
             chip_name = ram_dump.read_cstring(chip_name_addr, 48)
 
-            if action != 0:
-                name_addr = ram_dump.read_word(action + action_name_offset)
-                if not name_addr:
-                    name = "None"
-                else:
-                    name = ram_dump.read_cstring(name_addr, 48)
-                str = "{0:4} {1:12} {2:10} {3} {4:30} {5:15} " \
-                       "v.v (struct irq_desc *)0x{6:<20x}"
-                print_out_str(
-                    str.format(irqnum, hex(hwirq), hex(affinity),
-                    irq_stats_str, name, chip_name, irq_desc))
+            name_addr = ram_dump.read_word(action + action_name_offset)
+            if not name_addr:
+                name = "None"
+            else:
+                name = ram_dump.read_cstring(name_addr, 48)
+
+            #if action != 0:
+            str = "{0:4} {1:12} {2:10} {3} {4:30} {5:15} " \
+                "v.v (struct irq_desc *)0x{6:<20x}"
+            if irqnum == None:
+                irqnum = "None"
+            if hwirq == None:
+                hwirq = "None"
+            else:
+                hwirq = hex(hwirq)
+            if affinity == None:
+                affinity = "None"
+            else:
+                affinity = hex(affinity)
+            if irq_stats_str == None:
+                irq_stats_str = "None"
+            if name == None:
+                name = "None"
+            if chip_name == None:
+                chip_name = "None"
+            if irq_desc == None:
+                irq_desc = "None"
+            print_out_str(
+                str.format(irqnum, hwirq, affinity,
+                irq_stats_str, name, chip_name, irq_desc))
 
     def parse(self):
         irq_desc = self.ramdump.address_of('irq_desc')
