@@ -7,7 +7,7 @@ DEBUG = "__compiled__" not in globals()
 
 YEAR = 2024
 AUTHOR = "iliuqi"
-VERSION = "v0.1.6"
+VERSION = "v0.1.7"
 APP_NAME = "OneMore"
 HELP_URL = "https://github.com/miniLQ/onemore/issues"
 REPO_URL = "https://github.com/miniLQ/onemore"
