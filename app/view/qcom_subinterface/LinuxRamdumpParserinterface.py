@@ -237,6 +237,9 @@ class SettinsCard(GroupHeaderCardWidget):
         #self.fileLineEdit = LineEdit()
         self.vmlinuxButton = PushButton("选择")
 
+        # mod_path参数部件
+        self.ModlineEdit = LineEdit()
+
         # 设置Button的点击事件
         self.chooseButton.clicked.connect(self.chooseButtonClicked)
         self.vmlinuxButton.clicked.connect(self.vmlinuxButtonClicked)
@@ -256,6 +259,7 @@ class SettinsCard(GroupHeaderCardWidget):
         #self.fileLineEdit.setFixedWidth(320)
 
         self.lineEdit.setFixedWidth(320)
+        self.ModlineEdit.setFixedWidth(320)
         self.comboBox.setFixedWidth(120)
         self.comboBox.addItems(["始终显示", "始终隐藏"])
         # 设置comboBox的选择点击事件
@@ -263,7 +267,7 @@ class SettinsCard(GroupHeaderCardWidget):
 
         self.platformComboBox.setPlaceholderText("选择平台")
         # TODO: 从配置文件中读取平台信息
-        items = ['khaje', 'parrot', 'pitti']
+        items = ['blair', 'khaje', 'parrot', 'pitti']
         self.platformComboBox.setFixedWidth(120)
         # 设置默认值
         self.platformComboBox.setCurrentIndex(-1)
@@ -300,6 +304,7 @@ class SettinsCard(GroupHeaderCardWidget):
 
         self.ramdumpGroup = self.addGroup("{}/images/Rocket.svg".format(resource_path), "Ramdump目录", "选择Ramdump的存放目录", self.chooseButton)
         self.vmlinuxGroup = self.addGroup("{}/images/jsdesign.svg".format(resource_path), "vmlinux文件", "选择vmlinux文件路径", self.vmlinuxButton)
+        self.addGroup("{}/images/Joystick.svg".format(resource_path), "模块路径", "请输入模块symbols路径", self.ModlineEdit)
         self.addGroup("{}/images/Joystick.svg".format(resource_path), "Platform", "选择基线平台", self.platformComboBox)
         self.addGroup("{}/images/Joystick.svg".format(resource_path), "运行终端", "设置是否显示命令行终端", self.comboBox)
         self.addGroup("{}/images/Python.svg".format(resource_path), "额外参数", "请输入额外的解析参数", self.lineEdit)
@@ -420,6 +425,7 @@ class SettinsCard(GroupHeaderCardWidget):
         # 获取chooseButton/ vmlinuxButton/ comboBox/ platformComboBox/ lineEdit的值
         logger.info("Dump directory: {}".format(self.dumpdir))
         logger.info("Vmlinux file: {}".format(self.vmlinuxfile))
+        logger.info("Mod path: {}".format(self.ModlineEdit.text()))
         logger.info("platform: {}".format(self.platformComboBox.currentText()))
         logger.info("extend parameters: {}".format(self.lineEdit.text()))
 
@@ -470,7 +476,10 @@ class SettinsCard(GroupHeaderCardWidget):
 
             command = 'python {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(ramdump_parse_tool_path,
                         self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.lineEdit.text())
-        
+
+            if not self.ModlineEdit.text() == "":
+                command += " -m {}".format(self.ModlineEdit.text())
+
             self.start_task(command, shell)
     
 
