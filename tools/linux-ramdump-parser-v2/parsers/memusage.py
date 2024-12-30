@@ -1,5 +1,5 @@
 # Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
-#
+# Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
 # only version 2 as published by the Free Software Foundation.
@@ -34,6 +34,9 @@ def get_shmem_swap_usage(ramdump, memory_file):
     for shmem_inode_info in iter:
         swap_pages = ramdump.read_structure_field(
                     shmem_inode_info, 'struct shmem_inode_info', 'swapped')
+        if swap_pages is None:
+            print_out_str("Invalid addr is found: {}".format(hex(shmem_inode_info)))
+            break
         inode = shmem_inode_info + inode_offset
         addres_space = ramdump.read_structure_field(inode, 'struct inode',
                                         'i_mapping')
@@ -41,8 +44,7 @@ def get_shmem_swap_usage(ramdump, memory_file):
             seen[addres_space] = seen[addres_space] + swap_pages
         else:
             seen[addres_space] = swap_pages
-        total += ramdump.read_structure_field(
-                    shmem_inode_info, 'struct shmem_inode_info', 'swapped')
+        total += swap_pages
 
     sortlist = sorted(seen.items(),  key=lambda kv: kv[1],
                     reverse=True)
@@ -68,7 +70,10 @@ def get_shmem_swap_usage(ramdump, memory_file):
                     'd_name')) + ramdump.field_offset('struct qstr', 'name')
                 name = ramdump.read_cstring(ramdump.read_pointer(d_name_ptr),
                         100)
-                path, cycle_flag = pathtracking.get_filepath('', name, dentry)
+                if name is not None:
+                    path, cycle_flag = pathtracking.get_filepath('', name, dentry)
+                else:
+                    path = 'None'
                 path = "file name:  " + path + '\n'
                 string = string + path
         else:
@@ -141,43 +146,62 @@ def do_dump_process_memory(ramdump):
         adj = ramdump.read_u16(signal_struct + offset_adj)
         if adj & 0x8000:
             adj = adj - 0x10000
-        rss, swap = get_rss(ramdump, task)
-        if rss != 0:
-            task_info.append([thread_task_name, thread_task_pid, rss, swap, rss + swap, adj])
+        rss, swap, anon_rss, file_rss, shmem_rss = get_rss(ramdump, task)
+        if rss != 0 or swap != 0:
+            task_info.append([thread_task_name, thread_task_pid, rss, swap, rss + swap, adj, anon_rss, file_rss, shmem_rss])
 
     task_info = sorted(task_info, key=lambda l: l[4], reverse=True)
-    str = '{0:<17s}{1:>8s}{2:>19s}{3:>19s}{4:>6}\n'.format(
-        'Task name', 'PID', 'RSS in kB', 'SWAP in kB', 'ADJ')
+    str = '{0:<17s}{1:>8s}{2:>19s}{3:>19s}{4:>6}{5:>16}{6:>16}{7:>16}\n'.format(
+        'Task name', 'PID', 'RSS in kB', 'SWAP in kB', 'ADJ', "anon_rss in kB", "file_rss in kB", "shmem_rss in kB")
     memory_file.write(str)
     for item in task_info:
-        str = '{taskname:<17s}{pid:8d}{rss:13,d}({rss_pct:2.1f}%){swap:13,d}({swap_pct:2.1f}%){adj:6}\n'.format(
+        str = '{taskname:<17s}{pid:8d}{rss:13,d}({rss_pct:4.1f}%){swap:13,d}({swap_pct:2.1f}%){adj:6} {anon_rss:>16,d} {file_rss:>16,d} {shmem_rss:>10,d}\n'.format(
             taskname = item[0], pid = item[1],
             rss = item[2], rss_pct = (100.0 * item[2]) / total_mem,
             swap = item[3], swap_pct = (100.0 * item[3]) / total_mem,
-            adj = item[5])
+            adj = item[5], anon_rss=item[6], file_rss=item[7], shmem_rss=item[8])
         memory_file.write(str)
     memory_file.close()
     print_out_str('---wrote meminfo to memory.txt')
 
+def percpu_counter_rss_stat(ramdump, rss_stat):
+    count = rss_stat.count
+    for core in ramdump.iter_cpus():
+        count += ramdump.read_int(rss_stat.counters + ramdump.per_cpu_offset(core))
+    return count
+
+def get_mm_counter(ramdump, rss_stat):
+    count = rss_stat.count
+    return count
 
 def get_rss(ramdump, task_struct):
     offset_mm = ramdump.field_offset('struct task_struct', 'mm')
     offset_rss_stat = ramdump.field_offset('struct mm_struct', 'rss_stat')
-    offset_file_rss = ramdump.field_offset('struct mm_rss_stat', 'count')
-    offset_anon_rss = ramdump.field_offset('struct mm_rss_stat', 'count[1]')
-    offset_swap_rss = ramdump.field_offset('struct mm_rss_stat', 'count[2]')
-    if ramdump.kernel_version >= (4, 9):
-        offset_shmem_rss = ramdump.field_offset('struct mm_rss_stat', 'count[3]')
     mm_struct = ramdump.read_word(task_struct + offset_mm)
     if mm_struct == 0:
-        return 0, 0
-    anon_rss = ramdump.read_word(mm_struct + offset_rss_stat + offset_anon_rss)
-    swap_rss = ramdump.read_word(mm_struct + offset_rss_stat + offset_swap_rss)
-    file_rss = ramdump.read_word(mm_struct + offset_rss_stat + offset_file_rss)
-    if ramdump.kernel_version >= (4, 9):
-        shmem_rss = ramdump.read_word(mm_struct + offset_rss_stat + offset_shmem_rss)
+        return 0, 0, 0, 0, 0
+    if ramdump.kernel_version >= (6, 2):
+        # /* 6.2: struct percpu_counter rss_stat[NR_MM_COUNTERS] */
+        mm = ramdump.read_datatype(mm_struct, 'struct mm_struct')
+        file_rss = get_mm_counter(ramdump, mm.rss_stat[0])
+        anon_rss = get_mm_counter(ramdump, mm.rss_stat[1])
+        swap_rss = get_mm_counter(ramdump, mm.rss_stat[2])
+        shmem_rss = get_mm_counter(ramdump, mm.rss_stat[3])
+
     else:
-        shmem_rss = 0
+        offset_file_rss = ramdump.field_offset('struct mm_rss_stat', 'count')
+        offset_anon_rss = ramdump.field_offset('struct mm_rss_stat', 'count[1]')
+        offset_swap_rss = ramdump.field_offset('struct mm_rss_stat', 'count[2]')
+        if ramdump.kernel_version >= (4, 9):
+            offset_shmem_rss = ramdump.field_offset('struct mm_rss_stat', 'count[3]')
+
+        anon_rss = ramdump.read_word(mm_struct + offset_rss_stat + offset_anon_rss)
+        swap_rss = ramdump.read_word(mm_struct + offset_rss_stat + offset_swap_rss)
+        file_rss = ramdump.read_word(mm_struct + offset_rss_stat + offset_file_rss)
+        if ramdump.kernel_version >= (4, 9):
+            shmem_rss = ramdump.read_word(mm_struct + offset_rss_stat + offset_shmem_rss)
+        else:
+            shmem_rss = 0
     # Ignore negative RSS values
     if anon_rss > 0x80000000:
         anon_rss = 0
@@ -188,7 +212,7 @@ def get_rss(ramdump, task_struct):
     if shmem_rss > 0x80000000:
         shmem_rss = 0
     total_rss = anon_rss + file_rss + shmem_rss
-    return total_rss * 4, swap_rss * 4
+    return total_rss * 4 , swap_rss * 4 , anon_rss * 4 , file_rss * 4,  shmem_rss * 4
 
 
 @register_parser('--print-memory-info', 'Print memory usage info')

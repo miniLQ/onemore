@@ -18,6 +18,8 @@ import traceback
 TSENS_MAX_SENSORS = 16
 DEBUG_SIZE = 10
 THERMAL_MAX_TRIPS = 12
+THERMAL_MAX_CDEVS = 150
+
 
 @register_parser(
     '--thermal-info', 'Useful information from thermal data structures')
@@ -52,7 +54,7 @@ class Thermal_info(RamParser):
             self.writeln(
                 "------------------------------------------------")
             cpu_sensor_addr = sensor_dbg_info_start_address + \
-                sensor_mapping[ncpu]
+                              sensor_mapping[ncpu]
             for i in range(0, 10):
                 temp = self.ramdump.read_word(cpu_sensor_addr + (i * 8), True)
                 time = self.ramdump.read_word(
@@ -111,13 +113,13 @@ class Thermal_info(RamParser):
             tsens_dbg_o = self.ramdump.field_offset('struct tsens_device', 'tsens_dbg')
             tsens_dbg = tsens_device_p + tsens_dbg_o
             sensor_dbg_info_o = self.ramdump.field_offset('struct tsens_dbg_context', 'sensor_dbg_info')
-            sensor_dbg_info = sensor_dbg_info_o  + tsens_dbg
+            sensor_dbg_info = sensor_dbg_info_o + tsens_dbg
             self.writeln('v.v (struct tsens_device)0x{:8x} 0x{:8x}\n'.format(tsens_device_p,
-                                                                                       sensor_dbg_info))
+                                                                             sensor_dbg_info))
             for i in range(0, TSENS_MAX_SENSORS):
                 idx = self.ramdump.read_u32(self.ramdump.array_index(sensor_dbg_info, 'struct tsens_dbg', i))
                 tsens_dbg_addr = self.ramdump.array_index(sensor_dbg_info, 'struct tsens_dbg', i)
-                self.writeln ("    idx: %d tsens_dbg_addr 0x%x" %(idx, tsens_dbg_addr))
+                self.writeln("    idx: %d tsens_dbg_addr 0x%x" % (idx, tsens_dbg_addr))
                 time_stmp_o = self.ramdump.field_offset('struct tsens_dbg', 'time_stmp')
                 temp_o = self.ramdump.field_offset('struct tsens_dbg', 'temp')
                 self.writeln("             time_stmp       temp ")
@@ -125,10 +127,10 @@ class Thermal_info(RamParser):
                     time_stmp = self.ramdump.read_word(self.ramdump.array_index(time_stmp_o + tsens_dbg_addr,
                                                                                 'unsigned long long', j))
                     temp = self.ramdump.read_u64(
-                    self.ramdump.array_index(temp_o + tsens_dbg_addr, 'unsigned long', j))
+                        self.ramdump.array_index(temp_o + tsens_dbg_addr, 'unsigned long', j))
                     self.writeln("             %d   %d" % (time_stmp, temp))
 
-    def parse_cooling_device_fields(self, cdev_struct_addr, thermal_cdev_dict:dict):
+    def parse_cooling_device_fields(self, cdev_struct_addr, thermal_cdev_dict: dict):
         cdev_data_struct = {}
         cdev_id = None
         try:
@@ -136,32 +138,40 @@ class Thermal_info(RamParser):
                 return
 
             cdev_data_struct["cdev_struct_addr"] = cdev_struct_addr
-            cdev_id = cdev_data_struct["cdev_id"] = self.ramdump.read_structure_field(cdev_struct_addr,
-                                                        'struct thermal_cooling_device', 'id')
-            type_off = self.ramdump.field_offset('struct thermal_cooling_device', 'type')
-            cdev_data_struct["cdev_type"] = self.ramdump.read_cstring(cdev_struct_addr + type_off)
+            cdev_id = cdev_data_struct["cdev_id"] = self.ramdump.read_s32(cdev_struct_addr +
+                                                                          self.ramdump.field_offset(
+                                                                              'struct thermal_cooling_device',
+                                                                              'id'))
+            if cdev_id > THERMAL_MAX_CDEVS:
+                return
+
+            cdev_data_struct["cdev_type"] = self.ramdump.read_structure_cstring(cdev_struct_addr,
+                                                                                'struct thermal_cooling_device', 'type')
             if not cdev_data_struct["cdev_type"]:
                 return
 
             cdev_data_struct["updated"] = self.ramdump.read_bool(
                 self.ramdump.struct_field_addr(cdev_struct_addr, 'struct thermal_cooling_device', 'updated'))
+            if cdev_data_struct["updated"] in [0, "0"]:
+                cdev_data_struct["updated"] = "False"
+            elif cdev_data_struct["updated"] in [1, "1"]:
+                cdev_data_struct["updated"] = "True"
+
             stats_addr = cdev_data_struct["stats_addr"] = self.ramdump.read_structure_field(cdev_struct_addr,
-                                                           'struct thermal_cooling_device', 'stats')
+                                                                                            'struct thermal_cooling_device',
+                                                                                            'stats')
 
             cdev_data_struct["devdata"] = self.ramdump.struct_field_addr(cdev_struct_addr,
-                                                     'struct thermal_cooling_device', 'devdata')
+                                                                         'struct thermal_cooling_device', 'devdata')
             if stats_addr:
                 cdev_data_struct["stats_state"] = self.ramdump.read_structure_field(stats_addr,
-                                                                'struct cooling_dev_stats', 'state')
+                                                                                    'struct cooling_dev_stats', 'state')
                 cdev_data_struct["stats_total_trans"] = self.ramdump.read_structure_field(stats_addr,
-                                                                      'struct cooling_dev_stats',
-                                                                      'total_trans')
+                                                                                          'struct cooling_dev_stats',
+                                                                                          'total_trans')
                 cdev_data_struct["stats_last_time"] = self.ramdump.read_structure_field(stats_addr,
-                                                                    'struct cooling_dev_stats',
-                                                                    'last_time')
-                cdev_data_struct["max_states"] = self.ramdump.read_structure_field(stats_addr,
-                                                                    'struct cooling_dev_stats',
-                                                                    'max_states')
+                                                                                        'struct cooling_dev_stats',
+                                                                                        'last_time')
         except Exception as e:
             cdev_data_struct["exception"] = str(e)
 
@@ -169,7 +179,7 @@ class Thermal_info(RamParser):
             thermal_cdev_dict[cdev_id] = cdev_data_struct
         return
 
-    def parse_thermal_zone_fields(self, tz_device_addr, thermal_tzone_dict:list, triggered_zones:list):
+    def parse_thermal_zone_fields(self, tz_device_addr, thermal_tzone_dict: list, triggered_zones: list):
         tzone_data_dict = {}
         tzone_id = None
         try:
@@ -177,38 +187,82 @@ class Thermal_info(RamParser):
                 return
 
             tzone_data_dict["tz_device_addr"] = hex(tz_device_addr)
-            tzone_id = tzone_data_dict["tzone_id"] = self.ramdump.read_structure_field(tz_device_addr,
-                                                            'struct thermal_zone_device', 'id')
+            tzone_id = tzone_data_dict["tzone_id"] = self.ramdump.read_s32(tz_device_addr + self.ramdump.field_offset(
+                'struct thermal_zone_device', 'id'))
             tzone_data_dict["mode"] = self.ramdump.read_structure_field(tz_device_addr,
-                                                          'struct thermal_zone_device', 'mode')
+                                                                        'struct thermal_zone_device', 'mode')
             if tzone_data_dict["mode"] not in [0, 1]:
                 return
-            type_off = self.ramdump.field_offset('struct thermal_zone_device', 'type')
-            tzone_data_dict["type"] = self.ramdump.read_cstring(tz_device_addr+type_off)
+            type_addr = self.ramdump.struct_field_addr(tz_device_addr, 'struct thermal_zone_device', 'type')
+            tzone_data_dict["type"] = self.ramdump.read_cstring(type_addr)
             algo_type_off = self.ramdump.field_offset('struct thermal_zone_device', 'governor')
             tzone_data_dict["algo_type"] = self.ramdump.read_structure_cstring(tz_device_addr + algo_type_off,
-                                                            'struct thermal_governor', 'name')
+                                                                               'struct thermal_governor', 'name')
+
+            filed_offset = self.ramdump.field_offset('struct thermal_zone_device', 'polling_delay')
+            if filed_offset:
+                tzone_data_dict["polling_delay"] = self.ramdump.read_structure_field(tz_device_addr,
+                                                                                     'struct thermal_zone_device',
+                                                                                     'polling_delay')
+                tzone_data_dict["passive_delay"] = self.ramdump.read_structure_field(tz_device_addr,
+                                                                                     'struct thermal_zone_device',
+                                                                                     'passive_delay')
+            else:
+                tzone_data_dict["polling_delay"] = self.ramdump.read_structure_field(tz_device_addr,
+                                                                                     'struct thermal_zone_device',
+                                                                                     'polling_delay_jiffies')
+                tzone_data_dict["passive_delay"] = self.ramdump.read_structure_field(tz_device_addr,
+                                                                                     'struct thermal_zone_device',
+                                                                                     'passive_delay_jiffies')
+
             tzone_data_dict["temperature"] = self.ramdump.read_s32(tz_device_addr +
-                        self.ramdump.field_offset('struct thermal_zone_device', 'temperature'))
+                                                                   self.ramdump.field_offset(
+                                                                       'struct thermal_zone_device', 'temperature'))
             tzone_data_dict["last_temperature"] = self.ramdump.read_s32(tz_device_addr +
-                        self.ramdump.field_offset('struct thermal_zone_device', 'last_temperature'))
-            tzone_data_dict["polling_delay"] = self.ramdump.read_structure_field(tz_device_addr,
-                                                          'struct thermal_zone_device', 'polling_delay')
-            tzone_data_dict["passive_delay"] = self.ramdump.read_structure_field(tz_device_addr,
-                                                          'struct thermal_zone_device', 'passive_delay')
-            tzone_data_dict["passive"] = self.ramdump.read_structure_field(tz_device_addr,
-                                                          'struct thermal_zone_device', 'passive')
+                                                                        self.ramdump.field_offset(
+                                                                            'struct thermal_zone_device',
+                                                                            'last_temperature'))
+            tzone_data_dict["emul_temperature"] = self.ramdump.read_s32(tz_device_addr + self.ramdump.field_offset(
+                'struct thermal_zone_device',
+                'emul_temperature'))
+
+            tzone_data_dict["passive"] = self.ramdump.read_s32(tz_device_addr +
+                                                               self.ramdump.field_offset('struct thermal_zone_device',
+                                                                                         'passive'))
             tzone_data_dict["prev_low_trip"] = self.ramdump.read_s32(tz_device_addr +
-                        self.ramdump.field_offset('struct thermal_zone_device', 'prev_low_trip'))
+                                                                     self.ramdump.field_offset(
+                                                                         'struct thermal_zone_device', 'prev_low_trip'))
             tzone_data_dict["prev_high_trip"] = self.ramdump.read_s32(tz_device_addr +
-                        self.ramdump.field_offset('struct thermal_zone_device', 'prev_high_trip'))
-            tzone_data_dict["trip_count"] = self.ramdump.read_structure_field(tz_device_addr,
-                                                          'struct thermal_zone_device', 'trips')
+                                                                      self.ramdump.field_offset(
+                                                                          'struct thermal_zone_device',
+                                                                          'prev_high_trip'))
+
+            tzone_data_dict[" need_update"] = self.ramdump.read_structure_field(tz_device_addr,
+                                                                                'struct thermal_zone_device',
+                                                                                'need_update')
+            filed_offset = self.ramdump.field_offset('struct thermal_zone_device', 'num_trips')
+            if filed_offset:
+                tzone_data_dict["trip_count"] = self.ramdump.read_s32(tz_device_addr +
+                                                                      self.ramdump.field_offset(
+                                                                          'struct thermal_zone_device', 'num_trips'))
+            else:
+                tzone_data_dict["trip_count"] = self.ramdump.read_s32(tz_device_addr +
+                                                                      self.ramdump.field_offset(
+                                                                          'struct thermal_zone_device', 'trips'))
             tzone_data_dict["trips_disabled"] = self.ramdump.read_structure_field(tz_device_addr,
-                                                          'struct thermal_zone_device', 'trips_disabled')
+                                                                                  'struct thermal_zone_device',
+                                                                                  'trips_disabled')
+            tzone_data_dict["suspended"] = self.ramdump.read_bool(self.ramdump.struct_field_addr(tz_device_addr,
+                                                                                                 'struct thermal_zone_device',
+                                                                                                 'suspended'))
+            if tzone_data_dict["suspended"] in [0, "0"]:
+                tzone_data_dict["suspended"] = "False"
+            elif tzone_data_dict["suspended"] in [1, "1"]:
+                tzone_data_dict["suspended"] = "True"
+
             devdata_off = self.ramdump.field_offset('struct thermal_zone_device', 'devdata')
             if devdata_off:
-                devdata_off = hex(tz_device_addr+devdata_off)
+                devdata_off = hex(tz_device_addr + devdata_off)
             tzone_data_dict["devdata"] = devdata_off
 
             node_addr = self.ramdump.struct_field_addr(tz_device_addr,
@@ -219,52 +273,84 @@ class Thermal_info(RamParser):
             tzone_data_dict["trips_data"] = trips_data = {}
             trip_triggered = False
             last_node = None
+            trip_number = 0
+
+            tzone_data_dict["trip_thresholds"] = {}
+
             if device_list_walker.is_empty():
                 pass
-            else :
+            else:
                 while not device_list_walker.is_empty():
                     try:
                         thermal_instance_addr = device_list_walker.next()
                     except Exception as e:
                         break
-                    trip = self.ramdump.read_structure_field(thermal_instance_addr,
-                                                        'struct thermal_instance', 'trip')
-                    if trip > THERMAL_MAX_TRIPS:
-                        return
-                    if trip not in trips_data:
-                        trips_data[trip] = []
 
                     _trip_data = {}
+                    kv = self.ramdump.kernel_version
+                    if (kv[0], kv[1]) > (5, 10):
+                        trip_number += 1
+                        if trip_number not in trips_data:
+                            trips_data[trip_number] = []
+                    else:
+                        trip_number = self.ramdump.read_structure_field(thermal_instance_addr,
+                                                                        'struct thermal_instance', 'trip')
+                        if trip_number > THERMAL_MAX_TRIPS:
+                            return
+                        if trip_number not in trips_data:
+                            trips_data[trip_number] = []
+
                     _trip_data["id"] = self.ramdump.read_structure_field(thermal_instance_addr,
-                                                                                  'struct thermal_instance',
-                                                                                  'id')
+                                                                         'struct thermal_instance',
+                                                                         'id')
                     instance_name_addr = self.ramdump.struct_field_addr(thermal_instance_addr,
-                                                                           'struct thermal_instance', 'name')
+                                                                        'struct thermal_instance', 'name')
                     _trip_data["name"] = self.ramdump.read_cstring(instance_name_addr)
                     _trip_data["initialized"] = self.ramdump.read_bool(
                         self.ramdump.struct_field_addr(thermal_instance_addr,
-                                                          'struct thermal_instance', 'initialized'))
+                                                       'struct thermal_instance', 'initialized'))
+                    if _trip_data["initialized"] in [0, "0"]:
+                        _trip_data["initialized"] = "False"
+                    elif _trip_data["initialized"] in [1, "1"]:
+                        _trip_data["initialized"] = "True"
+
                     _trip_data["lower"] = self.ramdump.read_structure_field(thermal_instance_addr,
-                                                                    'struct thermal_instance', 'lower')
+                                                                            'struct thermal_instance', 'lower')
                     _trip_data["upper"] = self.ramdump.read_structure_field(thermal_instance_addr,
-                                                                    'struct thermal_instance', 'upper')
+                                                                            'struct thermal_instance', 'upper')
                     _trip_data["target"] = self.ramdump.read_structure_field(thermal_instance_addr,
-                                                                    'struct thermal_instance', 'target')
-                    if _trip_data["target"] < 0xFFFFFF:
+                                                                             'struct thermal_instance', 'target')
+                    _trip_data["weight"] = self.ramdump.read_structure_field(thermal_instance_addr,
+                                                                             'struct thermal_instance', 'weight')
+                    _trip_data["upper_no_limit"] = self.ramdump.read_bool(
+                        self.ramdump.struct_field_addr(thermal_instance_addr,
+                                                       'struct thermal_instance', 'upper_no_limit'))
+                    if _trip_data["upper_no_limit"] in [0, "0"]:
+                        _trip_data["upper_no_limit"] = "False"
+                    elif _trip_data["upper_no_limit"] in [1, "0"]:
+                        _trip_data["upper_no_limit"] = "True"
+
+                    if _trip_data["target"] > 0xFFFFFF:
+                        _trip_data["trip_status"] = "Not Triggered"
+                    elif _trip_data["target"] == 0:
+                        _trip_data["trip_status"] = "In Clear State"
+                    else:
                         trip_triggered = True
+                        _trip_data["trip_status"] = "In Trigger State"
 
                     _trip_data["cdev"] = {}
                     cdev_addr = self.ramdump.read_structure_field(thermal_instance_addr,
                                                                   'struct thermal_instance', 'cdev')
                     self.parse_cooling_device_fields(cdev_addr, _trip_data["cdev"])
 
-                    trips_data[trip].append(_trip_data)
+                    trips_data[trip_number].append(_trip_data)
 
-                if  trip_triggered:
+                if trip_triggered:
                     triggered_zones.append(tzone_data_dict["type"])
 
         except Exception as e:
             tzone_data_dict["exception"] = str(e)
+            print_out_str(traceback.format_exc())
 
         if tzone_data_dict and tzone_id is not None:
             thermal_tzone_dict.append(tzone_data_dict)
@@ -273,6 +359,7 @@ class Thermal_info(RamParser):
     def parse_thremal_zone_data(self, dump):
         self.tzone_struct_list = []
         self.triggered_zones = []
+
         # thermal_zone data
         thermal_tz_list = self.ramdump.read('thermal_tz_list.next')
         list_offset = self.ramdump.field_offset('struct thermal_zone_device', 'node')
@@ -280,21 +367,20 @@ class Thermal_info(RamParser):
         list_walker.walk(thermal_tz_list, self.parse_thermal_zone_fields,
                          self.tzone_struct_list, self.triggered_zones)
         if len(self.tzone_struct_list) == 0:
-            self.writeln("No thermal Zones or exception in parsing")
+            self.writeln("No thermal Zones defined")
             return
 
         self.writeln("")
-        self.writeln("Total Tzones: {0}".format(len(self.tzone_struct_list)))
-        self.writeln("Trip violated Tzones: {0}".format(",".join(self.triggered_zones)))
+        self.writeln("# Total Tzones: {0}".format(len(self.tzone_struct_list)))
+        self.writeln("# violated Tzones: {0}".format(",".join(self.triggered_zones)))
         self.writeln("")
         format_str = "{0:<35} {1}"
         self.tzone_struct_list.sort(key=lambda x: float(x["temperature"]), reverse=True)
         for tzone_struct in self.tzone_struct_list:
             self.writeln("")
             self.writeln("[THERMAL_ZONE_{0}]".format(tzone_struct["tzone_id"]))
-            self.writeln(format_str.format("algo_type", tzone_struct.get("algo_type")))
             self.writeln(format_str.format("sensor", tzone_struct.get("type")))
-
+            self.writeln(format_str.format("algo_type", tzone_struct.get("algo_type")))
             if "exception" in tzone_struct.keys():
                 self.writeln(format_str.format("Exception", tzone_struct.get("exception")))
                 continue
@@ -304,10 +390,18 @@ class Thermal_info(RamParser):
             self.writeln(format_str.format("passive_delay", tzone_struct.get("passive_delay")))
             self.writeln(format_str.format("temperature", tzone_struct.get("temperature")))
             self.writeln(format_str.format("last_temperature", tzone_struct.get("last_temperature")))
+            self.writeln(format_str.format("emul_temperature", tzone_struct.get("emul_temperature")))
             self.writeln(format_str.format("prev_high_trip", tzone_struct.get("prev_high_trip")))
             self.writeln(format_str.format("prev_low_trip", tzone_struct.get("prev_low_trip")))
-            self.writeln(format_str.format("trip_cnt", tzone_struct.get("trip_count")))
-            self.writeln(format_str.format("trips_disabled", tzone_struct.get("trips_disabled")))
+            self.writeln(format_str.format("passive", tzone_struct.get("passive")))
+            if tzone_struct.get("need_update") is not None:
+                self.writeln(format_str.format("tzone_registered", tzone_struct.get("need_update")))
+            if tzone_struct.get("suspended") is not None:
+                self.writeln(format_str.format("suspended", tzone_struct.get("suspended")))
+            self.writeln(format_str.format("trip_count", tzone_struct.get("trip_count")))
+            if tzone_struct.get("trips_disabled") is not None:
+                self.writeln(format_str.format("trips_disabled", tzone_struct.get("trips_disabled")))
+
             self.writeln(format_str.format("tzone_data_struct",
                                            "v.v ((struct thermal_zone_device *){0}".format(
                                                tzone_struct.get("tz_device_addr"))))
@@ -327,8 +421,11 @@ class Thermal_info(RamParser):
                 trip_cdevs_info = trips_data[trip_num]
                 self.writeln("  Trip{0}:".format(trip_num))
                 for trip_info in trip_cdevs_info:
+                    if trip_info.get("trip_status") is not None:
+                        self.writeln("\t {0:<35} {1}".format("trip_status", trip_info.get("trip_status")))
+
                     cdev_dict = trip_info.get("cdev")
-                    if not cdev_dict:
+                    if not cdev_dict or len(cdev_dict) > 1:
                         self.writeln("Invalid cdev for trip instance")
                         continue
                     cdev_id = list(cdev_dict.keys())[0]
@@ -336,7 +433,12 @@ class Thermal_info(RamParser):
                     self.writeln("\t {0}".format(cdev_dict.get("cdev_type")))
                     self.writeln(cdev_format_str.format("id", cdev_id))
                     self.writeln(cdev_format_str.format("initialized", trip_info.get("initialized")))
-                    self.writeln(cdev_format_str.format("state(lower, upper, target)",
+                    if trip_info.get("upper_no_limit") is not None:
+                        self.writeln(cdev_format_str.format("upper_no_limit", trip_info.get("upper_no_limit")))
+                    if trip_info.get("weight"):
+                        self.writeln(cdev_format_str.format("weight", trip_info.get("weight")))
+                        self.writeln(cdev_format_str.format("trip_status", trip_info.get("status")))
+                    self.writeln(cdev_format_str.format("states(lower, upper, cur_state)",
                                                         "({0}, {1}, {2})".format(
                                                             trip_info.get("lower"),
                                                             trip_info.get("upper"),
@@ -346,7 +448,7 @@ class Thermal_info(RamParser):
                     stats_state = "NA"
                     if stats_data:
                         stats_state = cdev_dict.get("stats_state")
-                    self.writeln(cdev_format_str.format("status(updated, stats_state)",
+                    self.writeln(cdev_format_str.format("cdev status(updated, stats_state)",
                                                         "({0}, {1})".format(cdev_dict.get("updated"), stats_state)))
                     if stats_data:
                         self.writeln(cdev_format_str.format("stats_total_trans",

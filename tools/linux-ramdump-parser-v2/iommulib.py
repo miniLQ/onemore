@@ -1,4 +1,5 @@
 # Copyright (c) 2014-2020, The Linux Foundation. All rights reserved.
+# Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -38,15 +39,21 @@ class IommuLib(object):
     def __init__(self, ramdump):
         self.ramdump = ramdump
         self.domain_list = []
+        self.arm_smmu_v12 = False
 
-        if self.find_iommu_domains_msm_iommu():
-            pass
-        elif self.find_iommu_domains_debug_attachments():
-            pass
-        elif self.find_iommu_domains_device_core():
-            pass
-        else:
-            print_out_str("Unable to find any iommu domains")
+        try:
+            if self.find_iommu_domains_msm_iommu():
+                pass
+            elif self.find_iommu_domains_debug_attachments():
+                pass
+            elif self.find_iommu_domains_device_core():
+                pass
+            else:
+                print_out_str("Unable to find any iommu domains")
+        except:
+            if self.ramdump.arm_smmu_v12:
+                self.arm_smmu_v12 = True
+                self.find_iommu_domains_device_core()
 
     """
     legacy code - pre-8996/kernel 4.4?
@@ -185,9 +192,69 @@ class IommuLib(object):
             client_name_addr = self.ramdump.read_structure_field(dev, 'struct device', 'kobj.name')
             client_name = self.ramdump.read_cstring(client_name_addr)
 
-            self._find_iommu_domains_arm_smmu(domain_ptr, client_name, self.domain_list)
+            if self.arm_smmu_v12:
+                self._find_iommu_domains_arm_smmu_v12(domain_ptr, client_name, self.domain_list)
+            else:
+                self._find_iommu_domains_arm_smmu(domain_ptr, client_name, self.domain_list)
 
         return True
+
+
+    def _find_iommu_domains_arm_smmu_v12(self, domain_ptr, client_name, domain_list):
+        if self.ramdump.field_offset('struct iommu_domain', 'priv') \
+                is not None:
+            priv_ptr = self.ramdump.read_structure_field(
+                domain_ptr, 'struct iommu_domain', 'priv')
+
+            if not priv_ptr:
+                return
+        else:
+            priv_ptr = None
+
+        arm_smmu_ops_data = self.ramdump.address_of('arm_smmu_ops')
+        smmu_iommu_ops_offset = self.ramdump.field_offset('struct iommu_ops','default_domain_ops')
+        arm_smmu_ops = arm_smmu_ops_data + smmu_iommu_ops_offset
+
+        iommu_domain_ops = self.ramdump.read_structure_field(
+            domain_ptr, 'struct iommu_domain', 'ops')
+        if iommu_domain_ops is None or iommu_domain_ops == 0:
+            return
+
+
+        if priv_ptr is not None:
+            arm_smmu_domain_ptr = priv_ptr
+        else:
+            arm_smmu_domain_offset = 0x88 #0x60
+            arm_smmu_domain_ptr = domain_ptr - arm_smmu_domain_offset
+
+        pgtbl_ops_ptr =  self.ramdump.read_u64(arm_smmu_domain_ptr + 0x8)
+
+        if pgtbl_ops_ptr is None or pgtbl_ops_ptr == 0:
+            return
+
+        level = 0
+        fn = self.ramdump.read_structure_field(pgtbl_ops_ptr,
+                'struct io_pgtable_ops', 'map')
+        if fn == self.ramdump.address_of('av8l_fast_map'):
+            level = 3
+        else:
+            arm_lpae_io_pgtable_ptr = self.ramdump.container_of(
+                pgtbl_ops_ptr, 'struct arm_lpae_io_pgtable', 'iop.ops')
+
+            level = self.ramdump.read_structure_field(
+                arm_lpae_io_pgtable_ptr, 'struct arm_lpae_io_pgtable',
+                'levels')
+
+
+        io_pgtable_ptr = self.ramdump.container_of(pgtbl_ops_ptr , 'struct io_pgtable', 'ops')
+        pg_table = self.ramdump.read_structure_field(io_pgtable_ptr, 'struct io_pgtable','cfg.arm_lpae_s1_cfg.ttbr')
+
+        pg_table = phys_to_virt(self.ramdump, pg_table)
+
+        domain_create = Domain(pg_table, 0, [], client_name,
+                               ARM_SMMU_DOMAIN, level)
+        domain_list.append(domain_create)
+
 
 
     def _find_iommu_domains_arm_smmu(self, domain_ptr, client_name, domain_list):

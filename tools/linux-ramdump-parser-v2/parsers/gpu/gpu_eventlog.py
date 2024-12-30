@@ -1,4 +1,5 @@
 # Copyright (c) 2021 The Linux Foundation. All rights reserved.
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -59,6 +60,11 @@ class syncpoint_fence (Structure):
 class timeline_fence (Structure):
     _fields_ = [('id', c_uint32),
                 ('seqno', c_uint64)]
+
+
+def get_event_id(event):
+    event_id_mask = (1 << 16) - 1
+    return event & event_id_mask
 
 
 def fire_event_write(func_writeln, dump, kgsl_eventlog_buffer, header):
@@ -170,6 +176,11 @@ def parse_eventlog_buffer(func_writeln, dump):
         header["event_id"] = dump.read_structure_field(
                              kgsl_eventlog_buffer,
                              'struct kgsl_log_header', 'eventid')
+        if header["event_id"] is None:
+            event = dump.read_structure_field(
+                                kgsl_eventlog_buffer,
+                                'struct kgsl_log_header', 'event')
+            header["event_id"] = get_event_id(event)
         header["time"] = dump.read_structure_field(
                          kgsl_eventlog_buffer,
                          'struct kgsl_log_header', 'time') / NANO_TO_SEC

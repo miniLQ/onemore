@@ -1,5 +1,5 @@
 # Copyright (c) 2013-2015, 2017, 2019-2020 The Linux Foundation. All rights reserved.
-#
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
 # only version 2 as published by the Free Software Foundation.
@@ -48,6 +48,27 @@ class ZoneInfo(RamParser):
                 self.ramdump.field_offset('struct zone', '_watermark')
 
         output_file.write('\nZone {0:8}\n'.format(zname))
+
+        present_pages_addr = zone + self.ramdump.field_offset('struct zone', 'present_pages')
+        present_pages = self.ramdump.read_word(present_pages_addr)
+        output_file.write('{0:30}: {1:10} {2:10}MB\n'.format("present_pages",
+                                                             present_pages, present_pages * 4 // 1024))
+
+        spanned_pages_addr = zone + self.ramdump.field_offset('struct zone', 'spanned_pages')
+        spanned_pages = self.ramdump.read_word(spanned_pages_addr)
+        output_file.write('{0:30}: {1:10} {2:10}MB\n'.format("spanned_pages",
+                                                             spanned_pages, spanned_pages * 4 // 1024))
+
+        managed_pages_addr = zone + self.ramdump.field_offset('struct zone', 'managed_pages')
+        managed_pages = self.ramdump.read_word(managed_pages_addr)
+        output_file.write('{0:30}: {1:10} {2:10}MB\n'.format("managed_pages",
+                                                             managed_pages, managed_pages * 4 // 1024))
+        cma_pages_offset = self.ramdump.field_offset('struct zone', 'cma_pages')
+        if cma_pages_offset != None:
+            cma_pages_addr = zone + cma_pages_offset
+            cma_pages = self.ramdump.read_word(cma_pages_addr)
+            output_file.write('{0:30}: {1:10} {2:10}MB\n'.format("cma_pages",
+                                                                 cma_pages, cma_pages * 4 // 1024))
         for i in range(0, nr_watermark):
             val = self.ramdump.read_word(
                                     self.ramdump.array_index(zwatermark_addr,

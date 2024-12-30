@@ -29,6 +29,10 @@ class svm_vcpu_context_parse(RamParser):
             file_path_list = glob.glob(os.path.join(self.ramdump.outdir + "\..", input_file))
             for each_file in file_path_list:
                 input_file_cmm = each_file
+                if "svm" in self.ramdump.hw_id and "vm_45" not in each_file:
+                    continue
+                if "oemvm" in self.ramdump.hw_id and "vm_49" not in each_file:
+                    continue
                 if os.path.exists(input_file_cmm):
                     fd = open(input_file_cmm, "r")
                 else:

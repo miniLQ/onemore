@@ -1,4 +1,5 @@
 # Copyright (c) 2021 The Linux Foundation. All rights reserved.
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -91,7 +92,8 @@ def print_f2fs_data(ramdump):
             sbi.append('fsync_node_num', 'u32')
             sbi.append('max_orphans', 'u32')
             sbi.append('flush_lock', 'mutex')
-            sbi.append('extent_tree_lock', 'mutex')
+            if (ramdump.kernel_version <= (5, 4, 0)):
+                sbi.append('extent_tree_lock', 'mutex')
             #basic filesystem units
             sbi.append('log_sectors_per_block', 'u32')
             sbi.append('log_blocksize', 'u32')
@@ -106,7 +108,8 @@ def print_f2fs_data(ramdump):
             sbi.append('total_sections', 'u32')
             sbi.append('total_node_count', 'u32')
             sbi.append('total_valid_node_count', 'u32')
-            sbi.append('max_file_blocks', 'u32')
+            if (ramdump.kernel_version <= (5, 4, 0)):
+                sbi.append('max_file_blocks', 'u32')
             sbi.append('dir_level', 'u32')
             sbi.append('readdir_ra', 'u32')
             sbi.append('user_block_count', 'u32')
@@ -140,8 +143,9 @@ def print_f2fs_data(ramdump):
             sbi.append('next_victim_seg[0]', 'u32')
             sbi.append('next_victim_seg[1]', 'u32')
             sbi.append('atomic_files', 'u32')
-            sbi.append('skipped_atomic_files[0]', 'u64')
-            sbi.append('skipped_atomic_files[1]', 'u64')
+            if (ramdump.kernel_version <= (5, 4, 0)):
+                sbi.append('skipped_atomic_files[0]', 'u64')
+                sbi.append('skipped_atomic_files[1]', 'u64')
             sbi.append('skipped_gc_rwsem', 'u64')
             sbi.append('gc_pin_file_threshold', 'u64')
             sbi.append('pin_sem', 'rw_semaphore')
@@ -163,17 +167,19 @@ def print_f2fs_data(ramdump):
                 sbi.append('inline_dir', 'u32')
                 sbi.append('compr_inode', 'u32')
                 sbi.append('compr_blocks', 'u32')
-                sbi.append('vw_cnt', 'u32')
+                if (ramdump.kernel_version <= (5, 4, 0)):
+                    sbi.append('vw_cnt', 'u32')
+                    sbi.append('max_vw_cnt', 'u32')
                 sbi.append('max_aw_cnt', 'u32')
-                sbi.append('max_vw_cnt', 'u32')
                 sbi.append('io_skip_bggc', 'u32')
                 sbi.append('other_skip_bggc', 'u32')
                 sbi.append('ndirty_inode[0]', 'u32')
                 sbi.append('ndirty_inode[1]', 'u32')
                 sbi.append('ndirty_inode[2]', 'u32')
                 sbi.append('ndirty_inode[3]', 'u32')
-            sbi.append('rw_iostat', 'u64')
-            sbi.append('prev_rw_iostat', 'u64')
+            if (ramdump.kernel_version <= (5, 4, 0)):
+                sbi.append('rw_iostat', 'u64')
+                sbi.append('prev_rw_iostat', 'u64')
             sbi.append('iostat_enable', 'u8')
             sbi.append('iostat_next_period', 'u64')
             sbi.append('iostat_period_ms', 'u32')
@@ -232,7 +238,8 @@ def print_f2fs_data(ramdump):
             nmi.append('dirty_nats_ratio', 'u32')
             nmi.append('nat_tree_lock', 'rw_semaphore')
             nmi.append('nat_cnt', 'u32')
-            nmi.append('dirty_nat_cnt', 'u32')
+            if (ramdump.kernel_version < (5, 4, 0)):
+                nmi.append('dirty_nat_cnt', 'u32')
             nmi.append('nat_blocks', 'u32')
             nmi.append('nid_cnt[0]', 'u32')
             nmi.append('nid_cnt[1]', 'u32')
@@ -249,7 +256,8 @@ def print_f2fs_data(ramdump):
             smi.append('reserved_segments', 'u32')
             smi.append('ovp_segments', 'u32')
             smi.append('rec_prefree_segments', 'u32')
-            smi.append('trim_sections', 'u32')
+            if (ramdump.kernel_version <= (5, 4, 0)):
+                smi.append('trim_sections', 'u32')
             smi.append('ipu_policy', 'u32')
             smi.append('min_ipu_util', 'u32')
             smi.append('min_fsync_blocks', 'u32')
@@ -417,12 +425,13 @@ def print_f2fs_data(ramdump):
             mntop.append('inline_xattr_size', 'u32')
             if (ramdump.is_config_defined('CONFIG_QUOTA')):
                 mntop.append('s_jquota_fmt', 'u8')
-            mntop.append('whint_mode', 'u32')
+            if (ramdump.kernel_version <= (5, 4, 0)):
+                mntop.append('whint_mode', 'u32')
             mntop.append('alloc_mode', 'u32')
             mntop.append('fsync_mode', 'u32')
             mntop.append('fs_mode', 'u32')
             mntop.append('bggc_mode', 'u32')
-            if (ramdump.is_config_defined('CONFIG_FS_ENCRYPTION')):
+            if (ramdump.is_config_defined('CONFIG_FS_ENCRYPTION') and ramdump.kernel_version <= (5, 4, 0)):
                 mntop.append('inlinecrypt', 'u8')
             mntop.append('unusable_cap_perc', 'u32')
             mntop.append('unusable_cap', 'u32')

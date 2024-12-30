@@ -1,5 +1,5 @@
 # Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
-# Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -12,11 +12,8 @@
 
 from parser_util import register_parser, RamParser
 import os
-import linux_list as llist
 import linux_radix_tree
-
-VM_ALLOC = 0x00000002
-
+from .vmalloc import Vmalloc
 
 @register_parser('--print-memstat', 'Print memory stats ')
 class MemStats(RamParser):
@@ -27,50 +24,23 @@ class MemStats(RamParser):
             self.zram_dev_rtw = linux_radix_tree.RadixTreeWalker(self.ramdump)
             self.zram_mem_mb = 0
 
-    def list_func(self, vmlist):
-        vm = self.ramdump.read_word(vmlist + self.vm_offset)
-        if vm is None:
-            return
-
-        pages = self.ramdump.read_structure_field(
-                vm, 'struct vm_struct', 'nr_pages')
-        vm_flags = self.ramdump.read_structure_field(
-                    vm, 'struct vm_struct', 'flags')
-        if vm_flags is None:
-            return
-        if (vm_flags & VM_ALLOC == VM_ALLOC):
-            self.vmalloc_size = self.vmalloc_size + pages
-
     def pages_to_mb(self, pages):
         val = 0
         if pages != 0:
-            val = ((pages * 4) // 1024)
+            val = (pages * self.ramdump.get_page_size()) >> 20
         return val
 
     def bytes_to_mb(self, bytes):
         val = 0
         if bytes != 0:
-            val = (bytes // 1024) // 1024
-        return val
-
-    def pages_to_mb(self, pages):
-        val = 0
-        if pages != 0:
-            val = (pages * 4) // 1024
+            val = bytes >> 20
         return val
 
     def calculate_vmalloc(self):
-        if self.ramdump.address_of('nr_vmalloc_pages') is None:
-            next_offset = self.ramdump.field_offset('struct vmap_area', 'list')
-            vmlist = self.ramdump.read_word('vmap_area_list')
-            vm_offset = self.ramdump.field_offset('struct vmap_area', 'vm')
-            self.vm_offset = vm_offset
-            list_walker = llist.ListWalker(self.ramdump, vmlist, next_offset)
-            list_walker.walk(vmlist, self.list_func)
-            self.vmalloc_size = self.pages_to_mb(self.vmalloc_size)
-        else:
-            val = self.ramdump.read_word('nr_vmalloc_pages')
-            self.vmalloc_size = self.pages_to_mb(val)
+        memstat_vmalloc = Vmalloc(self.ramdump)
+        vmalloc_pages = memstat_vmalloc.get_vmalloc_pages()
+        self.vmalloc_size = self.pages_to_mb(vmalloc_pages)
+        return
 
     def calculate_vm_stat(self):
         # Other memory :  NR_ANON_PAGES + NR_FILE_PAGES + NR_PAGETABLE \
@@ -230,11 +200,17 @@ class MemStats(RamParser):
         ion_mem = self.calculate_ionmem()
 
         # kgsl memory
-        kgsl_memory = self.ramdump.read_word(
-                        'kgsl_driver.stats.page_alloc')
-        if kgsl_memory is not None:
+        # Duplicates gpuinfo_510.py@parse_kgsl_mem()'s 'KGSL Total'
+        try:
+            kgsl_memory = self.ramdump.read_word(
+                            'kgsl_driver.stats.page_alloc')
+            kgsl_memory += self.ramdump.read_word(
+                            'kgsl_driver.stats.coherent')
+            kgsl_memory += self.ramdump.read_word(
+                            'kgsl_driver.stats.secure')
             kgsl_memory = self.bytes_to_mb(kgsl_memory)
-        else:
+        except TypeError as e:
+            out_mem_stat.write("Failed to retrieve total kgsl memory\n")
             kgsl_memory = 0
 
         # zcompressed ram

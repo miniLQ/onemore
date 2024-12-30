@@ -1,6 +1,7 @@
 """
 Copyright (c) 2020 The Linux Foundation. All rights reserved.
-
+SPDX-License-Identifier: GPL-2.0-only
+Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 and
 only version 2 as published by the Free Software Foundation.
@@ -14,9 +15,10 @@ GNU General Public License for more details.
 
 import os,sys
 import struct
-
+import subprocess
 from print_out import print_out_str
 from parser_util import register_parser, RamParser
+import local_settings
 
 @register_parser('--dtb', 'Dump the devicetree blob information')
 class dtb_parsing(RamParser):
@@ -42,3 +44,11 @@ class dtb_parsing(RamParser):
 
     def parse(self):
         self.dtb_parse(self.ramdump)
+        dts_output_file = "{0}/{1}".format(self.ramdump.outdir, "dts.txt")
+        with open(dts_output_file, 'w') as dts_out:
+            devicetree_dtb =  os.path.join(self.ramdump.outdir, "devicetree.dtb")
+            if os.path.exists(devicetree_dtb):
+                try:
+                    retcode = subprocess.Popen([local_settings.dtc_path, '-f', '-I', 'dtb', '-O', 'dts', devicetree_dtb], stdout=dts_out, stderr=dts_out, shell=False)
+                except OSError as e:
+                    print_out_str("exception is {0} dtc used {1}".format(str(e), local_settings.dtc_path))

@@ -272,7 +272,11 @@ class Scandump_v2():
         else:
             lr = self.get_reg('r14_svc')
             bt = self.get_reg('r13_svc')
-            fp = self.get_reg('r11')
+            cpsr = self.get_reg('cpsr')
+            if (cpsr & 0x20):
+                fp = self.get_reg('r7')
+            else:
+                fp = self.get_reg('r11')
 
         if pc is not None:
             a = ram_dump.unwind_lookup(pc)

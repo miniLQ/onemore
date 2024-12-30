@@ -1,5 +1,5 @@
 # Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
-# Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -87,10 +87,13 @@ class client(object):
     MSM_DUMP_DATA_TMC_REG = 0x100
     MSM_DUMP_DATA_TMC_ETR_REG = 0x100
     MSM_DUMP_DATA_TMC_ETF_REG = 0x101
+    MSM_DUMP_DATA_TMC_ETR1_REG = 0x105
     MSM_DUMP_DATA_TMC_ETF_SWAO_REG = 0x102
     MSM_DUMP_DATA_LOG_BUF = 0x110
     MSM_DUMP_DATA_LOG_BUF_FIRST_IDX = 0x111
     MSM_DUMP_DATA_L2_TLB = 0x120
+    MSM_DUMP_DATA_DCC_REG = 0xE6
+    MSM_DUMP_DATA_DCC_SRAM = 0xE7
     MSM_DUMP_DATA_SCANDUMP = 0xEB
     MSM_DUMP_DATA_RPMH = 0xEC
     MSM_DUMP_DATA_FCMDUMP = 0xEE
@@ -122,6 +125,7 @@ client_types = [
     ('MSM_DUMP_DATA_TMC_ETF', 'parse_qdss_common'),
     ('MSM_DUMP_DATA_TMC_ETF_SWAO', 'parse_qdss_common'),
     ('MSM_DUMP_DATA_TMC_ETR_REG', 'parse_qdss_common'),
+    ('MSM_DUMP_DATA_TMC_ETR1_REG', 'parse_qdss_common'),
     ('MSM_DUMP_DATA_TMC_ETF_SWAO_REG', 'parse_qdss_common'),
     ('MSM_DUMP_DATA_TMC_REG', 'parse_qdss_common'),
     ('MSM_DUMP_DATA_L2_TLB', 'parse_tlb_common'),
@@ -132,6 +136,7 @@ client_types = [
 
 qdss_tag_to_field_name = {
     'MSM_DUMP_DATA_TMC_ETR_REG': 'tmc_etr_start',
+    'MSM_DUMP_DATA_TMC_ETR1_REG': 'tmc_etr1_start',
     'MSM_DUMP_DATA_TMC_REG': 'tmc_etr_start',
     'MSM_DUMP_DATA_TMC_ETF': 'etf_start',
     'MSM_DUMP_DATA_TMC_ETF_SWAO': 'tmc_etf_swao_start',
@@ -221,15 +226,8 @@ class DebugImage_v2():
             print_out_str('Could not find cpuss_parser_path . Please define cpuss_parser_path in local_settings')
             return
         offset = None
-        if not ram_dump.minidump:
-            ebi_files = ram_dump.ebi_files
-        else:
-            ebi_files = ram_dump.ebi_files_minidump
-        for eb_file in ebi_files:
-            if start >= eb_file[1] and start <= eb_file[2]:
-                input = eb_file[3]
-                offset = start - eb_file[1]
-                break
+        offset, input = ram_dump.get_read_physical_offset(start)
+
         if offset is None:
             print_out_str("parse_cpuss start address {0} not found".format(start))
         print_out_str("parse_cpuss offset address = {0} input = {1} cpuss_parser_json = {2}".format(hex(int(offset)),input,cpuss_parser_json))
@@ -246,6 +244,22 @@ class DebugImage_v2():
             print_out_str('!!! Could not dump FCM')
 
         return
+
+    def get_vcpu_index(self, ram_dump, affinity):
+        vcpu_index = 0
+        if affinity:
+            if hasattr(ram_dump.board, 'aff_shift'):
+                aff_shift = ram_dump.board.aff_shift
+            else:
+                aff_shift = [0,0,0,0]
+            tmp_vcpu_index = affinity
+            for i in range(0, len(aff_shift)):
+                vcpu_index |= ((tmp_vcpu_index >> (i * 8)) & 0xff) << aff_shift[i]
+            if hasattr(ram_dump.board, 'core_map'):
+                vcpu_index = ram_dump.board.core_map.get(vcpu_index, vcpu_index)
+        else:
+            vcpu_index = affinity
+        return vcpu_index
 
     def parse_cpu_ctx(self, version, start, end, client_id, ram_dump,dump_data_name=None):
         core = client_id - client.MSM_DUMP_DATA_CPU_CTX
@@ -288,9 +302,10 @@ class DebugImage_v2():
                                 'struct msm_dump_cpu_register_entry', 'regset_addr')
                 if regset_addr_offset is None:
                     regset_addr_offset = 0x8
-                cpu_index = ram_dump.read_u32(start + cpu_index_offset,False)
+                affinity = ram_dump.read_u32(start + cpu_index_offset,False)
+                cpu_index = self.get_vcpu_index(ram_dump, affinity)
                 print_out_str(
-                    'Parsing CPU{2:x} context start {0:x} end {1:x} version {3} client_id-> {4:x}'.format(start, end, cpu_index,version,client_id))
+                    'Parsing CPU{2:d} affinity {5:x} context start {0:x} end {1:x} version {3} client_id-> {4:x}'.format(start, end, cpu_index, version, client_id, affinity))
                 cpu_type = ram_dump.read_u32(start + cpu_type_offset,False)
                 print_out_str("cpu_type = {0}".format(msm_dump_cpu_type[cpu_type]))
                 ctx_type = ram_dump.read_u32(start + ctx_type_offset,False)
@@ -316,8 +331,7 @@ class DebugImage_v2():
                     regset_end = regset_addr + regset_size
                     regset_name_addr[regset_name] = [regset_addr,regset_end]
                 regs = TZRegDump_v2()
-                cpu_index_num = "{0:x}".format(cpu_index >> 8)
-                print("dump_data_name = {0}".format(dump_data_name))
+                cpu_index_num = "{0:d}".format(cpu_index)
                 if dump_data_name and "vm_3" not in dump_data_name:
                     core = "vcpu" + str(cpu_index_num) + "_" + dump_data_name.split('_vcpu_')[0]
                 else:
@@ -415,6 +429,8 @@ class DebugImage_v2():
             setattr(self.qdss, qdss_tag_to_field_name[client_name], start)
 
     def parse_cache_common(self, version, start, end, client_id, ramdump):
+        if ramdump.skip_TLB_Cache_parse:
+            return
         client_name = self.dump_data_id_lookup_table[client_id]
         core = client_id & 0xF
         filename = '{0}_0x{1:x}'.format(client_name, core)
@@ -435,6 +451,8 @@ class DebugImage_v2():
         outfile.close()
 
     def parse_system_cache_common(self, version, start, end, client_id, ramdump):
+        if ramdump.skip_TLB_Cache_parse:
+            return
         client_name = self.dump_data_id_lookup_table[client_id]
         bank_number = client_id - client.MSM_DUMP_DATA_LLC_CACHE
         filename = '{0}_0x{1:x}'.format(client_name, bank_number)
@@ -455,6 +473,8 @@ class DebugImage_v2():
         outfile.close()
 
     def parse_tlb_common(self, version, start, end, client_id, ramdump):
+        if ramdump.skip_TLB_Cache_parse:
+            return
         client_name = self.dump_data_id_lookup_table[client_id]
         core = client_id & 0xF
         filename = '{0}_0x{1:x}'.format(client_name, core)
@@ -691,7 +711,7 @@ class DebugImage_v2():
             'msm_dump_type', 2)
         cpus = ram_dump.get_num_cpus()
         # per cpu entries
-        for i in range(0, cpus):
+        for i in ram_dump.iter_cpus():
 
                 self.dump_data_id_lookup_table[
                     client.MSM_DUMP_DATA_CPU_CTX + i] = 'MSM_DUMP_DATA_CPU_CTX'
@@ -730,6 +750,10 @@ class DebugImage_v2():
         self.dump_data_id_lookup_table[
             client.MSM_DUMP_DATA_TMC_ETF_REG] = 'MSM_DUMP_DATA_TMC_ETF_REG'
         self.dump_data_id_lookup_table[
+            client.MSM_DUMP_DATA_DCC_REG] = 'MSM_DUMP_DATA_DCC_REG'
+        self.dump_data_id_lookup_table[
+            client.MSM_DUMP_DATA_DCC_SRAM] = 'MSM_DUMP_DATA_DCC_SRAM'
+        self.dump_data_id_lookup_table[
             client.MSM_DUMP_DATA_SCANDUMP] = 'MSM_DUMP_DATA_SCANDUMP'
         self.dump_data_id_lookup_table[
             client.MSM_DUMP_DATA_LLC_CACHE] = 'MSM_DUMP_DATA_LLC_CACHE'
@@ -746,12 +770,14 @@ class DebugImage_v2():
         self.dump_data_id_lookup_table[
             client.MSM_DUMP_DATA_TMC_ETR_REG + 1] = 'MSM_DUMP_DATA_TMC_ETR_REG'
         self.dump_data_id_lookup_table[
+            client.MSM_DUMP_DATA_TMC_ETR1_REG] = 'MSM_DUMP_DATA_TMC_ETR1_REG'
+        self.dump_data_id_lookup_table[
             client.MSM_DUMP_DATA_LOG_BUF] = 'MSM_DUMP_DATA_LOG_BUF'
         self.dump_data_id_lookup_table[
             client.MSM_DUMP_DATA_LOG_BUF_FIRST_IDX] = 'MSM_DUMP_DATA_LOG_BUF_FIRST_IDX'
         self.dump_data_id_lookup_table[
             client.MSM_DUMP_DATA_MHM] = 'MSM_DUMP_DATA_MHM'
-        for i in range(0, cpus):
+        for i in ram_dump.iter_cpus():
             self.dump_data_id_lookup_table[client.MSM_DUMP_DATA_L2_TLB + i] = 'MSM_DUMP_DATA_L2_TLB'
 
         if not ram_dump.minidump or (ram_dump.minidump and ram_dump.kernel_version > (5,10,0)):
@@ -797,7 +823,8 @@ class DebugImage_v2():
                 imem_dump_table_offset = IMEM_OFFSET_MEM_DUMP_TABLE
             if ram_dump.minidump and ram_dump.kernel_version >= (5, 10):
                 for a in ram_dump.ebi_files:
-                    if "md_SHRDIMEM" in a[3]:
+                    md_pattern = re.compile(r'md_shrdimem', re.IGNORECASE)
+                    if re.search(md_pattern, a[3]):
                         table_phys = ram_dump.read_word(a[1] + 0x10, virtual=False)
                         break
             else:

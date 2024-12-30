@@ -1,4 +1,5 @@
 # Copyright (c) 2012-2015, 2020 The Linux Foundation. All rights reserved.
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -327,55 +328,3 @@ class TZRegDump(RamParser):
         print_out_str(
             '[!!!!] Read {0:x} from IMEM successfully!'.format(ebi_addr))
         print_out_str('[!!!!] An FIQ occured on the system!')
-
-
-def get_wdog_timing(ramdump):
-    jiffies_addr = ramdump.address_of('jiffies')
-    last_ns_addr = ramdump.address_of('last_ns')
-    last_pet_addr = ramdump.address_of('last_pet')
-    pet_delay_time_addr = ramdump.address_of('delay_time')
-    dogstruct_addr = ramdump.address_of('dogwork_struct')
-
-    timer_offset = ramdump.field_offset('struct delayed_work', 'timer')
-    timer_expires_offset = ramdump.field_offset(
-        'struct timer_list', 'expires')
-
-    timer_expires = ramdump.read_word(
-        dogstruct_addr + timer_offset + timer_expires_offset)
-    jiffies = ramdump.read_word(jiffies_addr)
-    if (timer_expires > jiffies):
-        print_out_str('Pet function to be scheduled in {0} seconds'.format(
-            (timer_expires - jiffies) * 0.01))
-    else:
-        print_out_str('Pet function may have been blocked.')
-        print_out_str('Jiffies is {0} seconds after when  it was supposed to be scheduled'.format(
-            (jiffies - timer_expires) * 0.01))
-
-    if (last_ns_addr != 0) and (last_pet_addr != 0) and (pet_delay_time_addr != 0):
-        last_ns = ramdump.read_dword(last_ns_addr)
-        last_pet = ramdump.read_dword(last_pet_addr)
-        pet_delay_time = ramdump.read_word(pet_delay_time_addr)
-
-        diff = last_ns - last_pet
-
-        print_out_str('Most recent time that the watchdog was pet: {0}.{1:6}'.format(
-            last_pet // 1000000000, last_pet % 1000000000))
-        print_out_str('Most recent timestamp read from the timer hardware: {0}.{1:6}'.format(
-            last_ns // 1000000000, last_ns % 1000000000))
-        if (last_ns > last_pet):
-            print_out_str(
-                'Pet delay time in this build is {0} seconds'.format((pet_delay_time * 10) // 1000))
-            print_out_str('The watchdog was not pet for at least {0}.{1:6} seconds'.format(
-                diff // 1000000000, diff % 1000000000))
-
-        print_out_str(
-            '!!! The difference between the two timestamps above is NOT')
-        print_out_str(
-            '!!! to be used to determine whether a watchdog bite occured')
-
-    elif (last_pet_addr):
-        last_pet = ramdump.read_dword(last_pet_addr)
-        print_out_str('Most recent time that the watchdgo was pet: {0}.{1:6}'.format(
-            last_pet // 1000000000, last_pet % 1000000000))
-        print_out_str('The watchdog was not pet for at least {0}.{1:6} seconds'.format(
-            pet_delay_diff // 1000000000, pet_delay_diff % 1000000000))

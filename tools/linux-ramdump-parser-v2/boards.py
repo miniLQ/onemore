@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2019, The Linux Foundation. All rights reserved.
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -42,51 +42,21 @@ class Board(object):
         self.imem_file_name = None
         register_board(self)
 
-class BoardKhaje(Board):
-    def __init__(self, socid):
-        super(BoardKhaje, self).__init__()
-        self.socid = socid
-        self.board_num = "khaje"
-        self.cpu = 'CORTEXA53'
-        self.ram_start = 0x40000000
-        self.smem_addr = 0x6000000
-        self.smem_addr_buildinfo = 0x6007210
-        self.phys_offset = 0x40000000
-        self.imem_start = 0x0c100000
-        self.kaslr_addr = 0x0c1256d0
-        self.wdog_addr = 0x0c125658
-        self.imem_file_name = 'OCIMEM.BIN'
-
-class BoardParrot(Board):
-  def __init__(self, socid):
-    super(BoardParrot, self).__init__()
-    self.socid = socid
-    self.board_num = "parrot"
-    self.cpu = 'CORTEXA53'
-    self.ram_start = 0x80000000
-    self.smem_addr = 0x900000
-    self.smem_addr_buildinfo = 0x9071e0
-    self.phys_offset = 0xA8000000
-    self.imem_start = 0x14680000
-    self.kaslr_addr = 0x146aa6d0
-    self.wdog_addr = 0x146aa658
-    self.imem_offset_memdump_table = 0x2a010
-    self.imem_file_name = 'OCIMEM.BIN'
-    self.tbi_mask = 0x4000000000
-    self.hyp_diag_addr = 0x146AAB30
-    self.rm_debug_addr = 0x146AABEC
-
-
 def register_board(b):
     global boards
     boards.append(b)
 
 def get_supported_boards():
     """ Called by other part of the code to get a list of boards """
-
-    dir = os.path.join(os.path.dirname(__file__), 'extensions', 'board_def.py')
-    if os.path.exists(dir):
-        import extensions.board_def
+    extensions_path = os.path.join(os.path.dirname(__file__), 'extensions')
+    if os.path.exists(extensions_path):
+        dir = os.path.join(os.path.dirname(__file__), 'extensions', 'board_def.py')
+        if os.path.exists(dir):
+            import extensions.board_def
+    else:
+        dir = os.path.join(os.path.dirname(__file__), 'board_config.py')
+        if os.path.exists(dir):
+            import board_config
     return boards
 
 def get_supported_ids():
@@ -95,6 +65,3 @@ def get_supported_ids():
 
 
 boards = list()
-boards.append(BoardKhaje(socid=518))
-BoardParrot(socid=537)
-BoardParrot(socid=613)

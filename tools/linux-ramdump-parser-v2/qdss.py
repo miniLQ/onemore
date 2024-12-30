@@ -1,4 +1,5 @@
 # Copyright (c) 2012, 2014-2018, 2020-2021 The Linux Foundation. All rights reserved.
+# Copyright (c) 2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -11,6 +12,7 @@
 
 import struct
 import itertools
+import linux_list as llist
 from print_out import print_out_str
 from iommulib import IommuLib, MSM_SMMU_DOMAIN, MSM_SMMU_AARCH64_DOMAIN, ARM_SMMU_DOMAIN
 from aarch64iommulib import create_flat_mappings, create_collapsed_mapping
@@ -208,10 +210,37 @@ dbgui_registers = {
     'DBGUI_ATB_REG' : (0x024, 'ATB Configuration Register'),
 }
 
+driver_types = [
+    ('coresight-stm', 'parse_single_atid'),
+    ('coresight-tpdm', 'parse_single_atid'),
+    ('coresight-remote-etm', 'parse_remote_etm_atid'),
+    ('coresight-etm4x', 'parse_single_atid'),
+    ('coresight-dummy', 'parse_single_atid'),
+    ('coresight-uetm', 'parse_single_atid'),
+]
+
+driver_structs = [
+    ('coresight-stm', 'struct stm_drvdata'),
+    ('coresight-tpdm', 'struct tpdm_drvdata'),
+    ('coresight-remote-etm', 'struct remote_etm_drvdata'),
+    ('coresight-etm4x', 'struct etmv4_drvdata'),
+    ('coresight-dummy', 'struct dummy_drvdata'),
+    ('coresight-uetm', 'struct uetm_drvdata'),
+]
+
+qdss_atid_fields = [
+    ('coresight-stm', 'traceid'),
+    ('coresight-tpdm', 'traceid'),
+    ('coresight-remote-etm', 'traceid'),
+    ('coresight-etm4x', 'trcid'),
+    ('coresight-dummy', 'traceid'),
+    ('coresight-uetm', 'traceid'),
+]
 class QDSSDump():
 
     def __init__(self):
         self.tmc_etr_start = None
+        self.tmc_etr1_start= None
         self.etf_start = None
         self.tmc_etf_start = None
         self.etm_regs0 = None
@@ -263,6 +292,19 @@ class QDSSDump():
             offset, name = b
             tmc_etf_out.write('{0} ({1}): {2:x}\n'.format(
                 a, name, ram_dump.read_u32(self.tmc_etr_start + offset, False)))
+        tmc_etf_out.close()
+
+        if self.tmc_etr1_start is None:
+            print_out_str(
+                "!!! TMC-ETR1 address has not been set! I can't continue!")
+            return
+
+        print_out_str('Now printing TMC-ETR1 registers to file')
+        tmc_etf_out = ram_dump.open_file('tmc_etr1.txt')
+        for a, b in tmc_registers.items():
+            offset, name = b
+            tmc_etf_out.write('{0} ({1}): {2:x}\n'.format(
+                a, name, ram_dump.read_u32(self.tmc_etr1_start + offset, False)))
         tmc_etf_out.close()
 
     def print_etm_registers(self, ram_dump, base, fname):
@@ -428,7 +470,7 @@ class QDSSDump():
             return True
 
     def parse_domain(self, dbaddr, rsz, sts, rwpval, ram_dump, tmc_etr, d, domain_num):
-        if d.client_name.endswith(".tmc"):
+        if d.client_name.endswith(".tmc") or d.client_name.endswith(".etr"):
             flat_mapping = create_flat_mappings(ram_dump, d.pg_table, d.level)
             collapsed_mapping = create_collapsed_mapping(flat_mapping)
             if (sts & 0x1) == 1:
@@ -454,43 +496,52 @@ class QDSSDump():
         return False
 
     def save_etr_bin(self, ram_dump):
-        tmc_etr = ram_dump.open_file('tmc-etr.bin', mode='wb')
         if self.tmc_etr_start is None:
             print_out_str('!!! ETR was not enabled!')
-            tmc_etr.close()
             return
+        tmc_etr = ram_dump.open_file('tmc-etr.bin', mode='wb')
+        self.do_save_etr_bin(ram_dump, tmc_etr, self.tmc_etr_start)
+        tmc_etr.close()
 
+        if self.tmc_etr1_start is None:
+            print_out_str('!!! ETR1 was not enabled!')
+            return
+        tmc_etr1 = ram_dump.open_file('tmc-etr1.bin', mode='wb')
+        self.do_save_etr_bin(ram_dump, tmc_etr1, self.tmc_etr1_start)
+        tmc_etr1.close()
+
+    def do_save_etr_bin(self, ram_dump, tmc_etr, tmc_etr_start):
         ctl_offset, ctl_desc = tmc_registers['CTL']
         mode_offset, mode_desc = tmc_registers['MODE']
 
-        ctl = ram_dump.read_u32(self.tmc_etr_start + ctl_offset, False)
-        mode = ram_dump.read_u32(self.tmc_etr_start + mode_offset, False)
+        ctl = ram_dump.read_u32(tmc_etr_start + ctl_offset, False)
+        mode = ram_dump.read_u32(tmc_etr_start + mode_offset, False)
 
         if (ctl & 0x1) == 1 and (mode == 0):
             sts_offset, sts_desc = tmc_registers['STS']
-            sts = ram_dump.read_u32(self.tmc_etr_start + sts_offset, False)
+            sts = ram_dump.read_u32(tmc_etr_start + sts_offset, False)
 
             dbalo_offset, dbalo_desc = tmc_registers['DBALO']
             dbalo = ram_dump.read_u32(
-                self.tmc_etr_start + dbalo_offset, False)
+                tmc_etr_start + dbalo_offset, False)
             dbahi_offset, dbahi_desc = tmc_registers['DBAHI']
             dbahi = ram_dump.read_u32(
-                self.tmc_etr_start + dbahi_offset, False)
+                tmc_etr_start + dbahi_offset, False)
             dbaddr = (dbahi << 32) + dbalo
 
             rsz_offset, rsz_desc = tmc_registers['RSZ']
-            rsz = ram_dump.read_u32(self.tmc_etr_start + rsz_offset, False)
+            rsz = ram_dump.read_u32(tmc_etr_start + rsz_offset, False)
             # rsz is given in words so convert to bytes
             rsz = 4 * rsz
 
             rwp_offset, rwp_desc = tmc_registers['RWP']
-            rwp = ram_dump.read_u32(self.tmc_etr_start + rwp_offset, False)
+            rwp = ram_dump.read_u32(tmc_etr_start + rwp_offset, False)
             rwphi_offset, rwphi_desc = tmc_registers['RWPHI']
-            rwphi = ram_dump.read_u32(self.tmc_etr_start + rwphi_offset, False)
+            rwphi = ram_dump.read_u32(tmc_etr_start + rwphi_offset, False)
             rwpval = (rwphi << 32) + rwp
 
             axictl_offset, axictl_desc = tmc_registers["AXICTL"]
-            axictl = ram_dump.read_u32(self.tmc_etr_start + axictl_offset, False)
+            axictl = ram_dump.read_u32(tmc_etr_start + axictl_offset, False)
 
             if ((axictl >> 7) & 0x1) == 1:
                 print_out_str('Scatter gather memory type was selected for TMC ETR')
@@ -508,8 +559,6 @@ class QDSSDump():
                         tmc_etr.write(ram_dump.read_physical(it[0], len(it)))
         else:
             print_out_str ('!!! ETR was not the current sink!')
-
-        tmc_etr.close()
 
     def print_dbgui_registers(self, ram_dump):
         if self.dbgui_start is None:
@@ -538,9 +587,65 @@ class QDSSDump():
                 ram_dump.read_u32(self.dbgui_start + data_offset + (4 * i), False)))
         dbgui_out.close()
 
+    def parse_single_atid(self, driver_name, drvdata, struct_name, atid_field):
+        atid_offset = self.ramdump.struct_field_addr(drvdata, struct_name, atid_field)
+        if atid_offset is None:
+            return
+        atid = self.ramdump.read_byte(atid_offset)
+        csdev = self.ramdump.read_structure_field(drvdata, struct_name, 'csdev')
+        dev = self.ramdump.struct_field_addr(csdev, 'struct coresight_device', 'dev')
+        csname = self.ramdump.read_cstring(self.ramdump.read_word(dev + self.name_offset))
+        print("{:<50} : {:#04x}".format(csname, atid),file = self.f)
+
+    def parse_remote_etm_atid(self, driver_name, drvdata, struct_name, atid_field):
+        atid_str = ''
+        atid_num = self.ramdump.read_structure_field(drvdata, 'struct remote_etm_drvdata', 'num_trcid')
+        if atid_num is None:
+            return
+
+        atid_addr = self.ramdump.read_structure_field(drvdata, "struct remote_etm_drvdata", "traceids")
+        for i in range(atid_num):
+            atid = self.ramdump.read_byte(atid_addr)
+            atid_str = "{:#04x}".format(atid) + " " + atid_str
+            atid_addr = atid_addr + 1
+
+        remote_etm_csdev = self.ramdump.read_structure_field(drvdata, 'struct remote_etm_drvdata', 'csdev')
+        cs_dev = self.ramdump.struct_field_addr(remote_etm_csdev, 'struct coresight_device', 'dev')
+        csname = self.ramdump.read_cstring(self.ramdump.read_word(cs_dev + self.name_offset))
+        print("{:<50} : {}".format(csname, atid_str), file = self.f)
+
+    def list_qdss_atid(self, device):
+        drv = self.ramdump.read_structure_field(device, 'struct device', 'driver')
+        drvdata = self.ramdump.read_structure_field(device, 'struct device', 'driver_data')
+        drvname = self.ramdump.read_cstring(self.ramdump.read_word(drv + self.dev_drv_offset))
+
+        if drvname in self.qdss_drivers :
+            getattr(QDSSDump, self.qdss_drivers[drvname])(self, drvname, drvdata,
+                            self.qdss_structs[drvname], self.atid_fields[drvname])
+
+    def parse_qdss_component_atid(self, ramdump):
+        self.ramdump = ramdump
+        self.entry_offset = self.ramdump.field_offset('struct kobject', 'entry')
+        self.name_offset = self.ramdump.field_offset('struct kobject', 'name')
+        self.dev_drv_offset = self.ramdump.field_offset('struct device_driver', 'name')
+        self.kobj_offset = self.ramdump.field_offset('struct device', 'kobj')
+        self.qdss_drivers = dict(driver_types)
+        self.qdss_structs = dict(driver_structs)
+        self.atid_fields = dict(qdss_atid_fields)
+        self.f = open(self.ramdump.outdir + "/ATID.txt", "w")
+        print("{:<50} {}".format("Source Name", "ATID"), file = self.f)
+        print("{}".format("=" * 60), file = self.f)
+        devices_kset_addr = self.ramdump.address_of('devices_kset')
+        list_head = devices_kset_addr
+        list_offset = self.kobj_offset + self.entry_offset
+        list_walker = llist.ListWalker(self.ramdump, list_head, list_offset)
+        list_walker.walk(list_head, self.list_qdss_atid)
+        self.f.close()
+
     def dump_standard(self, ram_dump):
         self.print_tmc_etf(ram_dump)
         self.print_tmc_etf_swao(ram_dump)
         self.print_tmc_etr(ram_dump)
         self.print_dbgui_registers(ram_dump)
         self.print_all_etm_register(ram_dump)
+        self.parse_qdss_component_atid(ram_dump)

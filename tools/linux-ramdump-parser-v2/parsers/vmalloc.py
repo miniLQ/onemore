@@ -1,4 +1,5 @@
 # Copyright (c) 2012-2015,2017 The Linux Foundation. All rights reserved.
+# Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -14,122 +15,179 @@ from print_out import print_out_str
 from parser_util import register_parser, RamParser
 import linux_list as llist
 
-VM_IOREMAP = 0x00000001
-VM_ALLOC = 0x00000002
-VM_MAP = 0x00000004
-VM_USERMAP = 0x00000008
-VM_VPAGES = 0x00000010
-VM_UNLIST = 0x00000020
+class Vmalloc:
+    def __init__(self, ramdump):
+        self.ramdump = ramdump
+        self.vmalloc_out = None
+        self.vmalloc_total_pages = 0
+        self.VM_FLAGS = {
+            "ioremap"     :0x00000001, #VM_IOREMAP
+            "vmalloc"     :0x00000002, #VM_ALLOC
+            "vmap"        :0x00000004, #VM_MAP
+            "user"        :0x00000008, #VM_USERMAP
+            "dma-coherent":0x00000010  #VM_DMA_COHERENT
+        }
+        self.vm_offset = self.ramdump.field_offset('struct vmap_area', 'vm')
 
-
-@register_parser('--print-vmalloc', 'print vmalloc information')
-class Vmalloc(RamParser):
+    def print_header(self):
+        print("VM_STRUCT                                  ADDRESS_RANGE                        " \
+                "SIZE              PHYS_ADDR    			Flag          PAGES" \
+                "							CALLER  ", file = self.vmalloc_out)
+        return
 
     def print_vm(self, vm):
-        if vm == 0 or vm is None:
+        if not vm:
            return
 
-        next_offset = self.ramdump.field_offset('struct vm_struct', 'next')
-        addr_offset = self.ramdump.field_offset('struct vm_struct', 'addr')
-        size_offset = self.ramdump.field_offset('struct vm_struct', 'size')
-        flags_offset = self.ramdump.field_offset('struct vm_struct', 'flags')
-        pages_offset = self.ramdump.field_offset('struct vm_struct', 'pages')
-        nr_pages_offset = self.ramdump.field_offset('struct vm_struct', 'nr_pages')
-        phys_addr_offset = self.ramdump.field_offset(
-            'struct vm_struct', 'phys_addr')
-        caller_offset = self.ramdump.field_offset('struct vm_struct', 'caller')
-
-        addr = self.ramdump.read_word(vm + addr_offset)
-        caller = self.ramdump.read_word(vm + caller_offset)
-        nr_pages = self.ramdump.read_word(vm + nr_pages_offset)
-        phys_addr = self.ramdump.read_word(vm + phys_addr_offset)
-        flags = self.ramdump.read_word(vm + flags_offset)
-        size = self.ramdump.read_word(vm + size_offset)
-
+        addr = self.ramdump.read_structure_field(vm, 'struct vm_struct', 'addr')
         if addr is None:
            return
 
-        vmalloc_str = 'v.v (struct vmap_area)0x{0:16x} '.format(vm)
-        vmalloc_str = vmalloc_str + '{0:18x}-{1:x} {2:8x}'\
-            .format(addr, addr + size, size)
+        caller = self.ramdump.read_structure_field(vm, 'struct vm_struct', 'caller')
+        nr_pages = self.ramdump.read_structure_field(vm, 'struct vm_struct', 'nr_pages')
+        phys_addr = self.ramdump.read_structure_field(vm, 'struct vm_struct', 'phys_addr')
+        flags = self.ramdump.read_structure_field(vm, 'struct vm_struct', 'flags')
+        size = self.ramdump.read_structure_field(vm, 'struct vm_struct', 'size')
 
-        vmalloc_str = vmalloc_str + ' {0:10x} '.format(phys_addr)
+        flags_str = ""
+        for flag_name, flag_val in self.VM_FLAGS.items():
+            if (flags & flag_val) != 0:
+                flags_str += " {}".format(flag_name)
 
+        line = ''
+        func = ''
         if (caller != 0):
-            a = self.ramdump.unwind_lookup(caller)
-            if a is not None:
-                symname, offset = a
-                sym = symname + '0x' + str(hex(offset))
-                vmalloc_str = vmalloc_str + \
-                    ' {0:46}'.format(sym)
+            line = self.ramdump.gdbmi.get_func_info(caller)
+            if line == None:
+                line = 'n/a'
+            l = self.ramdump.unwind_lookup(caller)
+            if l is not None:
+                func, offset = l
+            else:
+                func = 'Unknown function'
 
-        if (flags & VM_IOREMAP) != 0:
-            vmalloc_str = vmalloc_str + ' ioremap'
+        print("v.v (struct vm_struct)0x%x 0x%x-0x%x 0x%-16x  0x%-16x %-15s %-8d  %32s     %-s"
+              %(vm, addr, addr + size, size , phys_addr, flags_str, nr_pages, func, line),\
+                 file = self.vmalloc_out)
+        return
 
-        if (flags & VM_ALLOC) != 0:
-            vmalloc_str = vmalloc_str + ' vmalloc'
-
-        if (flags & VM_MAP) != 0:
-            vmalloc_str = vmalloc_str + ' vmap'
-
-        if (flags & VM_USERMAP) != 0:
-            vmalloc_str = vmalloc_str + ' user'
-
-        if (flags & VM_VPAGES) != 0:
-            vmalloc_str = vmalloc_str + ' vpages'
-
-        if (nr_pages != 0):
-            vmalloc_str = vmalloc_str + ' pages={0}'.format(nr_pages)
-
-        vmalloc_str = vmalloc_str + '\n'
-        self.vmalloc_out.write(vmalloc_str)
-
-    def list_func(self, vmlist):
-        vm_offset = self.ramdump.field_offset('struct vmap_area', 'vm')
-
-        vm = self.ramdump.read_word(vmlist + vm_offset)
-        self.print_vm(vm)
-
-
-    def print_vmalloc_info_v2(self, out_path):
-        vmalloc_out = self.ramdump.open_file('vmalloc.txt')
+    def traverse_vmap_area(self, vmhead_list, vmap_func=None):
+        if not len(vmhead_list):
+            return
 
         next_offset = self.ramdump.field_offset('struct vmap_area', 'list')
-        vmlist = self.ramdump.read_word('vmap_area_list')
-        orig_vmlist = vmlist
+        for vmlist in vmhead_list:
+            if not vmlist:
+                continue
+            list_walker = llist.ListWalker(self.ramdump, vmlist, next_offset)
+            list_walker.walk(vmlist, vmap_func)
+        return
 
-        list_walker = llist.ListWalker(self.ramdump, vmlist, next_offset)
-        self.vmalloc_out = vmalloc_out
-        vmalloc_str = 'Memory mapped region allocated by Vmalloc\n\n'
-        vmalloc_str = vmalloc_str + '{0:42} {1:36} {2:6} {3:12} {4:46} {5:8}'\
-            .format('VM_STRUCT','ADDRESS_RANGE','SIZE','PHYS_ADDR','CALLER',
-                    'Flag')
-        vmalloc_str = vmalloc_str + '\n'
-        self.vmalloc_out.write(vmalloc_str)
-        list_walker.walk(vmlist, self.list_func)
-        print_out_str('---wrote vmalloc to vmalloc.txt')
-        vmalloc_out.close()
+    def vmap_nodes(self, vmhead_list):
+        vmap_nodes_addr = self.ramdump.read_pointer('vmap_nodes')
+        if vmap_nodes_addr:
+            nr_vmap_nodes = self.ramdump.read_int('nr_vmap_nodes')
+            vmap_nodes = self.ramdump.read_datatype(vmap_nodes_addr, 'struct vmap_node[{}]' \
+                            .format(nr_vmap_nodes))
+            for vn_idx in range(0, nr_vmap_nodes):
+                vn = vmap_nodes[vn_idx].busy.head.next
+                vmhead_list.append(vn)
+        return
 
+    def vmap_area_list(self, vmhead_list):
+        vmap_area_list_addr = self.ramdump.address_of('vmap_area_list')
+        if vmap_area_list_addr:
+            vn = self.ramdump.read_structure_field(vmap_area_list_addr, 'struct list_head', 'next')
+            vmhead_list.append(vn)
+        return
 
-    def print_vmalloc_info(self, out_path):
+    def get_vmnodes(self, vmhead_list):
+        vmap_types = {"vmap_nodes":self.vmap_nodes, "vmap_area_list":self.vmap_area_list}
+        for vtype, vfunc in vmap_types.items():
+            vfunc(vmhead_list)
+            if len(vmhead_list):
+                break
+        return
+
+    def vmap_list_func(self, va):
+        vm = self.ramdump.read_word(va + self.vm_offset)
+        self.print_vm(vm)
+        return
+
+    def parse_vmnodes(self, vmhead_list):
+        self.print_header()
+
+        if len(vmhead_list) == 0:
+            print_out_str('vmap node is not found!')
+            return
+
+        self.traverse_vmap_area(vmhead_list, vmap_func=self.vmap_list_func)
+        return
+
+    def vmap_page_func(self, va):
+        vm = self.ramdump.read_word(va + self.vm_offset)
+        if not vm:
+            return
+
+        nr_pages = self.ramdump.read_structure_field(vm, 'struct vm_struct', 'nr_pages')
+        flags = self.ramdump.read_structure_field(vm, 'struct vm_struct', 'flags')
+        if flags is None:
+            return
+        if (flags & self.VM_FLAGS.get("vmalloc")) != 0:
+            self.vmalloc_total_pages += nr_pages
+        return
+
+    def vmnode_pages(self, vmhead_list):
+        self.traverse_vmap_area(vmhead_list, vmap_func=self.vmap_page_func)
+        return
+
+    def print_vmalloc_info_v2(self):
+        vmhead_list = []
+
+        self.get_vmnodes(vmhead_list)
+        self.parse_vmnodes(vmhead_list)
+        return
+
+    def print_vmalloc_info_v1(self):
+        self.print_header()
+
         vmlist = self.ramdump.read_word('vmlist')
         next_offset = self.ramdump.field_offset('struct vm_struct', 'next')
 
+        while (vmlist is not None) and (vmlist != 0):
+            self.print_vm(vmlist)
+            vmlist = self.ramdump.read_word(vmlist + next_offset)
+        return
+
+    def get_vmalloc_pages(self):
+        vmalloc_pages_ptr = self.ramdump.address_of('nr_vmalloc_pages')
+        if vmalloc_pages_ptr is not None:
+            self.vmalloc_total_pages = self.ramdump.read_word(vmalloc_pages_ptr)
+        else:
+            vmhead_list = []
+            self.get_vmnodes(vmhead_list)
+            self.vmnode_pages(vmhead_list)
+        return self.vmalloc_total_pages
+
+    def print_vmalloc_info(self):
         vmalloc_out = self.ramdump.open_file('vmalloc.txt')
         self.vmalloc_out = vmalloc_out
 
-        while (vmlist is not None) and (vmlist != 0):
-            self.print_vm(vmlist)
-
-            vmlist = self.ramdump.read_word(vmlist + next_offset)
+        major, minor, patch = self.ramdump.kernel_version
+        if (major, minor) >= (3, 10):
+            self.print_vmalloc_info_v2()
+        else:
+            self.print_vmalloc_info_v1()
 
         print_out_str('---wrote vmalloc to vmalloc.txt')
         vmalloc_out.close()
+        return
+
+@register_parser('--print-vmalloc', 'print vmalloc information')
+class VmallocInfo(RamParser):
+    def __init__(self, *args):
+        super(VmallocInfo, self).__init__(*args)
+        self.vmalloc = Vmalloc(self.ramdump)
 
     def parse(self):
-        out_path = self.ramdump.outdir
-        major, minor, patch = self.ramdump.kernel_version
-        if (major, minor) >= (3, 10):
-            self.print_vmalloc_info_v2(out_path)
-        else:
-            self.print_vmalloc_info(out_path)
+        self.vmalloc.print_vmalloc_info()

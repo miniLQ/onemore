@@ -1,5 +1,5 @@
 # Copyright (c) 2019-2021, The Linux Foundation. All rights reserved.
-# Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -12,6 +12,7 @@
 
 from parser_util import register_parser, RamParser
 from print_out import print_out_str
+from utils.anomalies import Anomaly
 
 DEFAULT_MIGRATION_NR=32
 DEFAULT_MIGRATION_COST=500000
@@ -31,7 +32,9 @@ def mask_bitset_pos(cpumask):
 
 def cpu_isolation_mask(ramdump):
     cpu_isolated_bits = 0
-    if (ramdump.kernel_version >= (5, 10, 0)):
+    if (ramdump.kernel_version >= (5, 15, 0)):
+        cpu_isolated_bits = ramdump.read_word('__cpu_halt_mask')
+    elif (ramdump.kernel_version >= (5, 10, 0)):
         #Isolation replaced with pause feature.
         cpuhp_state_addr = ramdump.address_of('cpuhp_state')
         pause_state = ramdump.gdbmi.get_value_of('CPUHP_AP_ACTIVE') - 1
@@ -76,8 +79,7 @@ def verify_active_cpus(ramdump):
     online_offset = ramdump.field_offset('struct rq', 'online')
 
     for i in ramdump.iter_cpus():
-        rq_addr = runqueues_addr + ramdump.per_cpu_offset(i)
-        online = ramdump.read_int(rq_addr + online_offset)
+        online = ramdump.read_int(runqueues_addr + online_offset, cpu=i)
         cpu_online_bits |= (online << i)
 
     if (cluster_id_off is None):
@@ -89,7 +91,7 @@ def verify_active_cpus(ramdump):
     #       find out cluster cpus dynamically.
 
     cluster_cpus = [0]
-    for j in range(0, nr_cpus):
+    for j in ramdump.iter_cpus():
         c_id = ramdump.read_int(cpu_topology_addr + (j * cpu_topology_size) + cluster_id_off)
         if len(cluster_cpus) <= c_id :
             cluster_cpus.extend([0])
@@ -137,12 +139,29 @@ def dump_rq_lock_information(ramdump):
         lock_owner_cpu_offset = ramdump.field_offset('struct rq', 'lock.owner_cpu')
     if lock_owner_cpu_offset:
         for i in ramdump.iter_cpus():
-            rq_addr = runqueues_addr + ramdump.per_cpu_offset(i)
-            lock_owner_cpu = ramdump.read_int(rq_addr + lock_owner_cpu_offset)
-            print_out_str("\n cpu {0} ->rq_lock owner cpu {1}".format(i,hex(lock_owner_cpu)))
+            lock_owner_cpu = ramdump.read_int(runqueues_addr + lock_owner_cpu_offset, cpu=i)
+            print_out_str("\n cpu {0} ->rq_lock owner cpu {1}".format(i, hex(lock_owner_cpu)))
         print_out_str("\n ")
 
 def dump_isolation_data(ramdump):
+    try:
+        if ramdump.address_of('cluster_state') is not None:
+            print_out_str("cluster_state:")
+            cluster_state = ramdump.read_datatype('cluster_state')
+            for idx in range(0, len(cluster_state)):
+                print_out_str("\tcluster{}: min_cpus = {} max_cpus = {} enable = {}".format(
+                    idx, cluster_state[idx].min_cpus, cluster_state[idx].max_cpus,
+                    cluster_state[idx].enable))
+        halt_state_ptr = ramdump.address_of('halt_state')
+        if halt_state_ptr is not None:
+            print_out_str("\nhalt_state:")
+            for cpu in ramdump.iter_cpus():
+                halt_state = ramdump.read_u16(halt_state_ptr, cpu=cpu)
+                print_out_str("\tcpu{}: client_vote_mask = ({}, {})".format(
+                    cpu, halt_state & 0xFF, (halt_state>>8) & 0xFF))
+    except Exception as err:
+        print_out_str("{}\n".format(str(err)))
+        pass
     try:
         cpus_paused_by_us = ramdump.read_word('cpus_paused_by_us')
         cpus_in_max_cooling_level = ramdump.read_word('cpus_in_max_cooling_level')
@@ -166,7 +185,7 @@ def dump_cpufreq_data(ramdump):
     runqueues_addr = ramdump.address_of('runqueues')
     print_out_str("\nCPU Frequency information:\n" + "-" * 10)
     for i in ramdump.iter_cpus():
-        cpu_data_addr = ramdump.read_u64(cpufreq_data_addr + ramdump.per_cpu_offset(i))
+        cpu_data_addr = ramdump.read_u64(cpufreq_data_addr, cpu=i)
         rq_addr = runqueues_addr + ramdump.per_cpu_offset(i)
 
         cur_freq = ramdump.read_structure_field(cpu_data_addr, 'struct cpufreq_policy', 'cur')
@@ -181,10 +200,14 @@ def dump_cpufreq_data(ramdump):
 
         cap_orig = ramdump.read_structure_field(rq_addr, 'struct rq', 'cpu_capacity_orig')
         curr_cap = ramdump.read_structure_field(rq_addr, 'struct rq', 'cpu_capacity')
+        # thermal_pressure is architecture(ARM/ARM64) and kconfig(CONFIG_ARM_CPU_TOPOLOGY) related
         if (ramdump.kernel_version >= (5, 10, 0)):
-            max_thermal_cap = (1 << SCHED_CAPACITY_SHIFT)
-            thermal_pressure = ramdump.read_u64(ramdump.address_of('thermal_pressure') + ramdump.per_cpu_offset(i))
-            thermal_cap = max_thermal_cap - thermal_pressure
+            try:
+                max_thermal_cap = (1 << SCHED_CAPACITY_SHIFT)
+                thermal_pressure = ramdump.read_u64(ramdump.address_of('thermal_pressure') + ramdump.per_cpu_offset(i))
+                thermal_cap = max_thermal_cap - thermal_pressure
+            except Exception as err:
+                print(err)
         else:
             try:
                 thermal_cap = ramdump.read_word(ramdump.array_index(ramdump.address_of('thermal_cap_cpu'), 'unsigned long', i))
@@ -193,6 +216,16 @@ def dump_cpufreq_data(ramdump):
 
         print_out_str("CPU:{0}\tGovernor:{1}\t cur_freq:{2}, max_freq:{3}, min_freq{4}  cpuinfo: min_freq:{5}, max_freq:{6}"
                     .format(i, gov_name, cur_freq, max_freq, min_freq, cpuinfo_min_freq, cpuinfo_max_freq))
+        anomaly = Anomaly()
+        anomaly.setOutputDir(ramdump.outdir)
+        if max_freq != cpuinfo_max_freq:
+            anomaly_str = "cpu {0} max frequency got tempered. Curr max limit : {1} actual max limit : {2}\n"\
+                        .format(i, max_freq, cpuinfo_max_freq)
+            anomaly.addWarning("HLOS", "dmesg_TZ.txt", anomaly_str)
+        if min_freq != cpuinfo_min_freq:
+            anomaly_str = "cpu {0} min frequency got tempered. Curr min limit : {1} actual min limit : {2}\n" \
+                .format(i, min_freq, cpuinfo_min_freq)
+            anomaly.addWarning("HLOS", "dmesg_TZ.txt", anomaly_str)
         try:
             arch_scale = ramdump.read_int(ramdump.address_of('cpu_scale') + ramdump.per_cpu_offset(i))
             print_out_str("\tCapacity: capacity_orig:{0}, cur_cap:{1}, arch_scale:{2}\n".format(cap_orig, curr_cap, arch_scale))

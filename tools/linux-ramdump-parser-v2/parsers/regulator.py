@@ -1,4 +1,5 @@
 # Copyright (c) 2020-2021, The Linux Foundation. All rights reserved.
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -380,12 +381,33 @@ class RegulatorDump(RamParser):
             consumer_list_walker.walk(consumer_list_walker.next() + offset,
                                       self.consumer_init_walker, rdev)
 
+    def get_class_to_subsys(self, kobj_addr, regulator_addr, found_sp:list):
+        if not bool(found_sp):
+            kset_addr = self.ramdump.container_of(kobj_addr, 'struct kset', 'kobj')
+            sp_addr = self.ramdump.container_of(kset_addr, 'struct subsys_private', 'subsys')
+            sp_class = self.ramdump.read_structure_field(sp_addr, 'struct subsys_private', 'class')
+            if regulator_addr == sp_class:
+                found_sp.append(sp_addr)
+        return
+
     def init_regulators(self):
+        p = None
         regulator_class = self.ramdump.address_of('regulator_class')
         if regulator_class is None:
             self.output.write("ERROR: 'regulator_class' not found\n")
             return
-        p = self.ramdump.read_structure_field(regulator_class, 'struct class', 'p')
+        if self.ramdump.field_offset('struct class', 'p') is None:
+            classkset_ptr = self.ramdump.read_pointer('class_kset')
+            classkset_list_ptr = self.ramdump.read_structure_field(classkset_ptr, 'struct kset', 'list.next')
+            kobj_offset = self.ramdump.field_offset('struct kobject', 'entry')
+            sp_buf = []
+            class_subsys_walker = llist.ListWalker(self.ramdump, classkset_list_ptr, kobj_offset)
+            class_subsys_walker.walk(classkset_list_ptr, self.get_class_to_subsys, regulator_class, sp_buf)
+            if bool(sp_buf):
+                p = sp_buf[0]
+        else:
+            p = self.ramdump.read_structure_field(regulator_class, 'struct class', 'p')
+
         list_head = (p + self.ramdump.field_offset('struct subsys_private', 'klist_devices')
                     + self.ramdump.field_offset('struct klist', 'k_list'))
         list_offset = self.ramdump.field_offset('struct klist_node', 'n_node')

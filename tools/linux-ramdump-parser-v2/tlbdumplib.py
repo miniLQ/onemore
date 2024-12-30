@@ -26,6 +26,10 @@
 # WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Changes from Qualcomm Innovation Center are provided under the following license:
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
 
 from __future__ import print_function
 import struct
@@ -247,13 +251,17 @@ class TlbDumpType_v3(object):
            any arguments; they must be passed through the command line"""
         exec_name = "kryo_cache_tlb_json_parser.py"
         exec_abspath = os.path.join(self.ramdump.get_srcdir(), exec_name)
-        args = ["py -2", exec_abspath]
+        if os.name == "posix":
+            args = ["python2", exec_abspath]
+        else:
+            args = ["py -2", exec_abspath]
         args.extend(argv)
         args_str = " ".join(str(x) for x in args)
         """We must do this, since the parser's main() function does not take
-           any arguments; they must be passed through the command line"""
+        any arguments; they must be passed through the command line"""
         p = subprocess.run(args_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                           universal_newlines=True)
+                        universal_newlines=True, shell=True)
+
         if p.returncode < 0:
             print_out_str("{} Failed with error {}".format(p.args, p.returncode))
         print_out_str(p.stderr)
@@ -305,13 +313,17 @@ class TlbDumpType_v4(object):
            any arguments; they must be passed through the command line"""
         exec_name = "kryo_cache_tlb_json_parser.py"
         exec_abspath = os.path.join(self.ramdump.get_srcdir(), exec_name)
-        args = ["py -2", exec_abspath]
+        if os.name == "posix":
+            args = ["python2", exec_abspath]
+        else:
+            args = ["py -2", exec_abspath]
         args.extend(argv)
         args_str = " ".join(str(x) for x in args)
         """We must do this, since the parser's main() function does not take
-           any arguments; they must be passed through the command line"""
+        any arguments; they must be passed through the command line"""
         p = subprocess.run(args_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                           universal_newlines=True)
+                            universal_newlines=True, shell=True)
+
         if p.returncode < 0:
             print_out_str("{} Failed with error {}".format(p.args, p.returncode))
         print_out_str(p.stderr)

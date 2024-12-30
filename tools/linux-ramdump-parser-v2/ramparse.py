@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
-# Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -71,10 +71,15 @@ def get_ftrace_args(option, opt, value, parser):
 
 
 if __name__ == '__main__':
+    starttime = time.time()
     usage = 'usage: %prog [options to print]. Run with --help for more details'
     parser = OptionParser(usage)
-    parser.add_option('', '--print-watchdog-time', action='store_true',
-                      dest='watchdog_time', help='Print watchdog timing information', default=False)
+    parser.add_option('', '--logcat_limit_time_sec',
+                      dest='logcat_limit_time', type='int', default=0,
+                      help='Defined the max time logcat parse running')
+    parser.add_option('', '--ftrace_limit_time_sec',
+                      dest='ftrace_limit_time', type='int', default=0,
+                      help='Defined the max time ftrace parse running')
     parser.add_option('-e', '--ram-file', dest='ram_addr',
                       help='List of ram files (name, start, end)', action='callback', callback=parse_ram_file)
     parser.add_option('-v', '--vmlinux', dest='vmlinux', help='vmlinux path')
@@ -129,22 +134,14 @@ if __name__ == '__main__':
                       dest='skip_qdss_bin', help='Skip QDSS ETF and ETR '
                       'binary data parsing from debug image (may save time '
                       'if large ETM and ETR buffers are present)')
-    parser.add_option('', '--ipc-help', dest='ipc_help',
-                      help='Help for IPC Logging', action='store_true',
-                      default=False)
-    parser.add_option('', '--ipc-test', dest='ipc_test',
-                      help='List of test files for the IPC Logging test command (name1, name2, ..., nameN, <version>)',
-                      action='append', default=[])
-    parser.add_option('', '--ipc-skip', dest='ipc_skip', action='store_true',
-                      help='Skip IPC Logging when parsing everything',
-                      default=False)
-    parser.add_option('', '--ipc-debug', dest='ipc_debug', action='store_true',
-                      help='Debug Mode for IPC Logging', default=False)
     parser.add_option('', '--eval',
                       help='Evaluate some python code directly, or from stdin if "-" is passed. The "dump" variable will be available, as it is with the --shell option.')  # noqa
     parser.add_option('', '--wlan', dest='wlan', help='wlan.ko path')
     parser.add_option('', '--minidump', action='store_true', dest='minidump',
                       help='Parse minidump')
+    # Adding option for reduced dump
+    parser.add_option('', '--reduceddump', action='store_true', dest='reduceddump',
+                  help='Parse reduceddump')
     parser.add_option('', '--svm', default='', dest='svm',action='store',type="string",
                       help='Parse svm')
     parser.add_option('', '--ram-elf', dest='ram_elf_addr',
@@ -177,6 +174,17 @@ if __name__ == '__main__':
                                          ]
                           """,
                           default=[])
+    parser.add_option('--fs', '--ftrace_buffer_size_kb', type='int', dest='ftrace_max_size',
+                      help="""
+                      This option indicates that ftrace trace buffer max size in KB.
+                      It will be passed to ensure an early bailout from ftrace parser if size goes
+                      beyond this specified value.
+                      Example: --fs 4096
+                      This specifies that max size is 4096 KB.
+                      """)
+    parser.add_option('', '--skip_TLB_Cache_parse', action='store_true', help='Skip parsing TLB Cache Dumps in parse_debug_image')
+    parser.add_option('--iommu-pg-table-format', action='store', choices=['fastrpc', 'default'],
+                      default='default')
 
     for p in parser_util.get_parsers():
         parser.add_option(p.shortopt or '',
@@ -186,6 +194,16 @@ if __name__ == '__main__':
                           action='store_true')
 
     (options, args) = parser.parse_args()
+    if options.reduceddump:
+        try:
+            import ramreduction_util as elfutil
+        except ImportError as ierr:
+            print("Missing PyElftools library. Check README")
+            sys.exit(1)
+        except Exception as err:
+            print("{}".format(str(err)))
+            sys.exit(1)
+    everything_exclusion_list  = []
     if options.minidump:
         default_list = []
         default_list.append("Schedinfo")
@@ -199,6 +217,11 @@ if __name__ == '__main__':
         default_list.append("RunQueues")
         default_list.append("PStore")
         default_list.append("Kconfig")
+        default_list.append("ThermalTemp")
+        default_list.append("ipc_logging_cn")
+
+    if options.everything:
+        everything_exclusion_list.append("ROData")
 
     if options.outdir:
         if not os.path.exists(options.outdir):
@@ -262,8 +285,12 @@ if __name__ == '__main__':
 
     print_out_str('using vmlinux file {0}'.format(options.vmlinux))
 
-    if options.ram_addr is None and options.autodump is None and not options.minidump:
+    if options.ram_addr is None and options.autodump is None and not options.minidump and not options.reduceddump:
         print_out_str('Need one of --auto-dump or at least one --ram-file')
+        sys.exit(1)
+
+    if options.reduceddump and not options.autodump:
+        print_out_str('Need autodump with --reduceddump option')
         sys.exit(1)
 
     if options.ram_addr is not None:
@@ -410,15 +437,18 @@ if __name__ == '__main__':
         if not dump.print_socinfo():
             print_out_str('!!! No serial number information available.')
 
+    try:
+        epoch_ns = dump.read_u64('cd.read_data[0].epoch_ns')
+        epoch_cyc = dump.read_u64('cd.read_data[0].epoch_cyc')
+        print_out_str('\nepoch_ns: {0}ns  epoch_cyc: {1}\n'.format(epoch_ns,epoch_cyc))
+    except Exception as e:
+        print_out_str(str(e))
+        pass
+
     if options.qdss:
         print_out_str('!!! --parse-qdss is now deprecated')
         print_out_str(
             '!!! Please just use --parse-debug-image to get QDSS information')
-
-    if options.watchdog_time:
-        print_out_str('\n--------- watchdog time -------')
-        get_wdog_timing(dump)
-        print_out_str('---------- end watchdog time-----')
 
     # Always verify Scheduler requirement for active_cpus on 64-bit platforms.
     if options.arm64:
@@ -439,7 +469,13 @@ if __name__ == '__main__':
                       or (options.everything and not p.optional)]
     if options.timeout:
         from func_timeout import func_timeout, FunctionTimedOut
+
+    print_out_str("Time taken to setup the subparsers run : {}".format(time.time()-starttime))
+    starttime = time.time()
     for i,p in enumerate(parsers_to_run):
+        if options.everything:
+            if p.cls.__name__ in everything_exclusion_list:
+                continue
         if i == 0:
             sys.stderr.write("\n")
         if options.minidump:
@@ -451,8 +487,9 @@ if __name__ == '__main__':
 
 
         print("    [%d/%d] %s ... " %
-                         (i + 1, len(parsers_to_run), p.longopt), end='')
+                         (i + 1, len(parsers_to_run), p.longopt), end='', flush=True)
         before = time.time()
+        print_out_str("start time {0}".format(before))
         with print_out_section(p.cls.__name__):
             try:
                 if options.timeout:
@@ -470,7 +507,9 @@ if __name__ == '__main__':
                     print("FAILED! ")
                 else:
                     raise
-        print("%fs" % (time.time() - before))
+        after = time.time()
+        print_out_str("end time {0} time cost {1} for {2}".format(after, (after - before), p.cls.__name__))
+        print("%fs" % (after - before),  flush=True)
         flush_outfile()
 
     sys.stderr.write("\n")
@@ -478,3 +517,8 @@ if __name__ == '__main__':
     if options.t32launcher or options.everything or options.minidump:
         dump.create_t32_launcher()
 
+    dump.gdbmi.close()
+    print_out_str("Time taken to complete ramparser subscripts : {}".format(time.time()-starttime))
+    if options.reduceddump:
+        print_out_str("Number of cache hits on full cache : {}".format(elfutil.cachehits))
+        print_out_str("Number of cache misses on full cache : {}".format(elfutil.cachemiss))

@@ -26,6 +26,9 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+Changes from Qualcomm Innovation Center are provided under the following license:
+Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause-Clear
 """
 
 import os,sys
@@ -62,7 +65,7 @@ class wakeup_logging(RamParser):
         curr_chan=0
         ep_idx=0
         wakeup_sources_addr = ram_dump.address_of('wakeup_sources')
-        next = ram_dump.read_u64(wakeup_sources_addr)
+        next = ram_dump.read_pointer(wakeup_sources_addr)
         entry_offset = ram_dump.field_offset('struct wakeup_source','entry')
         name_offset = ram_dump.field_offset('struct wakeup_source','name')
         active_count_offset = ram_dump.field_offset('struct wakeup_source','active_count')
@@ -73,7 +76,7 @@ class wakeup_logging(RamParser):
         total_time_offset = ram_dump.field_offset('struct wakeup_source','total_time')
         last_time_offset = ram_dump.field_offset('struct wakeup_source','last_time')
         start_prevent_time_offset = ram_dump.field_offset('struct wakeup_source','start_prevent_time')
-        prevent_sleep_time_offset = ram_dump.field_offset('struct wakeup_source','prevent_sleep_time')   
+        prevent_sleep_time_offset = ram_dump.field_offset('struct wakeup_source','prevent_sleep_time')
         header_str = ('{0:11} {1:10} {2:10} {3:13} {4:14} {5:11} {6:13} {7:16} {8:16} {9:10}'
                     .format('active_count', 'event_count', 'wakeup_count',
                         'expire_count', 'total_time', 'last_time', 'start_prevent_time', 'prevent_suspend_time', 'active', 'name'))
@@ -81,19 +84,19 @@ class wakeup_logging(RamParser):
         while wakeup_sources_addr != next:
             idx = 0
             next = next - entry_offset
-            name_addr = ram_dump.read_u64(next + name_offset)
+            name_addr = ram_dump.read_pointer(next + name_offset)
             name = ram_dump.read_cstring(name_addr)
-            active_count = ram_dump.read_u64(next + active_count_offset)
-            event_count = ram_dump.read_u64(next + event_count_offset)
-            wakeup_count = ram_dump.read_u64(next + wakeup_count_offset)
-            expire_count = ram_dump.read_u64(next + expire_count_offset)
-            active = ram_dump.read_u64(next + active_offset)
+            active_count = ram_dump.read_ulong(next + active_count_offset)
+            event_count = ram_dump.read_ulong(next + event_count_offset)
+            wakeup_count = ram_dump.read_ulong(next + wakeup_count_offset)
+            expire_count = ram_dump.read_ulong(next + expire_count_offset)
+            active = ram_dump.read_bool(next + active_offset)
             total_time_addr = ram_dump.read_s64(next + total_time_offset)
             last_time_addr = ram_dump.read_s64(next + last_time_offset)
             start_prevent_time_addr = ram_dump.read_s64(next + start_prevent_time_offset)
             prevent_sleep_time_addr = ram_dump.read_s64(next + prevent_sleep_time_offset)
-            
-            
+
+
             total_time0 = total_time_addr
             total_time1 = ram_dump.read_u32(next + total_time_offset +0x4)
             total_time1= (total_time1<<0x20)
@@ -119,7 +122,7 @@ class wakeup_logging(RamParser):
                     .format(int(active_count), int(event_count), int(wakeup_count),
                         int(expire_count), total_time, last_time, start_prevent_time, prevent_sleep_time, active, name))
             print_out_ip(data_str)
-            next = ram_dump.read_u64(next + entry_offset)
+            next = ram_dump.read_pointer(next + entry_offset)
 
 
     def parse(self):

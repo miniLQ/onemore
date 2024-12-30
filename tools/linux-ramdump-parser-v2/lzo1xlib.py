@@ -381,3 +381,4 @@ class Lzo1xParser():
             t = self.match_next(next)
             continue
         self.eof_found(t)
+

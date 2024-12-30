@@ -1212,7 +1212,7 @@ class BoardParrot(Board):
         super(BoardParrot, self).__init__()
         self.socid = socid
         self.board_num = "parrot"
-        self.cpu = 'CORTEXA53'
+        self.cpu = 'CORTEXA78'
         self.ram_start = 0x80000000
         self.smem_addr = 0x900000
         self.smem_addr_buildinfo = 0x9071e0
@@ -1231,7 +1231,7 @@ class BoardParrotSVM(Board):
         super(BoardParrotSVM, self).__init__()
         self.socid = socid
         self.board_num = "parrotsvm"
-        self.cpu = 'CORTEXA53'
+        self.cpu = 'CORTEXA78'
         self.ram_start = 0x80000000
         self.smem_addr = 0x900000
         self.smem_addr_buildinfo = 0x9071e0
@@ -1673,6 +1673,60 @@ class BoardNiobe(Board):
         self.tbi_mask = 0x4000000000
         self.aff_shift = [0,0,3,0]
 
+class BoardCanoe(Board):
+    def __init__(self, socid):
+        super(BoardCanoe, self).__init__()
+        self.socid = socid
+        self.board_num = "canoe"
+        self.cpu = 'ARMV9-A'
+        self.ram_start = 0x80000000
+        self.smem_addr = 0x1D00000
+        self.smem_addr_buildinfo = 0x1D08408
+        self.phys_offset = 0xA8000000
+        self.imem_start = 0x14680000
+        self.kaslr_addr = 0x146806d0
+        self.imem_offset_memdump_table = 0x10
+        self.imem_file_name = 'OCIMEM.BIN'
+        self.tbi_mask = 0x4000000000
+        self.aff_shift = [0,0,3,0]
+        self.core_map = {8:6,9:7}
+
+class BoardCanoeSVM(Board):
+    def __init__(self, socid):
+        super(BoardCanoeSVM, self).__init__()
+        self.socid = socid
+        self.board_num = "canoesvm"
+        self.cpu = 'ARMV9-A'
+        self.ram_start = 0x80000000
+        self.smem_addr = 0x1D00000
+        self.smem_addr_buildinfo = 0x1D08408
+        self.phys_offset = 0xf3800000
+        self.imem_start = 0x14680000
+        self.kaslr_addr = 0x146806d0
+        self.imem_offset_memdump_table = 0x10
+        self.imem_file_name = 'OCIMEM.BIN'
+        self.tbi_mask = 0x4000000000
+        self.aff_shift = [0,0,3,0]
+        self.vmid = 45
+
+class BoardCanoeOEMVM(Board):
+    def __init__(self, socid):
+        super(BoardCanoeOEMVM, self).__init__()
+        self.socid = socid
+        self.board_num = "canoeoemvm"
+        self.cpu = 'ARMV9-A'
+        self.ram_start = 0x80000000
+        self.smem_addr = 0x1D00000
+        self.smem_addr_buildinfo = 0x1D08408
+        self.phys_offset = 0xf7c00000
+        self.imem_start = 0x14680000
+        self.kaslr_addr = 0x146806d0
+        self.imem_offset_memdump_table = 0x10
+        self.imem_file_name = 'OCIMEM.BIN'
+        self.tbi_mask = 0x4000000000
+        self.aff_shift = [0,0,3,0]
+        self.vmid = 49
+
 Board9640(socid=234)
 Board9640(socid=235)
 Board9640(socid=236)
@@ -2057,3 +2111,10 @@ BoardVolcanoSVM(socid=641)
 BoardVolcanoOEMVM(socid=641)
 
 BoardNiobe(socid=629)
+
+BoardCanoe(socid=660)
+BoardCanoeSVM(socid=660)
+BoardCanoeOEMVM(socid=660)
+BoardCanoe(socid=661)
+BoardCanoeSVM(socid=661)
+BoardCanoeOEMVM(socid=661)

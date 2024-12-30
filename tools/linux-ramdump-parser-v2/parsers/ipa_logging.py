@@ -133,9 +133,12 @@ class ipa_logging(RamParser):
             if valid != 0:
                 curr_chan = ram_dump.read_u64(gsi_chan_hdl_offset + ep_addr_data)
                 client = ram_dump.read_u32(client_offset + ep_addr_data)
-                ipa_client_enum = self.ramdump.gdbmi.get_value_of('IPA_CLIENT_MHI_QDSS_CONS')
+                ipa_client_enum = self.ramdump.gdbmi.get_value_of('IPA_CLIENT_IPSEC_ENCAP_ERR_CONS')
+                # This means, to accomodate difference in IPA client counts from PL to PL, we are keeping an offset,
+                # so that there is no exception due to difference in the upperbound. 
+                client_count_offset=50
                 client_names = ram_dump.gdbmi.get_enum_lookup_table(
-                    'ipa_client_type', ipa_client_enum)
+                    'ipa_client_type',ipa_client_enum+client_count_offset)
                 print_out_ip("IPA Pipe:  {0}".format(ep_idx))
                 print_out_ip("Pipe Name: {0}".format(client_names[client]))
                 sys = ram_dump.read_u64(sys_offset + ep_addr_data)
@@ -174,13 +177,15 @@ class ipa_logging(RamParser):
                 pros = props_offset + chan_idx_addr
                 prot = ram_dump.read_u32(prot_offset + pros)
                 prot_enum = ram_dump.gdbmi.get_value_of('GSI_CHAN_PROT_11AD')
+                offset_for_prot_names=15 # 15 additional values in the array. When new channels come up, they will be populated here.
                 prot_names = ram_dump.gdbmi.get_enum_lookup_table(
-                    'gsi_chan_prot', prot_enum)
+                    'gsi_chan_prot', prot_enum+offset_for_prot_names)
                 ch_id = ram_dump.read_u16(ch_id_offset + chan_idx_addr)
                 state = ram_dump.read_u16(state_offset + chan_idx_addr)
+                offset_for_gsi_state_enum=5 #5 additional values in the array. When new states come up, they will be populated here.
                 state_enum = ram_dump.gdbmi.get_value_of('GSI_CHAN_STATE_ERROR')
                 state_names = ram_dump.gdbmi.get_enum_lookup_table(
-                    'gsi_chan_state', state_enum)
+                    'gsi_chan_state', state_enum+offset_for_gsi_state_enum)
 
                 poll_mode = ram_dump.read_u32(poll_mode_offset + chan_idx_addr)
                 ring = ring_offset + chan_idx_addr

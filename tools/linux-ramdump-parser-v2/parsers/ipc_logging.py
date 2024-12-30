@@ -26,6 +26,10 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+Changes from Qualcomm Innovation Center are provided under the following license:
+Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause-Clear
+
 IPC Logging Extraction Tool
 ---------------------------
 
@@ -175,6 +179,8 @@ class ipc_logging_cn(RamParser):
                 hdr_addr, 'struct ipc_log_page_header', 'nd_read_offset')
             write_offset = self.ramdump.read_structure_field(
                 hdr_addr, 'struct ipc_log_page_header', 'write_offset')
+            if nd_read_offset is None:
+                break
             start_addr = curr_read_page + LOG_PAGE_DATA_OFFSET + nd_read_offset
 
             if nd_read_offset <= write_offset:
@@ -219,7 +225,10 @@ class ipc_logging_cn(RamParser):
                           .format(ipc_log_context))
             return
 
-        self.do_ipc_log_context_parser(ipc_log_context)
+        try:
+            self.do_ipc_log_context_parser(ipc_log_context)
+        except:
+            pass
 
     def get_ipc_log_context_list(self, ram_dump):
         ipc_log_context_list = ram_dump.address_of('ipc_log_context_list')
@@ -234,4 +243,13 @@ class ipc_logging_cn(RamParser):
             self.ramdump.outdir), "ipc_logging")
         if os.path.exists(self.output_dir) is False:
             os.makedirs(self.output_dir)
-        self.get_ipc_log_context_list(self.ramdump)
+        if self.ramdump.minidump and self.ramdump.autodump:
+            for file in os.listdir(self.ramdump.autodump):
+                if file.startswith('md_ipc_ctxt'):
+                    ipc_file = os.path.splitext(file)[0].replace("md_", "")
+                    ipc_seg = next((s for s in self.ramdump.elffile.iter_sections() if s.name == ipc_file), None)
+                    if ipc_seg is not None:
+                        ipc_log_context = ipc_seg['sh_addr']
+                        self.ipc_log_context_list_func(ipc_log_context)
+        else:
+            self.get_ipc_log_context_list(self.ramdump)

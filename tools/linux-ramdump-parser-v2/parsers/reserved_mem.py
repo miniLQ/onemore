@@ -1,5 +1,5 @@
 # Copyright (c) 2018-2020,2021 The Linux Foundation. All rights reserved.
-# Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -17,6 +17,7 @@ from mm import get_vmemmap, page_buddy
 from mm import pfn_to_page, page_buddy, page_count, for_each_pfn
 from mm import page_to_pfn, pfn_to_section
 from utils.anomalies import Anomaly
+from .pagetracking import PageTrace
 
 def print_reserved_mem(ramdump):
     reserved_mem_addr = ramdump.address_of('reserved_mem')
@@ -45,19 +46,30 @@ def print_reserved_mem(ramdump):
     output_file.close()
 
 def print_tasklet_info(ramdump, core, tasklet):
-    print_out_str("Pending Tasklet info for {0}:".format(tasklet))
     tasklet_vec_addr = ramdump.address_of(tasklet)
     tasklet_head = tasklet_vec_addr + ramdump.per_cpu_offset(core)
     tasklet_head = ramdump.read_word(tasklet_head)
     next_offset = ramdump.field_offset('struct tasklet_struct', 'next')
     func_offset = ramdump.field_offset('struct tasklet_struct', 'func')
+    count_offset = ramdump.field_offset('struct tasklet_struct', 'count')
+    if tasklet_head != 0x0:
+        print_out_str("Pending Tasklet info for {0}:".format(tasklet))
+
     while (tasklet_head != 0x0):
+        print_out_str("struct tasklet_struct: 0x{0:x}:".format(tasklet_head))
         tasklet_func_addr = ramdump.read_word(tasklet_head + func_offset)
         tasklet_func = ramdump.unwind_lookup(tasklet_func_addr)
         if tasklet_func is None:
             tasklet_func = "Dynamic module/symbol not found"
-        print_out_str("{0:x} -> {1}".format(tasklet_func_addr, tasklet_func))
-        tasklet_head = ramdump.read_word(tasklet_head+next_offset)
+        else:
+            tasklet_func = tasklet_func[0]
+        print_out_str("\tfunc : 0x{:<16x} -> {}".format(tasklet_func_addr, tasklet_func))
+        count = ramdump.read_int(tasklet_head + count_offset)
+        if count != 0:
+            print_out_str("\tcount: 0x{:<16x} -> this tasklet is disabled".format(count))
+        else:
+            print_out_str("\tcount: 0x{:<16x} -> this tasklet is enabled".format(count))
+        tasklet_head = ramdump.read_word(tasklet_head + next_offset)
 
 
 def parse_softirq_stat(ramdump):
@@ -68,7 +80,7 @@ def parse_softirq_stat(ramdump):
     no_of_cpus = ramdump.get_num_cpus()
     index = 0
     size_of_irq_stat = ramdump.sizeof('irq_cpustat_t')
-    while index < no_of_cpus:
+    for index in ramdump.iter_cpus():
         if ramdump.kernel_version >= (4, 19):
             irq_stat = irq_stat_addr + ramdump.per_cpu_offset(index)
         else:
@@ -77,7 +89,7 @@ def parse_softirq_stat(ramdump):
                                 irq_stat, 'irq_cpustat_t', '__softirq_pending')
         pending = ""
         pos = sofrirq_name_arr_size - 1
-        while pos:
+        while pos >= 0:
             if softirq_pending & (1 << pos):
                 flag_addr = ramdump.read_word(ramdump.array_index(
                     softirq_name_addr, "char *", pos))
@@ -87,12 +99,13 @@ def parse_softirq_stat(ramdump):
             pos = pos - 1
         if pending == "":
             pending = "None"
+        else:
+            pending = pending.rstrip().rstrip("|")
         print_out_str("core {0} : __softirq_pending = {1}".format(
                                 index, pending))
-        if "TASKLET" in pending:
+        if "TASKLET" in pending or "HI" in pending:
             print_tasklet_info(ramdump, index, 'tasklet_vec')
             print_tasklet_info(ramdump, index, 'tasklet_hi_vec')
-        index = index + 1
 
 def check_qseecom_invalid_cmds(ramdump):
     invalid_qsecom_cmds_id = ["3", "5", "7", "9", "14", "15", "16", "17", "19", "23" , "29"]
@@ -156,203 +169,9 @@ class ReservedMem(RamParser):
 class CmaAreas(RamParser):
     def __init__(self, *args):
         super(CmaAreas, self).__init__(*args)
-
-        self.trace_entry_size = self.ramdump.sizeof('unsigned long')
-        self.trace_offset = 0
-        self.nr_entries_offset = 0
-        self.trace_entries_offset = 0
-
-
-        if self.ramdump.is_config_defined('CONFIG_SPARSEMEM'):
-            self.page_ext_offset = self.ramdump.field_offset(
-                            'struct mem_section', 'page_ext')
-        else:
-            self.page_ext_offset = self.ramdump.field_offset(
-                            'struct pglist_data', 'node_page_ext')
-
-
-        if (self.ramdump.kernel_version <= (3, 19, 0)):
-            self.trace_offset = self.ramdump.field_offset('struct page', 'trace')
-            self.nr_entries_offset = self.ramdump.field_offset(
-                'struct stack_trace', 'nr_entries')
-            self.trace_entries_offset = self.ramdump.field_offset(
-                'struct page', 'trace_entries')
-
-        else:
-            self.trace_offset = self.ramdump.field_offset(
-                            'struct page_ext', 'trace')
-            if self.ramdump.is_config_defined('CONFIG_STACKDEPOT'):
-                self.trace_entries_offset = self.ramdump.field_offset(
-                        'struct stack_record', 'entries')
-            else:
-                self.trace_entries_offset = self.ramdump.field_offset(
-                            'struct page_ext', 'trace_entries')
-
-            self.nr_entries_offset = self.ramdump.field_offset(
-                        'struct page_ext', 'nr_entries')
-
-            self.page_ext_size = self.ramdump.sizeof("struct page_ext")
-            if self.ramdump.kernel_version >= (4, 9, 0):
-                self.page_owner_size = self.ramdump.sizeof("struct page_owner")
-                if self.page_owner_size is not None:
-                    self.page_ext_size = self.page_ext_size + self.page_owner_size
-                    self.page_owner_ops_offset = self.ramdump.read_structure_field(
-                        'page_owner_ops', 'struct page_ext_operations', 'offset')
-
-        '''
-        Following based upon definition in include/linux/mmzone.h
-
-        #ifndef CONFIG_FORCE_MAX_ZONEORDER
-        #define MAX_ORDER 11
-        #else
-        #define MAX_ORDER CONFIG_FORCE_MAX_ZONEORDER
-        #endif
-        '''
-        try:
-            self.max_order = int(self.ramdump.get_config_val(
-                                "CONFIG_FORCE_MAX_ZONEORDER"))
-        except:
-            self.max_order = 11
-        self.stack_slabs = self.ramdump.address_of('stack_slabs')
-        self.stack_slabs_size = self.ramdump.sizeof('void *')
-
-    def page_trace(self, pfn, alloc):
-        trace_offset = 0
-        nr_entries_offset = 0
-        trace_entries_offset = 0
-        offset = 0
-        struct_holding_trace_entries = 0
-        if not alloc and self.ramdump.kernel_version < (5, 4, 0):
-            return -1, -1, -1, -1
-
-        if (self.ramdump.kernel_version <= (3, 19, 0)):
-            trace_offset = self.ramdump.field_offset('struct page', 'trace')
-            nr_entries_offset = self.ramdump.field_offset(
-                'struct stack_trace', 'nr_entries')
-            trace_entries_offset = self.ramdump.field_offset(
-                'struct page', 'trace_entries')
-
-        else:
-            trace_offset = self.ramdump.field_offset(
-                'struct page_ext', 'trace')
-            if self.ramdump.is_config_defined('CONFIG_STACKDEPOT'):
-                trace_entries_offset = self.ramdump.field_offset(
-                    'struct stack_record', 'entries')
-            else:
-                trace_entries_offset = self.ramdump.field_offset(
-                    'struct page_ext', 'trace_entries')
-
-            nr_entries_offset = self.ramdump.field_offset(
-                'struct page_ext', 'nr_entries')
-
-            page_ext_size = self.ramdump.sizeof("struct page_ext")
-            if self.ramdump.kernel_version >= (4, 9, 0):
-                page_owner_size = self.ramdump.sizeof("struct page_owner")
-                page_ext_size = page_ext_size + page_owner_size
-                page_owner_ops_offset = self.ramdump.read_structure_field(
-                    'page_owner_ops', 'struct page_ext_operations', 'offset')
-
-        page = pfn_to_page(self.ramdump, pfn)
-        order = 0
-
-        if (self.ramdump.kernel_version <= (3, 19, 0)):
-            nr_trace_entries = self.ramdump.read_int(
-                page + trace_offset + nr_entries_offset)
-            struct_holding_trace_entries = page
-            order = self.ramdump.read_structure_field(
-                page, 'struct page', 'order')
-        else:
-            phys = pfn << 12
-            if phys is None or phys == 0:
-                return -1, -1, -1, -1
-            mem_section = pfn_to_section(self.ramdump, pfn)
-            page_ext = self.ramdump.read_word(mem_section + self.page_ext_offset)
-            """
-            page_ext will be null here if the first page of a section is not valid.
-            See page_ext_init().
-            """
-            if not page_ext:
-                return -1, -1, -1, -1
-
-            if self.ramdump.arm64:
-                temp_page_ext = page_ext + (pfn * page_ext_size)
-            else:
-                pfn_index = pfn - (self.ramdump.phys_offset >> 12)
-                temp_page_ext = page_ext + (pfn_index * page_ext_size)
-
-            if self.ramdump.kernel_version >= (4, 9, 0):
-                temp_page_ext = temp_page_ext + page_owner_ops_offset
-                order = self.ramdump.read_structure_field(
-                    temp_page_ext, 'struct page_owner', 'order')
-                if alloc:
-                    pid = self.ramdump.read_structure_field(
-                        temp_page_ext, 'struct page_owner', 'pid')
-                    ts_nsec = self.ramdump.read_structure_field(
-                        temp_page_ext, 'struct page_owner', 'ts_nsec')
-                else:
-                    pid = -1
-                    ts_nsec = self.ramdump.read_structure_field(temp_page_ext,
-                                                                'struct page_owner', 'free_ts_nsec')
-                    if ts_nsec is None:
-                        ts_nsec = -1
-            else:
-                order = self.ramdump.read_structure_field(
-                    temp_page_ext, 'struct page_ext', 'order')
-
-            if not self.ramdump.is_config_defined('CONFIG_STACKDEPOT'):
-                nr_trace_entries = self.ramdump.read_int(
-                    temp_page_ext + nr_entries_offset)
-                struct_holding_trace_entries = temp_page_ext
-            else:
-                if self.ramdump.kernel_version >= (4, 9, 0):
-                    if not alloc:
-                        handle_str = 'free_handle'
-                    else:
-                        handle_str = 'handle'
-                    handle = self.ramdump.read_structure_field(
-                        temp_page_ext, 'struct page_owner', handle_str)
-                else:
-                    handle = self.ramdump.read_structure_field(
-                        temp_page_ext, 'struct page_ext', 'handle')
-
-                if handle == 0 or handle == None:
-                    return -1, -1, -1, -1
-                slabindex = handle & 0x1fffff
-                handle_offset = (handle >> 0x15) & 0x3ff
-                handle_offset = handle_offset << 4
-
-                slab = self.ramdump.read_word(
-                    self.stack_slabs + (self.stack_slabs_size * slabindex))
-                if slab is None:
-                    return -1, -1, -1, -1
-                stack = slab + handle_offset
-
-                nr_trace_entries = self.ramdump.read_structure_field(
-                    stack, 'struct stack_record', 'size')
-
-                struct_holding_trace_entries = stack
-
-        if nr_trace_entries <= 0 or nr_trace_entries > 16:
-            return -1, -1, -1, -1
-        if order >= self.max_order:
-            return -1, -1, -1, -1
-
-        alloc_str = ''
-        for i in range(0, nr_trace_entries):
-            addr = self.ramdump.read_word(
-                struct_holding_trace_entries + trace_entries_offset + i *
-                self.trace_entry_size)
-
-            if not addr:
-                break
-            look = self.ramdump.unwind_lookup(addr)
-            if look is None:
-                break
-            symname, offset = look
-            unwind_dat = '      [<{0:x}>] {1}+0x{2:x}\n'.format(
-                addr, symname, offset)
-            alloc_str = alloc_str + unwind_dat
-        return alloc_str, order, pid, ts_nsec
+        self.offset_comm = self.ramdump.field_offset('struct page_owner', 'comm')
+        if self.ramdump.is_config_defined('CONFIG_PAGE_OWNER'):
+            self.pagetrace = PageTrace(self.ramdump)
 
     def parse_pfn(self, ramdump, pfn, cma, op_file, dict):
 
@@ -360,7 +179,7 @@ class CmaAreas(RamParser):
         page_size = ramdump.sizeof('struct page')
         page = vmemmap + pfn * page_size
         str = "{0} pfn : 0x{1:x} page : 0x{2:x} flag : 0x{3:x} mapping : 0x{" \
-              "4:x} count : {5} _mapcount : {6:x}  PID : {7}  {8}\n ts_nsec      {9:>32d} \n free_ts_nsec {10:>32d} \n{11}\n"
+              "4:x} count : {5} _mapcount : {6:x}  PID : {7}{8} {9}\n ts_nsec      {10:>32d} \n free_ts_nsec {11:>32d} \n{12}\n"
         str1 = "{0} pfn : 0x{1:x}--0x{2:x} head_page : 0x{3:x} flag : {4:x} " \
                "mapping : 0x{5:x} count : {6} _mapcount : {7:x} {8}\n{9}\n"
         str2 = "{0} pfn : 0x{1:x} pge : 0x{2:x} count : {3} _mapcount : " \
@@ -409,8 +228,9 @@ class CmaAreas(RamParser):
                 pid = -1
                 ts_nsec = -1
                 free_ts_nsec = -1
+                comm = -1
             else:
-                function_list, order, pid, ts_nsec = self.page_trace(pfn, True)
+                function_list, order, pid, ts_nsec, gfp, comm, ext_flags = self.pagetrace.page_trace(pfn, True)
                 free_ts_nsec = 0
                 if pid in dict:
                     dict[pid] = dict[pid] + 1
@@ -419,7 +239,8 @@ class CmaAreas(RamParser):
             if nr_pages == 1:
                 op_file.write(str.format(
                     cma_usage, pfn, page, page_flags, page_mapping, page_count,
-                    page_mapcount, pid, is_pinned_str, ts_nsec, free_ts_nsec, function_list))
+                    page_mapcount, pid, " comm: {}".format(comm) if self.offset_comm is not None else "", \
+                    is_pinned_str, ts_nsec, free_ts_nsec, function_list))
             else:
                 op_file.write(str1.format(cma_usage, pfn, pfn + nr_pages - 1,
                                           page, page_flags, page_mapping,

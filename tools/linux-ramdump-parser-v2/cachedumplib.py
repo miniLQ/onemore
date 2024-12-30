@@ -1,4 +1,5 @@
 # Copyright (c) 2015-2021, The Linux Foundation. All rights reserved.
+# Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -210,13 +211,17 @@ class CacheDumpType_v2(object):
         argv_str = " ".join(str(x) for x in argv)
         exec_name = "kryo_cache_tlb_json_parser.py"
         exec_abspath = os.path.join(self.ramdump.get_srcdir(), exec_name)
-        args = ["py -2", exec_abspath]
+        if os.name == "posix":
+            args = ["python2", exec_abspath]
+        else:
+            args = ["py -2", exec_abspath]
         args.extend(argv)
         args_str = " ".join(str(x) for x in args)
         """We must do this, since the parser's main() function does not take
-           any arguments; they must be passed through the command line"""
+        any arguments; they must be passed through the command line"""
         p = subprocess.run(args_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                           universal_newlines=True)
+                        universal_newlines=True, shell=True)
+
         if p.returncode < 0:
             print_out_str("{} Failed with error {}".format(p.args, p.returncode))
         print_out_str(p.stderr)
@@ -267,13 +272,17 @@ class CacheDumpType_v3(object):
            any arguments; they must be passed through the command line"""
         exec_name = "kryo_cache_tlb_json_parser.py"
         exec_abspath = os.path.join(self.ramdump.get_srcdir(), exec_name)
-        args = ["py -2", exec_abspath]
+        if os.name == "posix":
+            args = ["python2", exec_abspath]
+        else:
+            args = ["py -2", exec_abspath]
         args.extend(argv)
         args_str = " ".join(str(x) for x in args)
         """We must do this, since the parser's main() function does not take
-           any arguments; they must be passed through the command line"""
+        any arguments; they must be passed through the command line"""
         p = subprocess.run(args_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                           universal_newlines=True)
+                            universal_newlines=True, shell=True)
+
         if p.returncode < 0:
             print_out_str("{} Failed with error {}".format(p.args, p.returncode))
         print_out_str(p.stderr)

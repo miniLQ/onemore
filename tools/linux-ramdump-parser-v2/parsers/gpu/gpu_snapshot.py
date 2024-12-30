@@ -1,4 +1,5 @@
 # Copyright (c) 2021 The Linux Foundation. All rights reserved.
+# Copyright (c) 2022,2024, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -57,7 +58,7 @@ SNAPSHOT_GMU_MEM_LOG        =   2
 SNAPSHOT_GMU_MEM_BWTABLE    =   3
 SNAPSHOT_GMU_MEM_DEBUG      =   4
 SNAPSHOT_GMU_MEM_BIN_BLOCK  =   5
-
+SNAPSHOT_GMU_MEM_CTXT_QUEUE =   6
 
 # KGSL structures
 class kgsl_snapshot_header(Structure):
@@ -96,8 +97,25 @@ class kgsl_snapshot_gmu_mem(Structure):
                 ('gpuaddr', c_int64)]
 
 
-def gmu_log(devp, dump, chipid):
-    if chipid >= 0x7000000:
+class kgsl_snapshot_gmu_mem_header(Structure):
+    _pack_ = 1
+    _fields_ = [('type', c_int),
+                ('hostaddr_lower', c_uint),
+                ('hostaddr_upper', c_uint),
+                ('gmuaddr_lower', c_uint),
+                ('gmuaddr_upper', c_uint),
+                ('gpuaddr_lower', c_uint),
+                ('gpuaddr_upper', c_uint)]
+
+
+def gmu_log(devp, dump, gpurev):
+    if gpurev >= 0x80000:
+        gmu_dev = dump.sibling_field_addr(devp, 'struct gen8_device',
+                                          'adreno_dev', 'gmu')
+        gmu_logs = dump.read_structure_field(gmu_dev,
+                                             'struct gen8_gmu_device',
+                                             'gmu_log')
+    elif gpurev >= 0x70000:
         gmu_dev = dump.sibling_field_addr(devp, 'struct gen7_device',
                                           'adreno_dev', 'gmu')
         gmu_logs = dump.read_structure_field(gmu_dev,
@@ -133,8 +151,15 @@ def gmu_log(devp, dump, chipid):
     return (gmu_log_hostptr, gmu_log_size, gmu_log_gmuaddr, gmu_log_gpuaddr)
 
 
-def hfi_mem(devp, dump, chipid):
-    if chipid >= 0x7000000:
+def hfi_mem(devp, dump, gpurev):
+    if gpurev >= 0x80000:
+        gmu_dev = dump.sibling_field_addr(devp, 'struct gen8_device',
+                                          'adreno_dev', 'gmu')
+        hfi = dump.struct_field_addr(gmu_dev, 'struct gen8_gmu_device',
+                                     'hfi')
+        hfi_mem = dump.read_structure_field(hfi, 'struct gen8_hfi',
+                                            'hfi_mem')
+    elif gpurev >= 0x70000:
         gmu_dev = dump.sibling_field_addr(devp, 'struct gen7_device',
                                           'adreno_dev', 'gmu')
         hfi = dump.struct_field_addr(gmu_dev, 'struct gen7_gmu_device',
@@ -172,13 +197,13 @@ def hfi_mem(devp, dump, chipid):
     return (hfi_mem_hostptr, hfi_mem_size, hfi_mem_gmuaddr, hfi_mem_gpuaddr)
 
 
-def snapshot_gmu_mem_section(devp, dump, chipid, file, hdr_type):
+def snapshot_gmu_mem_section(devp, dump, gpurev, file, hdr_type):
     if hdr_type == SNAPSHOT_GMU_MEM_HFI:
         (gmu_mem_hostptr, gmu_mem_size, gmu_mem_gmuaddr, gmu_mem_gpuaddr) = \
-            hfi_mem(devp, dump, chipid)
+            hfi_mem(devp, dump, gpurev)
     elif hdr_type == SNAPSHOT_GMU_MEM_LOG:
         (gmu_mem_hostptr, gmu_mem_size, gmu_mem_gmuaddr, gmu_mem_gpuaddr) = \
-            gmu_log(devp, dump, chipid)
+            gmu_log(devp, dump, gpurev)
     else:
         return
 
@@ -196,7 +221,7 @@ def snapshot_gmu_mem_section(devp, dump, chipid, file, hdr_type):
     mem_hdr.gpuaddr = gmu_mem_gpuaddr
     file.write(mem_hdr)
 
-    data = dump.read_binarystring(gmu_mem_hostptr, gmu_mem_size)
+    data = dump.get_bin_data(gmu_mem_hostptr, gmu_mem_size)
     file.write(data)
 
 
@@ -268,7 +293,7 @@ def snapshot_rb_section(devp, dump, file, rb_type):
     rb_header.id = rb_id
     file.write(rb_header)
 
-    data = dump.read_binarystring(rb_hostptr, rb_size)
+    data = dump.get_bin_data(rb_hostptr, rb_size)
     file.write(data)
 
 
@@ -302,9 +327,9 @@ def create_snapshot_from_ramdump(devp, dump):
                                        'struct gmu_core_device', 'flags')
     if ((gmu_on >> 4) & 1):
         snapshot_gmu_mem_section(devp,
-                                 dump, chipid, file, SNAPSHOT_GMU_MEM_HFI)
+                                 dump, gpurev, file, SNAPSHOT_GMU_MEM_HFI)
         snapshot_gmu_mem_section(devp,
-                                 dump, chipid, file, SNAPSHOT_GMU_MEM_LOG)
+                                 dump, gpurev, file, SNAPSHOT_GMU_MEM_LOG)
 
     # Dump last section
     last_section = kgsl_snapshot_section_header()
@@ -312,5 +337,44 @@ def create_snapshot_from_ramdump(devp, dump):
     last_section.id = KGSL_SNAPSHOT_SECTION_END
     last_section.size = sizeof(kgsl_snapshot_section_header)
     file.write(last_section)
+
+    file.close()
+
+
+def extract_gmu_mem_from_snapshot(dump, snapshot_path):
+    file = dump.open_file(snapshot_path, 'rb')
+
+    header = kgsl_snapshot_header()
+    file.readinto(header)
+
+    while True:
+        current_pos = file.tell()
+        section_header = kgsl_snapshot_section_header()
+        file.readinto(section_header)
+
+        if section_header.id == KGSL_SNAPSHOT_SECTION_GMU_MEMORY:
+            gmu_mem_header = kgsl_snapshot_gmu_mem_header()
+            file.readinto(gmu_mem_header)
+
+            gmu_memory_sz = section_header.size - \
+                sizeof(kgsl_snapshot_gmu_mem_header) - \
+                sizeof(kgsl_snapshot_section_header)
+            data = file.read(gmu_memory_sz)
+
+            bin_filename = "gmu-section-" + str(gmu_mem_header.type) + "-" + \
+                str(hex(gmu_mem_header.gmuaddr_lower)) + ".snap.bin"
+            gmu_bin_file = dump.open_file("gpu_parser/snapshot/gmu_t32/" +
+                                          bin_filename, mode='wb')
+
+            gmu_bin_file.write(data)
+            gmu_bin_file.close()
+        elif section_header.id == 0 or section_header.size == 0:
+            print('Invalid id & size:', section_header.id, section_header.size)
+            print('Total size:', file.tell())
+            break
+        elif section_header.id == KGSL_SNAPSHOT_SECTION_END:
+            break
+
+        file.seek(current_pos + section_header.size, 0)
 
     file.close()

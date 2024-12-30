@@ -1,4 +1,6 @@
+# Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 # Copyright (c) 2015-2019, The Linux Foundation. All rights reserved.
+# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -10,9 +12,11 @@
 # GNU General Public License for more details.
 
 import sys
+import os
 import linux_list
 from print_out import print_out_str
 from parser_util import register_parser, RamParser
+import rb_tree
 
 @register_parser('--timer-list', 'Print all the linux timers')
 class TimerList(RamParser) :
@@ -33,8 +37,23 @@ class TimerList(RamParser) :
         # As of kernel 4.15, timer list structure no longer has data field
         if (major, minor) >= (4, 15):
             self.timer_has_data = False
+        HZ = self.ramdump.get_config_val("CONFIG_HZ")
+
+        if HZ != None:
+            self.HZ = float(HZ)
+        else:
+            self.HZ = 100.0
+
         if (major, minor) >= (4, 9):
-            self.vectors = {'vectors': 512}
+            # the wheel size is defined in kernel/time/timer.c:
+            # the WHEEL_SIZE is LVL_SIZE * LVL_DEPTH
+            # LVL_SIZE is 64
+            # if HZ > 100
+            #   define LVL_DEPTH	9
+            # else
+            #   define LVL_DEPTH	8
+            # endif
+            self.vectors = {'vectors': 9 * 64 if self.HZ > 100.0 else 8 * 64}
             self.timer_jiffies = 'clk'
             self.tvec_base = 'struct timer_base'
             self.tvec_bases = 'timer_bases'
@@ -92,9 +111,9 @@ class TimerList(RamParser) :
             if timer_base != base:
                 remarks += "Timer Base Mismatch detected"
 
-        if expires:
-            output = "\t{0:<6} {1:<18x} {2:<14} {3:<40} {4:<52} {5}\n".format(index, node, expires, function, data, remarks)
-            self.output.append(output)
+        expires_s = (expires-(0xFFFFFFFF - 300 * int(self.HZ)) )/(self.HZ)
+        output = "\t{0:<6} {1:<18x} {2:<14} {3:<14} {4:<40} {5:<52} {6}\n".format(index, node, expires, str(expires_s) + 's', function, data, remarks)
+        self.output.append(output)
 
     def iterate_vec(self, type, base):
         vec_addr = base + self.ramdump.field_offset(self.tvec_base, type)
@@ -124,7 +143,7 @@ class TimerList(RamParser) :
             headers[4] = 'WORK'
         if len(self.output):
             self.output_file.write("+ {0} Timers ({1})\n\n".format(type, len(self.output)))
-            self.output_file.write("\t{0:6} {1:18} {2:14} {3:40} {4:52} {5}\n".format(headers[0], headers[1], headers[2], headers[3], headers[4], headers[5]))
+            self.output_file.write("\t{0:6} {1:18} {2:14} {3:14} {4:40} {5:52} {6}\n".format(headers[0], headers[1], headers[2], 'EXPIRES(s)', headers[3], headers[4], headers[5]))
             for out in self.output:
                 self.output_file.write(out)
             self.output_file.write("\n")
@@ -163,7 +182,7 @@ class TimerList(RamParser) :
                 self.print_vec(vec)
 
         tvec_bases_addr = self.ramdump.address_of(self.tvec_bases)
-        for cpu in range(0, self.ramdump.get_num_cpus()):
+        for cpu in self.ramdump.iter_cpus():
             title = "CPU {0}".format(cpu)
 
             base_addr = tvec_bases_addr + self.ramdump.per_cpu_offset(cpu)
@@ -186,7 +205,10 @@ class TimerList(RamParser) :
             else:
                 active_timers = "NA"
 
-            title += "timer_jiffies: {0} next_timer: {1} active_timers: {2})\n".format(timer_jiffies, next_timer, active_timers)
+            timer_jiffies_s = (timer_jiffies-(0xFFFFFFFF - 300 * int(self.HZ)) )/(self.HZ)
+            next_timer_s = (next_timer-(0xFFFFFFFF - 300 * int(self.HZ)) )/(self.HZ)
+
+            title += "timer_jiffies: {0}({1}s) next_timer: {2}({3}s) active_timers: {4})\n".format(timer_jiffies, timer_jiffies_s, next_timer, next_timer_s, active_timers)
             self.output_file.write("-" * len(title) + "\n")
             self.output_file.write(title)
             self.output_file.write("-" * len(title) + "\n\n")
@@ -205,9 +227,57 @@ class TimerList(RamParser) :
         self.output_file.write(tick_do_timer_cpu_val)
         self.output_file.write("=" * len(tick_do_timer_cpu_val) + "\n")
 
-    def parse(self):
-        self.output_file = self.ramdump.open_file('timerlist.txt')
-        self.get_timer_list()
+    def hrtimer_walker(self, hrtimer_base, extra):
+        if hrtimer_base == None:
+            print(" %s " % ("\n rbtree corrupted \n"), file=self.output_file)
+            return
+        node = self.ramdump.struct_field_addr(hrtimer_base , 'struct hrtimer', 'node')
+        expires = self.ramdump.read_structure_field(node, 'struct timerqueue_node', 'expires')
+        function = self.ramdump.read_structure_field(hrtimer_base, 'struct hrtimer', 'function')
+        function_name = self.ramdump.unwind_lookup(function)
+        if function_name == None:
+            function_name = 'n/a'
+        _softexpires = self.ramdump.read_structure_field(hrtimer_base, 'struct hrtimer', '_softexpires')
+        '''
+        in some case the rb tree is corrupt, the rt_node could be a valid pointer but the member value is invalid.
+        '''
+        if function != None and _softexpires != None and expires != None:
+            self.hrtimer_list.append([hrtimer_base, function, function_name,  _softexpires, expires])
 
+    def get_hrtimer(self):
+        print(" %s " % ("\nhrtimer info: \n"), file=self.output_file)
+        hrtimer_bases_addr = self.ramdump.address_of('hrtimer_bases')
+        clock_base_offset = self.ramdump.field_offset('struct hrtimer_cpu_base', 'clock_base')
+        for i in self.ramdump.iter_cpus():
+            hrtimer_bases = hrtimer_bases_addr + self.ramdump.per_cpu_offset(i)
+            clock_base = (hrtimer_bases + clock_base_offset)
+            print(" CPU %d hrtimer_bases  v.v (struct hrtimer_cpu_base)0x%x  " % (i, hrtimer_bases), file = self.output_file)
+            num_of_HRTIMER_MAX_CLOCK_BASES = self.ramdump.gdbmi.get_value_of('HRTIMER_MAX_CLOCK_BASES')
+            self.hrtimer_list = []
+            for j in range(0, num_of_HRTIMER_MAX_CLOCK_BASES):
+                hrtimer_cpu_base_index  = self.ramdump.array_index(clock_base, 'struct  hrtimer_clock_base', j)
+                if hrtimer_cpu_base_index != None and hrtimer_cpu_base_index != 0:
+                    print("     hrtimer_cpu_base 0x%x " %(hrtimer_cpu_base_index), file = self.output_file)
+                    active_offset = self.ramdump.field_offset('struct hrtimer_clock_base', 'active')
+                    active = hrtimer_cpu_base_index + active_offset
+                    rb_node = self.ramdump.read_pointer(active)
+                    rb_walker = rb_tree.RbTreeWalker(self.ramdump)
+                    rb_walker.walk(rb_node, self.hrtimer_walker)
+
+                self.hrtimer_list = sorted(self.hrtimer_list, key=lambda l: l[4])
+                print("		 hrtimer     								function    																		_softexpires					  _softexpires" , file=self.output_file)
+                for item in self.hrtimer_list:
+                    hrtimer_base = item[0]
+                    function = item[1]
+                    function_name = item[2]
+                    _softexpires = item[3]
+                    expires = item[4]
+                    print("         v.v (struct hrtimer *)0x%x  0x%-16x %-64s   %-32ld  %-32ld" % (
+                    hrtimer_base, function, function_name, _softexpires, expires), file = self.output_file)
+
+    def parse(self):
+        self.output_file= open(self.ramdump.outdir + "/timerlist.txt", "w")
+        self.get_timer_list()
+        self.get_hrtimer()
         self.output_file.close()
         print_out_str("--- Wrote the output to timerlist.txt")

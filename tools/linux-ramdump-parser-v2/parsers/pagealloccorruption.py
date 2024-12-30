@@ -1,4 +1,5 @@
 # Copyright (c) 2012,2014-2017 The Linux Foundation. All rights reserved.
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -42,13 +43,13 @@ class PageallocCorruption(RamParser):
             size_offset = self.ramdump.field_offset('struct memblock_region', 'size')
             region_size =  self.ramdump.read_u32(region_addr + size_offset)
             end_addr = start_addr + region_size
-            min_pfn = start_addr >> 12
-            max_pfn = end_addr >> 12
+            min_pfn = start_addr >> self.ramdump.page_shift
+            max_pfn = end_addr >> self.ramdump.page_shift
             out_pfn_ranges.write("min_pfn : %s,max_pfn: %s\n" %(hex(min_pfn),hex(max_pfn)))
 
             for pfn in range(min_pfn, max_pfn):
                 page = pfn_to_page(self.ramdump, pfn)
-                page_pa = (pfn << 12)
+                page_pa = (pfn << self.ramdump.page_shift)
                 if (self.ramdump.kernel_version > (3, 18, 0)):
                     free = 0
                     offset = page_pa >> 30

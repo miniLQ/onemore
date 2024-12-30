@@ -1,4 +1,5 @@
 # Copyright (c) 2019-2021 The Linux Foundation. All rights reserved.
+# Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -17,9 +18,9 @@ def test_bit(nr, addr, ramdump, my_task_out):
     if not ramdump.arm64:
         BITS_PER_LONG = 32
     index = int(nr / BITS_PER_LONG)
-    test_bit_data = ((addr + index*ramdump.sizeof('unsigned long')) >> (nr & (BITS_PER_LONG-1)))
-    #my_task_out.write("\ntest_bit : index = {:x}, test_bit : {}".format(index, test_bit_data))
-    if 1 & ((addr + index*ramdump.sizeof('unsigned long')) >> (nr & (BITS_PER_LONG-1))):
+    data = ramdump.read_ulong(addr + index * ramdump.sizeof('unsigned long'))
+    #my_task_out.write("\ntest_bit: index = 0x{:x}, data: 0x{:x}".format(index, data))
+    if 1 & (data >> (nr & (BITS_PER_LONG - 1))):
         #my_task_out.write("\ntest bit returned true")
         return True
     #my_task_out.write("\ntest bit returned false")
@@ -59,27 +60,32 @@ def parse_held_locks(ramdump, task, my_task_out):
             hl_name = ramdump.read_cstring(hl_name)
         else:
             continue
+        lock_type = ramdump.type_of(hl_name)
         hl_irq_context = (hl_class_idx_full & 0x00006000) >> 13
         hl_trylock = (hl_class_idx_full & 0x00008000) >> 15
+        # 0 - exclusive
+        # 1 - shared
+        # 2 - shared_recursive
         hl_read = (hl_class_idx_full & 0x00030000) >> 16
         if hl_read:
-            # Handling read write semaphores, lockdep doesn't do anything for down_reads
-            # This leads to no way of differentiating if this task is waiting on read_lock
-            # find the waiter from that lock to update accordingly
+            # Handling for percpu_rw_semaphore
+            # if the task in writer is not NULL, it means that the reader is blocking the writer
             try:
-                lock_type = ramdump.type_of(hl_name)
-                my_task_out.write("\n lock type is {}".format(lock_type))
-                if "semaphore" in lock_type or "sem" in lock_type:
+                if "struct percpu_rw_semaphore" in lock_type:
+                    my_task_out.write("\n lock type : {}".format(lock_type))
                     lock_struct = ramdump.container_of(hl_instance, lock_type, 'dep_map')
-                    my_task_out.write("\n lock struct : {:x}".format(lock_struct))
-                    rw_writer = ramdump.read_structure_field(lock_struct, lock_type, 'writer')
-                    my_task_out.write("\n writer : {:x}".format(rw_writer))
-                    writer_task = ramdump.read_structure_field(rw_writer, 'struct rcuwait', 'task')
-                    my_task_out.write("\n writer task : {:x}, task : {:x}".format(writer_task, task))
-                    if writer_task and (writer_task != task):
-                        # Reader is blocked and change timestamp only if task is not the writer
-                        if (ramdump.is_config_defined('CONFIG_LOCK_STAT')):
-                            hl_waittime_stamp = hl_holdtime_stamp
+                    my_task_out.write("\n lock addr : 0x{:x}".format(lock_struct))
+                    writer = lock_struct + ramdump.field_offset("struct percpu_rw_semaphore", "writer")
+                    my_task_out.write("\n writer : 0x{:x}".format(writer))
+                    writer_task = ramdump.read_structure_field(writer, 'struct rcuwait', 'task')
+                    my_task_out.write("\n writer task : 0x{:x}".format(writer_task))
+                    if writer_task != 0:
+                        my_task_out.write("\n the reader task [Process: {0}, Pid: {1}] is blocking the writer task [Process: {2}, Pid: {3}]".format(
+                            cleanupString(ramdump.read_cstring(task + ramdump.field_offset("struct task_struct", "comm"), 16)),
+                            ramdump.read_int(task + ramdump.field_offset("struct task_struct", "pid")),
+                            cleanupString(ramdump.read_cstring(writer_task + ramdump.field_offset("struct task_struct", "comm"), 16)),
+                            ramdump.read_int(writer_task + ramdump.field_offset("struct task_struct", "pid"))))
+
             except Exception as err:
                 my_task_out.write("\nError encountered while resolving read lock ownership")
                 my_task_out.write("\n{}\n".format(err))
@@ -91,6 +97,11 @@ def parse_held_locks(ramdump, task, my_task_out):
         hl_pin_count = ramdump.read_structure_field(held_lock_indx, 'struct held_lock', 'pin_count')
         if (ramdump.is_config_defined('CONFIG_LOCKDEP_CROSSRELEASE')):
             hl_gen_id = ramdump.read_structure_field(held_lock_indx, 'struct held_lock', 'gen_id')
+        hl_acquire_ip_name_func = 'n/a'
+        wname = ramdump.unwind_lookup(hl_acquire_ip)
+        if wname is not None:
+            hl_acquire_ip_name_func, a = wname
+
 
         my_task_out.write(
                 '\nheld_locks[{0}] [0x{1:x}]:\
@@ -107,7 +118,8 @@ def parse_held_locks(ramdump, task, my_task_out):
                 \n\thardirqs_off = {12},\
                 \n\treferences = {13},\
                 \n\tpin_count = {14},\
-                \n\tname = {15}'.format(
+                \n\tname = {15},\
+                \n\tacquire_ip_func = {16}'.format(
                             i, held_lock_indx,
                             hex(hl_prev_chain_key),
                             hex(hl_acquire_ip),
@@ -122,13 +134,55 @@ def parse_held_locks(ramdump, task, my_task_out):
                             hex(hl_hardirqs_off),
                             hex(hl_references),
                             hex(hl_pin_count),
-                            hl_name))
+                            hl_name,
+                            hl_acquire_ip_name_func))
         if (ramdump.is_config_defined('CONFIG_LOCK_STAT')):
             my_task_out.write(
-                '\n\twaittime_stamp = {0},\
-                \n\tholdtime_stamp = {1}'.format(
-                            hex(hl_waittime_stamp),
-                            hex(hl_holdtime_stamp)))
+                '\n\twaittime_stamp = {0}s\
+                \n\tholdtime_stamp = {1}s'.format(
+                            (hl_waittime_stamp / 1000000000.0),
+                            (hl_holdtime_stamp / 1000000000.0)))
+
+            """
+            #define LOCK_CONTENDED(_lock, try, lock)			\
+            do {								\
+                if (!try(_lock)) {					\
+                    lock_contended(&(_lock)->dep_map, _RET_IP_);	\
+                    lock(_lock);					\
+                }							\
+                lock_acquired(&(_lock)->dep_map, _RET_IP_);			\
+            } while (0)
+
+            void __sched down_read(struct rw_semaphore *sem)
+            {
+                might_sleep();
+                rwsem_acquire_read(&sem->dep_map, 0, 0, _RET_IP_);
+
+                LOCK_CONTENDED(sem, __down_read_trylock, __down_read);
+            }
+            """
+            # for rwlock_t and rw_semaphore, lock operation is expanded by macro LOCK_CONTENDED
+            # there are 3 cases: here assume holdtime_stamp value is initialized to 100 and waittime_stamp will be initialized to 0.
+            # 1. if success to acquire lock in try(_lock), waittime_stamp value won't be updated. also, holdtime_stamp will not be updated in lock_acquired().
+            #    waittime_stamp: 0
+            #    holdtime_stamp: 100
+            # 2. if fail to acquire lock in try(_lock), waittime_stamp will be updated in lock_contended(). here assume it's updated to 105.
+            #    a. if success to acquire lock in lock(_lock), holdtime_stamp will be updated in lock_acquired(). here assume it's updated to 110.
+            #       waittime_stamp: 105
+            #       holdtime_stamp: 110
+            #    b. if fail to acquire lock in lock(_lock), will stuck at lock(_lock).
+            #       waittime_stamp: 105
+            #       holdtime_stamp: 100
+            # based on above, we can say that if waittime_stamp is greater than holdtime_stamp, the lock is not acquired.
+            if lock_type and ('struct rwlock_t' in lock_type or 'struct rw_semaphore' in lock_type):
+                if hl_waittime_stamp > hl_holdtime_stamp:
+                    lock_acquired = 0
+                else:
+                    lock_acquired = 1
+                my_task_out.write(
+                    '\n\tlock_type = {0}\
+                    \n\tlock_acquired = {1}'.format(lock_type, lock_acquired))
+
         if (ramdump.is_config_defined('CONFIG_LOCKDEP_CROSSRELEASE')):
             my_task_out.write(
                 '\n\tgen_id = {0}'.format( hex(hl_gen_id)))
