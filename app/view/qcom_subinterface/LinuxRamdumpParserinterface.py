@@ -25,6 +25,8 @@ from app.common.logging import logger
 from app.common.utils import linuxPath2winPath
 
 GNU_TOOLS_PATH = os.path.join(ROOTPATH, 'tools', 'gnu-tools')
+PYTHON_BIN_ROOT = linuxPath2winPath(os.path.join(ROOTPATH, 'tools', 'Python310'))
+PYTHON_BIN_PATH = linuxPath2winPath(os.path.join(ROOTPATH, 'tools', 'Python310', 'python.exe'))
 # 获取当前文件的路径
 current_path = Path(__file__).resolve().parent
 # resource文件夹的路径, 位于当前文件的上两级目录
@@ -171,10 +173,11 @@ class AppInfoCard(SimpleCardWidget):
 class  Worker(QThread):
     signal = pyqtSignal(str)
 
-    def __init__(self, command, shell=True):
+    def __init__(self, command, shell=True, env=None):
         super().__init__()
         self.command = command
         self.shell = shell
+        self.env = env
 
     def run(self):
         logger.info("Worker Thread ID: {}".format(QThread.currentThreadId()))
@@ -189,7 +192,7 @@ class  Worker(QThread):
             command = self.command
         logger.info("Run command: {}".format(self.command))
 
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=self.env)
         
         while True:
             line = process.stdout.readline()
@@ -474,7 +477,13 @@ class SettinsCard(GroupHeaderCardWidget):
             if os.path.exists(self.output_path) == False:
                 os.makedirs(self.output_path)
 
-            command = 'python {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(ramdump_parse_tool_path,
+            env = os.environ.copy()
+            env['PATH'] = os.pathsep.join([os.environ['PATH'], PYTHON_BIN_ROOT])
+            env['PATH'] = os.pathsep.join([env['PATH'], os.path.join(PYTHON_BIN_ROOT, 'Scripts')])
+
+            command = '{} {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(
+                        PYTHON_BIN_PATH,
+                        ramdump_parse_tool_path,
                         self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.lineEdit.text())
 
             if not self.ModlineEdit.text() == "":
