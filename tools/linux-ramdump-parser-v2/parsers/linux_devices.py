@@ -61,7 +61,7 @@ class DevicesList(RamParser):
         list_offset = self.kobj_offset + self.entry_offset
         list_walker = llist.ListWalker(self.ramdump, list_head, list_offset)
         list_walker.walk(list_head, self.list_func, fout)
-        print("[LIUQI] self.device_lists={}".format(self.device_lists))
+        #print("[LIUQI] self.device_lists={}".format(self.device_lists))
         return self.device_lists
 
     def parse(self):
