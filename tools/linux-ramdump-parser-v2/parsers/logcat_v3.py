@@ -266,7 +266,7 @@ class Logcat_base(RamParser, Constants):
                     'struct timezone ', 'tz_minuteswest')
         self.tz_minuteswest = self.ramdump.read_s32(sys_tz_addr + tz_minuteswest_offset)
         print_out_str("struct timezone --> tz_minuteswest= "+str(self.tz_minuteswest)+"min")
-        print("struct timezone --> tz_minuteswest= "+str(self.tz_minuteswest)+"min")
+        #print("struct timezone --> tz_minuteswest= "+str(self.tz_minuteswest)+"min")
         self.wall_to_mono_found = False
         self.wall_to_monotonic_tv_sec = 0
         self.wall_to_monotonic_tv_nsec = 0
@@ -892,7 +892,7 @@ class Logcat_vma(Logcat_base):
         # start parsing
         self.process_chunklist_and_save(chunklist_addr)
         print_out_str("logbuf_addr = 0x%x" % (chunklist_addr-0x60))
-        print("logcat_vma parse logcat cost "+str((datetime.datetime.now()-startTime).total_seconds())+" s")
+        print_out_str("logcat_vma parse logcat cost "+str((datetime.datetime.now()-startTime).total_seconds())+" s")
         return self.is_success
 
     def find_log_chunklist_addr(self, vma):

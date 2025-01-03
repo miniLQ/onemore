@@ -210,7 +210,7 @@ class DescriptionCard(HeaderCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.descriptionLabel = BodyLabel(
-            'Linux Ramdump Parser 是高通平台开发提供给研发人员进行Ramdump的解析使用的一个工具。本软件暂时不直接集成，需手动下载工具放置在软件的tools目录下', self)
+            'Linux Ramdump Parser 是高通平台开发提供给研发人员进行Ramdump的解析使用的一个工具，本软件直接集成。\n但是也支持自定义，手动下载工具放置在软件的tools目录下', self)
 
         self.descriptionLabel.setWordWrap(True)
         self.viewLayout.addWidget(self.descriptionLabel)
@@ -331,7 +331,13 @@ class SettinsCard(GroupHeaderCardWidget):
         else:
             # 设置chooseButton的文字显示已选择
             self.chooseButton.setText("已选择")
-            self.ramdumpGroup.setContent(self.dumpdir)
+            logger.info("path length: {}".format(len(self.dumpdir)))
+            # 判断self.dumpdir的长度是否大于120
+            if len(self.dumpdir) > 120:
+                # 截取前50个字符和后70个字符
+                self.ramdumpGroup.setContent("{}.........{}".format(self.dumpdir[0:50], self.dumpdir[-70:]))
+            else:
+                self.ramdumpGroup.setContent(self.dumpdir)
 
 
     def vmlinuxButtonClicked(self):
@@ -349,7 +355,13 @@ class SettinsCard(GroupHeaderCardWidget):
             self.vmlinuxGroup.setContent("请选择vmlinux文件")
         else:
             self.vmlinuxButton.setText("已选择")
-            self.vmlinuxGroup.setContent(self.vmlinuxfile)
+            # 判断self.vmlinuxfile的长度是否大于150
+            logger.info("path length: {}".format(len(self.vmlinuxfile)))
+            if len(self.vmlinuxfile) > 120:
+                # 截取前50个字符和后70个字符
+                self.vmlinuxGroup.setContent("{}.........{}".format(self.vmlinuxfile[0:50], self.vmlinuxfile[-70:]))
+            else:
+                self.vmlinuxGroup.setContent(self.vmlinuxfile)
 
     def comboBoxClicked(self, index):
         logger.info("ComboBox Clicked: {}".format(index))

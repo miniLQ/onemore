@@ -2639,8 +2639,8 @@ class MDPinfo(RamParser):
                 self.outfile.close()
 
                 #Event log Verbose
-                tmp_outfile = self.ramdump.open_file('evtlog_stage_1.txt', 'r')
-                self.outfile = self.ramdump.open_file('evtlog_stage_2.txt')
+                tmp_outfile = self.ramdump.open_file(os.path.join(self.ramdump.outdir, 'evtlog_stage_1.txt'), 'r')
+                self.outfile = self.ramdump.open_file(os.path.join(self.ramdump.outdir, 'evtlog_stage_2.txt'))
                 title = '{:<50}  {:<10}  {:<15}  {:<15}  {:<15}  {:<100}'.format('FUNCTION_NAME', "LINE_NO", "TIMESTAMP", "PID", "CPU", "DATA"  )
                 self.outfile.write(title)
                 self.outfile.write("\n")
@@ -2650,7 +2650,7 @@ class MDPinfo(RamParser):
                 self.outfile.close()
                 tmp_outfile.close()
 
-                self.outfile = self.ramdump.open_file('evtlog_stage_2.txt', 'r')
+                self.outfile = self.ramdump.open_file(os.path.join(self.ramdump.outdir, 'evtlog_stage_2.txt'), 'r')
                 self.outfile.readline()
                 contents_list = []
                 for line in self.outfile:
@@ -2726,7 +2726,7 @@ class MDPinfo(RamParser):
                         continue
 
                 contents_list.reverse()
-                self.outfile=open('evtlog_stage_2.txt',"w")
+                self.outfile=open(os.path.join(self.ramdump.outdir, 'evtlog_stage_2.txt'),"w")
                 for i in range(len(contents_list)) :
                     for j in range(len(contents_list[i])):
                         self.outfile.write(contents_list[i][j])
@@ -2735,7 +2735,7 @@ class MDPinfo(RamParser):
                 self.outfile.write("\n")
                 self.outfile.close()
 
-                self.split_dic('evtlog_stage_2.txt')
+                self.split_dic(os.path.join(self.ramdump.outdir, 'evtlog_stage_2.txt'))
             except:
                 pass
             self.ramdump.remove_file('evtlog_stage_1.txt')

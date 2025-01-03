@@ -66,6 +66,6 @@ class DevicesList(RamParser):
 
     def parse(self):
         fout = open(self.ramdump.outdir + "/devices.txt", "w")
-        print("v.v (struct device)  name                                                                                                 bus_name         driver_data                       v.v (struct cma)    dma_ops \n", file=self.f)
+        print("v.v (struct device)  name                                                                                                 bus_name         driver_data                       v.v (struct cma)    dma_ops \n", file=fout)
         self.get_device_list(fout)
         fout.close()

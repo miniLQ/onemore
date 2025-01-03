@@ -341,7 +341,7 @@ class Logcat(RamParser):
                 except Exception as e:
                     is_success = False
                     print_out_str("logcat_v3 parser failed " + str(e))
-                    traceback.print_exc()
+                    print_out_str(traceback.format_exc())
                 if is_success:
                     print_out_str("logcat_v3 parse logcat success")
                     return
@@ -352,7 +352,7 @@ class Logcat(RamParser):
                 except Exception as e:
                     is_success = False
                     print_out_str("logcat_vma parser failed" + str(e))
-                    traceback.print_exc()
+                    print_out_str(traceback.format_exc())
                 if is_success:
                     print_out_str("logcat_vma parse logcat success")
                 else:
@@ -375,4 +375,4 @@ class Logcat(RamParser):
                 self.generate_logcat_bin(taskinfo)
         except Exception as result:
             print_out_str(str(result))
-            traceback.print_exc()
+            print_out_str(traceback.format_exc())

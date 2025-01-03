@@ -470,6 +470,7 @@ if __name__ == '__main__':
     if options.timeout:
         from func_timeout import func_timeout, FunctionTimedOut
 
+    longopt_max_len = max([len(p.longopt) for p in parser_util.get_parsers()])
     print_out_str("Time taken to setup the subparsers run : {}".format(time.time()-starttime))
     starttime = time.time()
     for i,p in enumerate(parsers_to_run):
@@ -486,8 +487,8 @@ if __name__ == '__main__':
 
 
 
-        print("    [%d/%d] %s ... " %
-                         (i + 1, len(parsers_to_run), p.longopt), end='', flush=True)
+        print("    [%02d/%02d] %s ... \t" % (i + 1, len(parsers_to_run), p.longopt+ ' ' * (longopt_max_len - len(p.longopt))), end='', flush=True)
+        
         before = time.time()
         print_out_str("start time {0}".format(before))
         with print_out_section(p.cls.__name__):
@@ -499,17 +500,22 @@ if __name__ == '__main__':
                         print_out_str(e)
                 else:
                     p.cls(dump).parse()
+                after = time.time()
+                print_out_str("end time {0} time cost {1} for {2}".format(after, (after - before), p.cls.__name__))
+                sys.stdout.write("%fs" % (after - before))
+                print("| \033[32mSUCCESS!\033[0m")
             except:
                 # log exceptions and continue by default
+                after = time.time()
+                print_out_str("end time {0} time cost {1} for {2}".format(after, (after - before), p.cls.__name__))
+                sys.stdout.write("%fs" % (after - before))
                 if not options.debug:
                     print_out_str('!!! Exception while running {0}'.format(p.cls.__name__))
                     print_out_exception()
-                    print("FAILED! ")
+                    print("| \033[31mFAILED!\033[0m")
                 else:
                     raise
-        after = time.time()
-        print_out_str("end time {0} time cost {1} for {2}".format(after, (after - before), p.cls.__name__))
-        print("%fs" % (after - before),  flush=True)
+
         flush_outfile()
 
     sys.stderr.write("\n")

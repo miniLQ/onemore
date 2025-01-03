@@ -2,6 +2,7 @@
 # Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 
 from parser_util import register_parser, RamParser, cleanupString
+import traceback
 
 def extract_va_minidump(ramdump):
     try:

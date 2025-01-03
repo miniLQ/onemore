@@ -402,5 +402,5 @@ class Zram(RamParser):
                 zram_dev_rtw.walk_radix_tree(zram_index_idr,
                                 self.zram_exact)
             except Exception as e:
-                traceback.print_exc()
+                #traceback.print_exc()
                 print_out_str(traceback.format_exc())
