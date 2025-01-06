@@ -386,7 +386,7 @@ class SettinsCard(GroupHeaderCardWidget):
         Flyout.create(
             icon=InfoBarIcon.ERROR,
             title='Vmlinux file style error',
-            content="vmlinux文件名不为vmlinux, 请检查后再执行",
+            content="vmlinux文件名中不包含vmlinux字串, 请检查后再执行",
             target=self.runButton,
             parent=self.window()
         )
@@ -461,7 +461,7 @@ class SettinsCard(GroupHeaderCardWidget):
         # elif self.dumpfile.endswith('.zip') == True or self.dumpfile.endswith('.rar') == True:
         #     self.showZipFileTypeErrorFlyout()
         # 如果vmlinuxfile的文件名不为vmlinux
-        elif os.path.basename(self.vmlinuxfile) != "vmlinux":
+        elif "vmlinux" not in self.vmlinuxfile:
             # 提示vmlinux文件名不为vmlinux
             self.showFileStyleErrorFlyout()
         else:
