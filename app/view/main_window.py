@@ -30,6 +30,7 @@ from .general_subinterface.StartGDBInterface import StartGDBCardsInfo
 from .mtk_subinterface.NeKeAnalyze import NeKeAnalyzeCardsInfo
 from .qcom_subinterface.NocDecodeinterface import NocDecodeCardsInfo
 from .general_subinterface.Matinterface import MatCardsInfo
+from .general_subinterface.TombstoneParserInterface import TombstoneParserCardsInfo
 
 class Widget(QFrame):
 
@@ -242,6 +243,9 @@ class MainWindow(MSFluentWindow):
         elif "Memory Analyzer tool" in objectName:
             logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(MatCardsInfo, objectName)))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(MatCardsInfo, objectName))
+        elif "Tombstone_Praser" in objectName:
+            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(TombstoneParserCardsInfo, objectName)))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(TombstoneParserCardsInfo, objectName))
         else:
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
 

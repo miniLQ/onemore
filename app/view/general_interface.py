@@ -51,6 +51,7 @@ from app.common.config import ROOTPATH
 from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorInterface
 from .general_subinterface.StartGDBInterface import StartGDBInterface
 from .general_subinterface.Matinterface import MatInterface
+from .general_subinterface.TombstoneParserInterface import TombstoneParserInterface
 
 TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
 
@@ -62,7 +63,7 @@ TOOL3_UNIQUE_NAME = "StartGDB"
 TOOL4_UNIQUE_NAME = "Memory Analyzer tool"
 TOOL5_UNIQUE_NAME = "TOOL5"
 TOOL6_UNIQUE_NAME = "TOOL6"
-TOOL7_UNIQUE_NAME = "TOOL7"
+TOOL7_UNIQUE_NAME = "Tombstone_Praser"
 
 class TabInterface(QFrame):
     """ Tab interface """
@@ -173,7 +174,11 @@ class AppCard(CardWidget):
             # 打开Tool6
             pass
         elif self.UniqueName == TOOL7_UNIQUE_NAME:
-            # 打开Tool7
+            # 打开Tombstone_Praser
+            ramdomNum = generate_uuid()
+            routekey = "Tombstone_Praser {}".format(ramdomNum)
+            self.TombstoneParserInterface = TombstoneParserInterface(mainWindow=self.mainWindow)
+            self.TombstoneParserInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Basketball.png')
             pass
         else:
             logger.info("Unknown tool")
@@ -219,7 +224,7 @@ class GeneralInterface(ScrollArea):
         self.addCard(f"{suffix}/Checkbox.png", "Memory Analyzer tool", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Pivot.png", "Test Tool 5", '@designed by iliuqi.', TOOL5_UNIQUE_NAME)
         #self.addCard(f"{suffix}/MediaPlayerElement.png", "Test Tool 6", '@designed by iliuqi.', TOOL6_UNIQUE_NAME)
-        #self.addCard(f"{suffix}/PersonPicture.png", "Test Tool 7", '@designed by iliuqi.', TOOL7_UNIQUE_NAME)
+        self.addCard(f"{resource_image_path}/Basketball.png", "Tombstone_Praser", '@designed by charter.', TOOL7_UNIQUE_NAME)
 
 
     def addCard(self, icon, title, content, UniqueName):
