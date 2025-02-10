@@ -1259,7 +1259,7 @@ class RamDump():
         except:
             return False
         zconfig_in.close()
-        os.remove(zconfig)
+        #os.remove(zconfig)
         for l in t:
             self.config.append(l.rstrip())
             if not l.startswith('#') and l.strip() != '':
