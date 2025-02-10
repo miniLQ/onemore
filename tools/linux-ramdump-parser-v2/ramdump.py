@@ -1137,6 +1137,7 @@ class RamDump():
 
         self.unwind = self.Unwinder(self)
         if self.module_table.sym_paths_exist():
+            print_out_str('Found module symbol paths')
             self.setup_module_symbols()
             self.gdbmi.setup_module_table(self.module_table)
             if self.dump_global_symbol_table:
@@ -1148,6 +1149,17 @@ class RamDump():
         mm_init(self)
         self.set_available_cores()
         self.arm_smmu_v12 = self.is_arm_smmu_v12()
+
+        self.platform_config = []
+        self.platform_config_dict = {}
+        if not self.get_platform_config():
+            print_out_str('!!! Could not get platform configuration')
+            print_out_str('!!! Continue now')
+        
+        saved_platform_config = self.open_file('platform_kconfig.txt')
+        for l in self.platform_config:
+            saved_platform_config.write(l + '\n')
+        saved_platform_config.close()
 
 
     def get_section_address(self,section):
@@ -1233,6 +1245,7 @@ class RamDump():
         s = self.read_elf_memory(kconfig_addr, size, temp_file)
         temp_file.close()
         if s != 'IKCFG_ST':
+            print_out_str("kernel_config_data magic not found")
             return
         temp_file = open(zconfig, 'wb+')
         kconfig_addr = kconfig_addr + 8
@@ -1254,6 +1267,54 @@ class RamDump():
                 cfg = l[:eql]
                 val = l[eql+1:]
                 self.config_dict[cfg] = val.strip()
+        return True
+
+    def get_platform_config(self):
+        kconfig_addr = self.address_of('platform_kernel_config_data')
+        if kconfig_addr is None:
+            return
+        if self.get_kernel_version() > (5, 0, 0):
+            kconfig_addr_end = self.address_of('platform_kernel_config_data_end')
+            if kconfig_addr_end is None:
+                return
+            kconfig_size = kconfig_addr_end - kconfig_addr
+            # magic is 8 bytes before kconfig_addr and data
+            # starts at kconfig_addr for kernel > 5.0.0
+            kconfig_addr = kconfig_addr - 8
+        else:
+            kconfig_size = self.sizeof('platform_kernel_config_data')
+            # size includes magic, offset from it
+            kconfig_size = kconfig_size - 16 - 1
+
+        # kconfig data starts with magic 8 byte string, go past that
+        zconfig = os.path.join(self.outdir, "platform_elf_temp.txt")
+        temp_file = open(zconfig, 'wb+')
+        size = kconfig_addr + 8
+        s = self.read_elf_memory(kconfig_addr, size, temp_file)
+        temp_file.close()
+        if s != 'IKCFG_ST':
+            print_out_str("platform_kernel_config_data magic not found")
+            return
+        temp_file = open(zconfig, 'wb+')
+        kconfig_addr = kconfig_addr + 8
+        val = self.read_elf_memory(kconfig_addr, kconfig_size + kconfig_addr,
+                                      temp_file)
+
+        temp_file.close()
+        zconfig_in = gzip.open(temp_file.name, 'rt')
+        try:
+            t = zconfig_in.readlines()
+        except:
+            return False
+        zconfig_in.close()
+        #os.remove(zconfig)
+        for l in t:
+            self.platform_config.append(l.rstrip())
+            if not l.startswith('#') and l.strip() != '':
+                eql = l.find('=')
+                cfg = l[:eql]
+                val = l[eql+1:]
+                self.platform_config_dict[cfg] = val.strip()
         return True
 
     def get_config_val(self, config):
