@@ -14,7 +14,5 @@ gnu_tools_dir = os.path.join(tools_dir, 'gnu-tools')
 android_tools_dir = os.path.join(tools_dir, 'android-sdk')
 
 gdb64_path = os.path.join(android_tools_dir, 'python', 'bin', 'gdb.exe')
-nm64_path = os.path.join(gnu_tools_dir, 'bin', 'aarch64-linux-gnu-nm.exe')
+nm64_path = os.path.join(gnu_tools_dir, 'bin', 'llvm-nm.exe')
 objdump64_path = os.path.join(gnu_tools_dir, 'bin', 'llvm-objdump.exe')
-
-logger.info(f'gdb64_path: {gdb64_path}')
