@@ -493,13 +493,24 @@ class SettinsCard(GroupHeaderCardWidget):
             env['PATH'] = os.pathsep.join([os.environ['PATH'], PYTHON_BIN_ROOT])
             env['PATH'] = os.pathsep.join([env['PATH'], os.path.join(PYTHON_BIN_ROOT, 'Scripts')])
 
-            command = '{} {}\\ramparse.py -v {} -a {} -o {} --force-hardware {} -x {}'.format(
+            if not self.ModlineEdit.text() == "":
+                command = '{} {}\\ramparse.py -v {} -a {} -o {} --force-hardware {} -m {}'.format(
                         PYTHON_BIN_PATH,
                         ramdump_parse_tool_path,
-                        self.vmlinuxfile, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.lineEdit.text())
+                        self.vmlinuxfile, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.ModlineEdit.text())
+            else:
+                command = '{} {}\\ramparse.py -v {} -a {} -o {} --force-hardware {}'.format(
+                        PYTHON_BIN_PATH,
+                        ramdump_parse_tool_path,
+                        self.vmlinuxfile, self.dumpdir, self.output_path, self.platformComboBox.currentText())
 
-            if not self.ModlineEdit.text() == "":
-                command += " -m {}".format(self.ModlineEdit.text())
+
+            if self.lineEdit.text() == "" or self.lineEdit.text() == None or "-x" in self.lineEdit.text():
+                command += " -x"
+            else:
+                command += " {}".format(self.lineEdit.text())
+
+            logger.info("Run command: {}".format(command))
 
             self.start_task(command, shell)
     
