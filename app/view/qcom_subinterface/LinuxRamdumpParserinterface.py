@@ -477,14 +477,14 @@ class SettinsCard(GroupHeaderCardWidget):
 
             logger.info("Run parse with GNU tools path: {}".format(GNU_TOOLS_PATH))
             ramdump_parse_tool_path = linuxPath2winPath(os.path.join(ROOTPATH, 'tools', 'linux-ramdump-parser-v2'))
-            gdb64_path = linuxPath2winPath(os.path.join(GNU_TOOLS_PATH, 'bin', 'gdb.exe'))
-            nm64_path = linuxPath2winPath(os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-nm.exe'))
-            objdump64_path = linuxPath2winPath(os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-objdump.exe'))
+            #gdb64_path = linuxPath2winPath(os.path.join(GNU_TOOLS_PATH, 'bin', 'gdb.exe'))
+            #nm64_path = linuxPath2winPath(os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-nm.exe'))
+            #objdump64_path = linuxPath2winPath(os.path.join(GNU_TOOLS_PATH, 'bin', 'aarch64-linux-gnu-objdump.exe'))
             self.output_path = linuxPath2winPath(os.path.join(self.dumpdir, 'parser_output'))
 
-            logger.info("gdb64_path: {}".format(gdb64_path))
-            logger.info("nm64_path: {}".format(nm64_path))
-            logger.info("objdump64_path: {}".format(objdump64_path))
+            #logger.info("gdb64_path: {}".format(gdb64_path))
+            #logger.info("nm64_path: {}".format(nm64_path))
+            #logger.info("objdump64_path: {}".format(objdump64_path))
 
             if os.path.exists(self.output_path) == False:
                 os.makedirs(self.output_path)
@@ -493,10 +493,10 @@ class SettinsCard(GroupHeaderCardWidget):
             env['PATH'] = os.pathsep.join([os.environ['PATH'], PYTHON_BIN_ROOT])
             env['PATH'] = os.pathsep.join([env['PATH'], os.path.join(PYTHON_BIN_ROOT, 'Scripts')])
 
-            command = '{} {}\\ramparse.py -v {} -g {} -n {} -j {} -a {} -o {} --force-hardware {} -x {}'.format(
+            command = '{} {}\\ramparse.py -v {} -a {} -o {} --force-hardware {} -x {}'.format(
                         PYTHON_BIN_PATH,
                         ramdump_parse_tool_path,
-                        self.vmlinuxfile, gdb64_path, nm64_path, objdump64_path, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.lineEdit.text())
+                        self.vmlinuxfile, self.dumpdir, self.output_path, self.platformComboBox.currentText(), self.lineEdit.text())
 
             if not self.ModlineEdit.text() == "":
                 command += " -m {}".format(self.ModlineEdit.text())
