@@ -31,6 +31,8 @@ import parser_util
 from ramdump import RamDump
 from print_out import print_out_str, set_outfile, print_out_section, print_out_exception, flush_outfile
 from sched_info import verify_active_cpus
+from utils.print_color import print_colored_message
+
 # Please update version when something is changed!'
 VERSION = '2.0'
 # Requires Python 3.5 or newer.
@@ -503,7 +505,7 @@ if __name__ == '__main__':
                 after = time.time()
                 print_out_str("end time {0} time cost {1} for {2}".format(after, (after - before), p.cls.__name__))
                 sys.stdout.write("%fs" % (after - before))
-                print("| \033[32mSUCCESS!\033[0m")
+                print_colored_message("SUCCESS!", "Green")
             except:
                 # log exceptions and continue by default
                 after = time.time()
@@ -512,7 +514,7 @@ if __name__ == '__main__':
                 if not options.debug:
                     print_out_str('!!! Exception while running {0}'.format(p.cls.__name__))
                     print_out_exception()
-                    print("| \033[31mFAILED!\033[0m")
+                    print_colored_message("FAILED", "Red")
                 else:
                     raise
 
