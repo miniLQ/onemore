@@ -100,6 +100,21 @@ class BoardQCS8300SVM(Board):
         self.imem_file_name = 'OCIMEM.BIN'
         self.arm_smmu_v12 = True
 
+class BoardQCS615(Board):
+    def __init__(self, socid):
+        super(BoardQCS615, self).__init__()
+        self.socid = socid
+        self.board_num = "qcs615"
+        self.cpu = 'CORTEXA53'
+        self.ram_start = 0x80000000
+        self.smem_addr = 0x6000000
+        self.smem_addr_buildinfo = 0x6007210
+        self.phys_offset = 0x80000000
+        self.imem_start = 0x14680000
+        self.kaslr_addr = 0x146aa6d0
+        self.wdog_addr = 0x146aa658
+        self.imem_file_name = 'OCIMEM.BIN'
+
 BoardQCM6490(socid=475)
 BoardQCM6490SVM(socid=475)
 BoardQCM6490(socid=499)
@@ -123,3 +138,7 @@ BoardQCS8300SVM(socid=620)
 BoardQCS8300SVM(socid=674)
 BoardQCS8300SVM(socid=675)
 BoardQCS8300SVM(socid=695)
+BoardQCS615(socid=377)
+BoardQCS615(socid=380)
+BoardQCS615(socid=384)
+BoardQCS615(socid=680)

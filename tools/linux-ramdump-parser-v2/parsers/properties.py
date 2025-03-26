@@ -1,4 +1,5 @@
 # Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -73,8 +74,15 @@ class Properties(RamParser):
 
     def parse_property(self, taskinfo):
         index = 0
+        prop_files = []
         for vma in taskinfo.vmalist:
             if "u:object_r:" in vma.file_name:
+                if vma.file_name in prop_files:
+                    # /dev/__properties__/appcompat_override/u:object_r:adbd_prop:s0
+                    # /dev/__properties__/u:object_r:adbd_prop:s0
+                    # avoid duplicate file
+                    continue
+                prop_files.append(vma.file_name)
                 self.data = UTaskLib.read_binary(
                     self.ramdump, taskinfo.mmu, vma.vm_start, vma.vm_end - vma.vm_start)
                 if index == 0 and self.OFFSET_MAGIC+8 <= len(self.data):

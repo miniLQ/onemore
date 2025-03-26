@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0-only
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 from parser_util import register_parser, RamParser, cleanupString
 from print_out import print_out_str
 from utasklib import UTaskLib
 from utasklib import ProcessNotFoundExcetion
 import linux_list as llist
 from collections import namedtuple
+import rb_tree
 
 class BaseFs(RamParser):
 
@@ -75,6 +76,18 @@ class BaseFs(RamParser):
             return '/'
         return full_name
 
+    def mnt_rbnodes(self, node, offset):
+        mount = node - offset
+        self.__show_info(mount)
+        return
+
+    def mnt_list(self, mount, mount_list_addr):
+        field_next_offset = self.ramdump.field_offset('struct mount', 'mnt_list')
+        if mount_list_addr == mount + field_next_offset:
+            return
+        self.__show_info(mount)
+        return
+
     def parse(self):
         pid = 1
         try:
@@ -95,28 +108,28 @@ class BaseFs(RamParser):
             return
 
         nsproxy = self.ramdump.read_structure_field(taskinfo.task_addr, 'struct task_struct', 'nsproxy')
-        fs = self.ramdump.read_structure_field(taskinfo.task_addr, 'struct task_struct', 'fs')
-        root = fs + self.ramdump.field_offset('struct fs_struct', 'root')
-
         mnt_ns = self.ramdump.read_structure_field(nsproxy, 'struct nsproxy', 'mnt_ns')
-
-        mount_list_addr = mnt_ns + self.ramdump.field_offset("struct mnt_namespace", 'list')
-        field_next_offset = self.ramdump.field_offset('struct mount', 'mnt_list')
-
         self.output.write(f"Process: {taskinfo.name}, (struct task_struct*)=0x{taskinfo.task_addr:x} \
                           (struct nsproxy*)=0x{nsproxy:x} (struct mnt_namespace*)=0x{mnt_ns:x}\n\n\n")
         self.print_header()
-        list_walker = llist.ListWalker(self.ramdump, mount_list_addr, field_next_offset)
-        list_walker.walk(mount_list_addr, self.__show_info, mount_list_addr)
+
+        mount_list_offset = self.ramdump.field_offset("struct mnt_namespace", 'list')
+        if mount_list_offset is None:
+            mount_rbnode_addr = mnt_ns + self.ramdump.field_offset("struct mnt_namespace", 'mounts')
+            mntnode_offset = self.ramdump.field_offset("struct mount", 'mnt_node')
+            rb_node = self.ramdump.read_pointer(mount_rbnode_addr)
+            rb_walker = rb_tree.RbTreeWalker(self.ramdump)
+            rb_walker.walk(rb_node, self.mnt_rbnodes, mntnode_offset)
+        else:
+            mount_list_addr = mnt_ns + mount_list_offset
+            field_next_offset = self.ramdump.field_offset('struct mount', 'mnt_list')
+            list_walker = llist.ListWalker(self.ramdump, mount_list_addr, field_next_offset)
+            list_walker.walk(mount_list_addr, self.mnt_list, mount_list_addr)
 
     def print_header(self):
         pass
 
-    def __show_info(self, mount, mount_list_addr):
-        field_next_offset = self.ramdump.field_offset('struct mount', 'mnt_list')
-        if mount_list_addr == mount + field_next_offset:
-            return
-
+    def __show_info(self, mount):
         vfsmount = mount + self.ramdump.field_offset('struct mount', 'mnt')
         d_name_addr = self.ramdump.read_word(mount + self.ramdump.field_offset('struct mount', 'mnt_devname'))
         d_name = self.ramdump.read_cstring(d_name_addr, 48)

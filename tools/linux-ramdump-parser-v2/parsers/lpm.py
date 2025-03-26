@@ -1,5 +1,5 @@
 # Copyright (c) 2015-2018, 2020-2021 The Linux Foundation. All rights reserved.
-# Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -318,9 +318,11 @@ class lpm(RamParser):
                 cpunode_offset = self.ramdump.field_offset('struct list_head', clust_node)
                 offset = offset + cpunode_offset
                 cpu_level = self.ramdump.read_word(cpu_cluster + offset, True)
-                self.related_cpus_bits = self.ramdump.read_int(cpu_level + related_cpus_offset + bits_offset, True)
-                cpus = bin(self.related_cpus_bits).count('1')
-                cpu_info = self.related_cpus_bits
+                if self.ramdump.is_config_defined('CONFIG_MSM_PM_LEGACY'):
+                    cpu_info = self.cpu_possible_bits
+                else:
+                    self.related_cpus_bits = self.ramdump.read_int(cpu_level + related_cpus_offset + bits_offset, True)
+                    cpu_info = self.related_cpus_bits
                 cpu_count = 0
                 while (cpu_info):
                     if ( cpu_info  & 0x1):

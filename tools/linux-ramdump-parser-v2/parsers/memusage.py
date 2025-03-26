@@ -1,5 +1,5 @@
 # Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
-# Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
 # only version 2 as published by the Free Software Foundation.
@@ -13,9 +13,12 @@ from print_out import print_out_str
 from parser_util import register_parser, RamParser, cleanupString
 from linux_list import ListWalker
 from parsers.filetracking import FileTracking
+from .memstat import MemStats
 
-""" Returns number of pages """
-def get_shmem_swap_usage(ramdump, memory_file):
+# This will be reset again later by set_page_shift
+
+def get_shmem_swap_usage(ramdump):
+    # Returns memory in pages
     shmem_swaplist = ramdump.address_of("shmem_swaplist")
     if not shmem_swaplist:
         return 0
@@ -81,56 +84,163 @@ def get_shmem_swap_usage(ramdump, memory_file):
 
     return total,string
 
-
 def do_dump_process_memory(ramdump):
-    if ramdump.kernel_version < (4, 9):
-        total_free = ramdump.read_word('vm_stat[NR_FREE_PAGES]')
-        slab_rec = ramdump.read_word('vm_stat[NR_SLAB_RECLAIMABLE]')
-        slab_unrec = ramdump.read_word('vm_stat[NR_SLAB_UNRECLAIMABLE]')
-        total_shmem = ramdump.read_word('vm_stat[NR_SHMEM]')
-    else:
-        total_free = ramdump.read_word('vm_zone_stat[NR_FREE_PAGES]')
-        # slab memory
-        if ramdump.kernel_version >= (5, 10):
-            slab_rec = ramdump.read_word('vm_node_stat[NR_SLAB_RECLAIMABLE_B]')
-            slab_unrec = ramdump.read_word(
-                            'vm_node_stat[NR_SLAB_UNRECLAIMABLE_B]')
-        elif ramdump.kernel_version >= (4, 14):
-            slab_rec = ramdump.read_word('vm_node_stat[NR_SLAB_RECLAIMABLE]')
-            slab_unrec = ramdump.read_word(
-                            'vm_node_stat[NR_SLAB_UNRECLAIMABLE]')
-        else:
-            slab_rec = ramdump.read_word('vm_zone_stat[NR_SLAB_RECLAIMABLE]')
-            slab_unrec = ramdump.read_word(
-                            'vm_zone_stat[NR_SLAB_UNRECLAIMABLE]')
-        total_shmem = ramdump.read_word('vm_node_stat[NR_SHMEM]')
+    memstat = MemStats(ramdump)
 
     memory_file = ramdump.open_file('memory.txt')
-    total_shmem_swap, shmem_swap_file = get_shmem_swap_usage(ramdump,memory_file)
-    total_slab = slab_rec + slab_unrec
-    if(ramdump.kernel_version > (4, 20, 0)):
-        total_mem = ramdump.read_word('_totalram_pages') * 4
+
+    #######################    Total RAM   #######################
+    total_mem_pages = memstat.calculate_totalmem_pages()
+    total_mem_kB = memstat.pages_to_kb(total_mem_pages)
+    memory_file.write('Total RAM        : {:>10,} kB\n'.format(total_mem_kB))
+    unaccounted = total_mem_kB
+
+    #######################   Free memory  #######################
+    total_free_pages = memstat.calculate_totalfree_pages()
+    total_free_kB = memstat.pages_to_kb(total_free_pages)
+    memory_file.write('Free memory      : {:>10,} kB ({:>5.1f}%)\n'.format(
+            total_free_kB, (100.0 * total_free_kB) / total_mem_kB))
+    unaccounted -= total_free_kB
+
+    #######################   File Cache   #######################
+    total_shmem_kB = memstat.pages_to_kb(ramdump.read_word('vm_node_stat[NR_SHMEM]'))
+    file_cache_kB =  memstat.pages_to_kb(memstat.calculate_cached_pages())
+    active_kB = memstat.pages_to_kb(ramdump.read_word('vm_node_stat[NR_ACTIVE_FILE]'))
+    inactive_kB = memstat.pages_to_kb(ramdump.read_word('vm_node_stat[NR_INACTIVE_FILE]'))
+
+    memory_file.write('File Cache       : {:>10,} kB ({:>5.1f}%)'.format(
+            file_cache_kB, (100.0 * file_cache_kB / total_mem_kB)))
+    memory_file.write(' (Active: {0:,} kB'.format(active_kB))
+    memory_file.write(', Inactive {0:,} kB'.format(inactive_kB))
+    memory_file.write(', Shmem {0:,} kB'.format(total_shmem_kB))
+    memory_file.write(', Other {0:,} kB)\n'.format(file_cache_kB - active_kB - inactive_kB - total_shmem_kB))
+    unaccounted -= file_cache_kB
+
+    #######################      Slab     #######################
+    slab_rec_pages, slab_unrec_pages = memstat.calculate_slab_mem_pages()
+    slab_rec_kB = memstat.pages_to_kb(slab_rec_pages)
+    slab_unrec_kB = memstat.pages_to_kb(slab_unrec_pages)
+    total_slab_kB = (slab_rec_kB + slab_unrec_kB)
+
+    memory_file.write('Slab             : {:>10,} kB ({:>5.1f}%)'.format(
+            total_slab_kB, (100.0 * total_slab_kB / total_mem_kB)))
+    memory_file.write(' (reclaimable: {:,} kB'.format(slab_rec_kB))
+    memory_file.write(', unreclaimable {:,} kB)\n'.format(slab_unrec_kB))
+    unaccounted -= total_slab_kB
+
+    #######################    PageTable   #######################
+    pagetable_kB = memstat.pages_to_kb(ramdump.read_word('vm_node_stat[NR_PAGETABLE]'))
+    memory_file.write('PageTable        : {:>10,} kB ({:>5.1f}%)\n'.format(
+        pagetable_kB, (pagetable_kB * 100 / total_mem_kB)))
+    unaccounted -= pagetable_kB
+
+    #######################    Modules    #######################
+    # TODO: include modules memory consumption here
+    # memory_file.write('Modules          : \n')
+    # Do not remove modules from unaccounted as we will remove vmalloc from unaccounted
+    # And vmalloc includes modules memory
+
+    #######################  Kernel_Stack  #######################
+    kstack_kB = ramdump.read_word('vm_node_stat[NR_KERNEL_STACK_KB]')
+    memory_file.write('Kernel_Stack     : {:>10,} kB ({:>5.1f}%)\n'.format(
+            kstack_kB, (100 * kstack_kB / total_mem_kB)))
+    # If CONFIG_VMAP_STACK is defined, kernel stack is included as part of vmalloc.
+    # So, do not remove kstack from unaccounted as we will remove vmalloc from unaccounted
+    if not ramdump.is_config_defined('CONFIG_VMAP_STACK'):
+        unaccounted -= kstack_kB
+
+    #######################     Vmalloc    #######################
+    vmalloc_pages = memstat.calculate_vmalloc_pages()
+    vmalloc_kb = memstat.pages_to_kb(vmalloc_pages)
+    memory_file.write('Vmalloc          : {:>10,} kB ({:>5.1f}%)'.format(
+        vmalloc_kb, (100.0 * vmalloc_kb / total_mem_kB)))
+    if ramdump.is_config_defined('CONFIG_VMAP_STACK'):
+        memory_file.write(' (Kernel_Stack: {:,} kB'.format(kstack_kB))
+        memory_file.write(', Modules + Others {:,} kB)\n'.format(vmalloc_kb - kstack_kB))
     else:
-        total_mem = ramdump.read_word('totalram_pages') * 4
+        memory_file.write('(Includes Modules)\n')
+    unaccounted -= vmalloc_kb
+
+    #######################      Shmem     #######################
+    total_shmem_swap, shmem_swap_file = get_shmem_swap_usage(ramdump)
+    total_shmem_swap_kB = memstat.pages_to_kb(total_shmem_swap)
+    memory_file.write('Shmem            : {:>10,} kB ({:>5.1f}%)'.format(
+            (total_shmem_kB + total_shmem_swap_kB), (100.0 * total_shmem_kB / total_mem_kB)))
+    memory_file.write(' (PageCache: {:,} kB'.format(total_shmem_kB))
+    memory_file.write(', Swap: {:,} kB)\n'.format(total_shmem_swap_kB))
+
+    #######################      Anon      #######################
+    anon = ramdump.read_word('vm_node_stat[NR_ANON_MAPPED]')
+    if anon == None or anon == 0:
+        anon =  ramdump.read_word('vm_stat[NR_ACTIVE_ANON]')
+        anon += ramdump.read_word('vm_stat[NR_INACTIVE_ANON]')
+    anon_kB = memstat.pages_to_kb(anon)
+    memory_file.write('Anon (PSS)       : {:>10,} kB ({:>5.1f}%)\n'.format(
+            anon_kB, (100.0 * anon_kB / total_mem_kB)))
+    unaccounted -= anon_kB
+
+    #######################     Graphics    #######################
+    kgsl_pages = memstat.calculate_kgsl_mem_pages()
+    kgsl_kb    = memstat.pages_to_kb(kgsl_pages)
+    memory_file.write('Graphics (KGSL)  : {:>10,} kB ({:>5.1f}%)\n'.format(
+            kgsl_kb, (100.0 * kgsl_kb / total_mem_kB)))
+    unaccounted -= kgsl_kb
+
+    #######################    ION (DMA)    #######################
+    if ramdump.kernel_version >= (5, 10):
+        ion_mem_pages = memstat.read_dma_heap_mem_pages()
+        if ion_mem_pages > 0:
+            ion_mem_kb = memstat.pages_to_kb(ion_mem_pages)
+            memory_file.write('DMA (ION)        : {:>10,} kB ({:>5.1f}%)\n'.format(
+                    ion_mem_kb, (100.0 * ion_mem_kb / total_mem_kB)))
+            unaccounted -= ion_mem_kb
+        else:
+            memory_file.write('DMA (ION)        : {:<22} Please parse ionbuffer first, use --print-ionbuffer.\n'.format(" "))
+    else:
+        ion_mem_pages = memstat.calculate_ionmem_pages()
+        ion_mem_kb = memstat.pages_to_kb(ion_mem_pages)
+        memory_file.write('ION                : {:>10,} kB ({:>5.1f}%)\n'.format(
+                ion_mem_kb, (100.0 * ion_mem_kb / total_mem_kB)))
+        unaccounted -= ion_mem_kb
+    #######################    ION POOL    #######################
+    kern_misc_rec_pages = memstat.calculate_kernel_misc_rec_pages()
+    Kern_misc_rec = memstat.pages_to_kb(kern_misc_rec_pages)
+    memory_file.write('Kernel Misc Recl : {:>10,} kB ({:>5.1f}%)\n'.format(
+            Kern_misc_rec, (100.0 * Kern_misc_rec / total_mem_kB)))
+    unaccounted -= Kern_misc_rec
+
+    #######################   CMA (Used)   #######################
+    # TODO: include Used CMA memory as well
+    # memory_file.write('CMA (Used)       : \n')
+
+    #######################    ZRAM        #######################
+    z_used_pages = memstat.calculate_zram_compressed_pages()
+    z_used_kB = memstat.pages_to_kb(z_used_pages)
+    if z_used_kB == None:
+        memory_file.write('Zram (Used)      : {:<22} Unable to parse ZRAM.\n'.format(" "))
+    else:
+        memory_file.write('Zram (Used)      : {:>10,} kB ({:>5.1f}%)\n'.format(
+                z_used_kB, (z_used_kB * 100 / total_mem_kB)))
+        unaccounted -= z_used_kB
+
+    #######################    Swapcached   #######################
+    swapcached_kB = 0
+    swapcached_pages = ramdump.read_word('vm_stat[NR_SWAPCACHE]')
+    swapcached_kB = memstat.pages_to_kb(swapcached_pages)
+    memory_file.write('Swapcached       : {:>10,} kB ({:>5.1f}%)\n'.format(
+            swapcached_kB, (swapcached_kB * 100 / total_mem_kB)))
+    unaccounted += swapcached_kB
+
+    #######################   Unaccounted   #######################
+    memory_file.write('Unaccounted      : {:>10,} kB ({:>5.1f}%)\n'.format(
+            unaccounted, (unaccounted * 100 / total_mem_kB)))
 
     offset_comm = ramdump.field_offset('struct task_struct', 'comm')
     offset_signal = ramdump.field_offset('struct task_struct', 'signal')
     offset_adj = ramdump.field_offset('struct signal_struct', 'oom_score_adj')
     offset_pid = ramdump.field_offset('struct task_struct', 'pid')
     task_info = []
-    memory_file.write('Total RAM: {0:,}kB\n'.format(total_mem))
-    memory_file.write('Total free memory: {0:,}kB({1:.1f}%)\n'.format(
-            total_free * 4, (100.0 * total_free * 4) / total_mem))
-    memory_file.write('Slab reclaimable: {0:,}kB({1:.1f}%)\n'.format(
-            slab_rec * 4, (100.0 * slab_rec * 4) / total_mem))
-    memory_file.write('Slab unreclaimable: {0:,}kB({1:.1f}%)\n'.format(
-            slab_unrec * 4, (100.0 * slab_unrec * 4) / total_mem))
-    memory_file.write('Total Slab memory: {0:,}kB({1:.1f}%)\n'.format(
-            total_slab * 4, (100.0 * total_slab * 4) / total_mem))
-    memory_file.write('Total SHMEM (PAGECACHE): {0:,}kB({1:.1f}%)\n'.format(
-        total_shmem * 4, (100.0 * total_shmem * 4) / total_mem))
-    memory_file.write('Total SHMEM (SWAP): {0:,}kB({1:.1f}%)\n\n'.format(
-        total_shmem_swap * 4, (100.0 * total_shmem_swap * 4) / total_mem))
+
     memory_file.write('{0}\n'.format(shmem_swap_file))
 
     for task in ramdump.for_each_process():
@@ -157,8 +267,8 @@ def do_dump_process_memory(ramdump):
     for item in task_info:
         str = '{taskname:<17s}{pid:8d}{rss:13,d}({rss_pct:4.1f}%){swap:13,d}({swap_pct:2.1f}%){adj:6} {anon_rss:>16,d} {file_rss:>16,d} {shmem_rss:>10,d}\n'.format(
             taskname = item[0], pid = item[1],
-            rss = item[2], rss_pct = (100.0 * item[2]) / total_mem,
-            swap = item[3], swap_pct = (100.0 * item[3]) / total_mem,
+            rss = item[2], rss_pct = (100.0 * item[2]) / total_mem_kB,
+            swap = item[3], swap_pct = (100.0 * item[3]) / total_mem_kB,
             adj = item[5], anon_rss=item[6], file_rss=item[7], shmem_rss=item[8])
         memory_file.write(str)
     memory_file.close()
@@ -217,6 +327,5 @@ def get_rss(ramdump, task_struct):
 
 @register_parser('--print-memory-info', 'Print memory usage info')
 class DumpProcessMemory(RamParser):
-
     def parse(self):
         do_dump_process_memory(self.ramdump)

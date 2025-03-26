@@ -25,10 +25,12 @@ import re
 import time
 import platform
 import textwrap
+import glob
 from optparse import OptionParser
 
 import parser_util
 from ramdump import RamDump
+from ramdump import VCPU_CMM_FILES
 from print_out import print_out_str, set_outfile, print_out_section, print_out_exception, flush_outfile
 from sched_info import verify_active_cpus
 from utils.print_color import print_colored_message
@@ -67,10 +69,82 @@ def parse_ram_file(option, opt_str, value, parser):
     a.append((temp[0], int(temp[1], 16), int(temp[2], 16)))
     setattr(parser.values, option.dest, a)
 
+def has_debug_info(objdump_path, file):
+    import subprocess
+    import shlex
+    cmd = objdump_path + ' -h ' + file
+    if platform.system() != "Linux":
+        objdump = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                    universal_newlines=True, )
+    else:
+        objdump = subprocess.Popen(shlex.split(cmd), shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                    universal_newlines=True, )
+    out, err = objdump.communicate()
+    if '.debug_info' in out:
+        return True
+    else:
+        return False
 
 def get_ftrace_args(option, opt, value, parser):
     setattr(parser.values, option.dest, value.split(','))
 
+def prepare_vttbr_for_svm(options):
+    '''
+    two methods to address ttbr and vttbr for svm
+    1. read ttbr or vttbr from hyp with symbols (default way)
+    2. read ttbr or vttbr from corevcpu (this way was suitable for customer)
+
+    corevcpu was based on host environment.
+
+    this method was used to generate corevcpu with host vmlinux and other host arguments
+    '''
+    if has_debug_info(objdump_path, options.hyp):
+        return
+
+    for _file in VCPU_CMM_FILES:
+        ## find in dump folder
+        cmm_files = glob.glob(os.path.join(options.autodump, _file))
+        if len(cmm_files) > 0:
+            return
+        ## find in output folder
+        cmm_files = glob.glob(os.path.join(options.outdir, "host", _file))
+        if len(cmm_files) > 0:
+            return
+
+    options.vmlinux = options.host_vmlinux
+    options.mod_path_list = options.host_mod_path_list
+    if options.force_hardware.strip().endswith("svm"):
+        options.force_hardware= options.force_hardware.strip()[:-3]
+    elif options.force_hardware.strip().endswith("oemvm"):
+        options.force_hardware= options.force_hardware.strip()[:-5]
+
+    options.outdir = os.path.join(options.outdir, "host")
+    options.svm =  ""
+    if not os.path.exists(options.outdir):
+        try:
+            os.makedirs(options.outdir)
+        except:
+            print ("Failed to create %s. You probably don't have permissions there. Bailing." % options.outdir)
+            sys.exit(1)
+
+    print_out_str("\n######### Using host vmlinux firstly to determine vttbr##########\n")
+    print_out_str('change to use vmlinux file {0}'.format(options.vmlinux))
+    dump = RamDump(options, nm_path, gdb_path, objdump_path,gdb_ndk_path)
+    if not dump.print_command_line():
+        print_out_str('!!! Error printing saved command line.')
+        print_out_str('!!! The vmlinux is probably wrong for the ramdumps')
+        print_out_str('!!! Exiting now...')
+        sys.exit(1)
+
+    for p in parser_util.get_parsers():
+        from parsers.debug_image import DebugImage
+        if p.cls.__name__ ==  DebugImage.__name__:
+            print(p.cls.__name__)
+            try:
+                p.cls(dump).parse()
+            except Exception as e:
+                print_out_str(e)
+    print_out_str("\n######### Using host vmlinux firstly to determine vttbr end!!!##########\n")
 
 if __name__ == '__main__':
     starttime = time.time()
@@ -159,6 +233,9 @@ if __name__ == '__main__':
     parser.add_option('', '--dump_glb_sym_tbl', action='store_true', dest='dump_global_symbol_table',
                       help='dump all symbols within the global symbol lookup table', default=False)
     parser.add_option('', '--hyp', dest='hyp', help='elf file containing hypervisor symbol information. Required for --svm')
+    parser.add_option('', '--host_vmlinux', dest='host_vmlinux', help='host vmlinux. Required for --svm')
+    parser.add_option('', '--host_mod_path',  action='append', dest='host_mod_path_list', help='symbol path to all loadable modules. Required for --svm')
+
     parser.add_option('--dbg', '--debug', action='store_true', dest='debug',
                       help=textwrap.dedent("""\
                       Enable debug.
@@ -382,6 +459,12 @@ if __name__ == '__main__':
 
     if options.everything:
         options.qtf = True
+
+    if options.svm:
+        ## prepare for vttbr on svm mode
+        import copy
+        copied_options = copy.deepcopy(options)
+        prepare_vttbr_for_svm(copied_options)
 
     dump = RamDump(options, nm_path, gdb_path, objdump_path,gdb_ndk_path)
 

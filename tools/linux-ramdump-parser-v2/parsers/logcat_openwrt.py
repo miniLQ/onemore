@@ -1,6 +1,6 @@
 # Copyright (C) 2013 Felix Fietkau <nbd@openwrt.org>
 # Copyright (C) 2013 John Crispin <blogic@openwrt.org>
-# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2023,2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -156,9 +156,24 @@ class Logcat_openwrt(RamParser):
             if size == 0 and h > self.log_newest_addr: # reach to end of buffer
                 h = self.log_start_addr
 
-    def process_logbuf_and_save(self):
+    '''
+        0000000000000100     8 OBJECT  LOCAL  DEFAULT   21 log_end
+        0000000000000108     8 OBJECT  LOCAL  DEFAULT   21 log
+        0000000000000198     8 OBJECT  LOCAL  DEFAULT   21 newest
+        00000000000001a0     8 OBJECT  LOCAL  DEFAULT   21 oldest
+
+        log_end_addr: address of log_end symbol
+        newest:       address of newest symbol
+    '''
+    def process_logbuf_and_save(self, logd_end_addr, newest_log_addr):
+        success = False
+        valid = self.is_valid_logd_addr(logd_end_addr, newest_log_addr)
+        if not valid:
+            return success
+
         log_file = self.ramdump.open_file("Logcat_openwrt.txt")
         for log_head_addr in self.log_list():
+            success = True
             size = self.read_bytes(log_head_addr, 4)
             id = self.read_bytes(log_head_addr + 4, 4)
             priority = self.read_bytes(log_head_addr + 8, 4)
@@ -173,6 +188,7 @@ class Logcat_openwrt(RamParser):
                                         self.getcodetext(self.LOG_PRI(priority), self.prioritynames),
                                         "" if source else (" kernel:"), msg)
             log_file.write(fmt_msg)
+        return success
 
     def read_bytes(self, addr, len):
         val = UTaskLib.read_bytes(self.ramdump, self.logd_task.mmu, addr, len)
@@ -191,13 +207,12 @@ class Logcat_openwrt(RamParser):
         timestamp = date.strftime("%m-%d %H:%M:%S") + '.' + tv_nsec
         return timestamp
 
-    def is_valid_logd_addr(self, addr):
+    def is_valid_logd_addr(self, logd_end_addr, newest_addr):
         try:
-
-            self.log_start_addr = self.read_bytes(addr + self.addr_length, self.addr_length)
-            self.log_end_addr = self.read_bytes(addr, self.addr_length)
-            self.log_oldest_addr = self.read_bytes(addr + 11 * self.addr_length, self.addr_length)
-            self.log_newest_addr = self.read_bytes(addr + 10 * self.addr_length, self.addr_length)
+            self.log_start_addr = self.read_bytes(logd_end_addr + self.addr_length, self.addr_length)
+            self.log_end_addr = self.read_bytes(logd_end_addr, self.addr_length)
+            self.log_oldest_addr = self.read_bytes(newest_addr + self.addr_length, self.addr_length)
+            self.log_newest_addr = self.read_bytes(newest_addr, self.addr_length)
 
             if not self.log_start_addr or not self.log_end_addr \
                     or not self.log_oldest_addr or not self.log_newest_addr:
@@ -215,7 +230,6 @@ class Logcat_openwrt(RamParser):
                 buffer_size = int((self.log_end_addr - self.log_start_addr)/1024)
                 if buffer_size > 1024:
                     return False
-                print_out_str("log buffer size %d k" % buffer_size)
                 return True
             else:
                 self.logger.debug("invalid address--> log_start 0x%x log_end 0x%x log_oldest 0x%x log_newest 0x%x" % (
@@ -237,25 +251,36 @@ class Logcat_openwrt(RamParser):
             print_out_str("logd process didn't have data section, LogBuffer address was not found")
             return
 
-        if self.ramdump.arm64:
-            log_end_offset = 0x328
-            addr_length = 8
-        else:
-            log_end_offset = 0x1e0
-            addr_length = 4
+        ##for openwrt2.0
+        success = self.process_logbuf_and_save(vma.vm_start+0x328, vma.vm_start+0x378)
+        if success:
+            print_out_str("found logd addr offset is 0x328")
+            print_out_str("Logcat parse cost " + str((datetime.datetime.now() - startTime).total_seconds()) + " s")
+            return
 
-        valid = self.is_valid_logd_addr(vma.vm_start + log_end_offset)
-        if not valid:
-            ## continue to search
-            print_out_str("log address was not found with offset 0x%x, go through whole vma" % log_end_offset)
-            addr = vma.vm_start
-            while addr < (vma.vm_end):
-                valid = self.is_valid_logd_addr(addr)
-                if valid:
-                    print_out_str("found logd addr offset is 0x%x" % (addr - vma.vm_start))
+        ##for openwrt3.0
+        success = self.process_logbuf_and_save(vma.vm_start+0x500, vma.vm_start+0x698)
+        if success:
+            print_out_str("found logd addr offset is 0x500")
+            print_out_str("Logcat parse cost " + str((datetime.datetime.now() - startTime).total_seconds()) + " s")
+            return
+
+        #for others, need go through the vma to find correct logd address
+        print_out_str("Go through whole vma to find correct logd address")
+        addr = vma.vm_start
+        while addr < (vma.vm_end):
+            if success:
+                break
+            max_count = 100
+            i = 1
+            newest_log_addr = addr + self.addr_length
+            while i < max_count:
+                i += 1
+                newest_log_addr += self.addr_length
+                success = self.process_logbuf_and_save(addr, newest_log_addr)
+                if success:
+                    buffer_size = int((self.log_end_addr - self.log_start_addr)/1024)
+                    print_out_str("found logd address=0x%x, newest address=0x%x log size=%d k" % (addr, newest_log_addr, buffer_size))
                     break
-                addr += addr_length
-
-        if valid:
-            self.process_logbuf_and_save()
+            addr += self.addr_length
         print_out_str("Logcat parse cost " + str((datetime.datetime.now() - startTime).total_seconds()) + " s")

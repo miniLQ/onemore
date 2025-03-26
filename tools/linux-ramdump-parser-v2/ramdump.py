@@ -1,5 +1,5 @@
 # Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
-# Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2025, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -39,6 +39,8 @@ from mm import mm_init
 from register import Register
 from collections import namedtuple
 import shlex
+import glob
+
 SP = 13
 LR = 14
 PC = 15
@@ -62,6 +64,13 @@ primary_types = ["int", "unsigned", "unsigned int", "signed", "signed int",
                  "s8", "s16", "s32", "s64", "uint8_t", "uint16_t", "uint64_t", "__u32", "size_t", "_Bool", "boolean"
                  ]
 storage_classes = ["static", "volatile", "extern", "register", "auto", "const"]
+
+SVM_ID   = 45
+OEMVM_ID = 49
+VCPU_CMM_FILES = [
+    "corevcpu*_vm_%d_regs.cmm" % SVM_ID,
+    "corevcpu*_vm_%d_regs.cmm" % OEMVM_ID
+]
 
 class InvalidDatatype(Exception):
     """
@@ -671,20 +680,17 @@ class RamDump():
 
        return r;
 
-    def pac_ignore(self,data):
-        pac_check = self.createMask(self.va_bits, 63)
-        top_bit_ignore = 0xff00000000000000
+    def pac_ignore(self, data):
+        kernel_pac_mask = self.createMask(self.vabits_actual, 63)
         if data is None or not self.arm64:
             return data
-        if (data & pac_check) == pac_check or (data & pac_check) == 0:
+        if (data & kernel_pac_mask) == kernel_pac_mask or (data & kernel_pac_mask) == 0:
             return data
         # When address tagging is used
-        # The PAC field is Xn[54:bottom_PAC_bit].
+        # The PAC field is Kernel[63:bottom_PAC_bit],User[54:bottom_PAC_bit].
         # In the PAC field definitions, bottom_PAC_bit == 64-TCR_ELx.TnSZ,
         # TCR_ELx.TnSZ is set to 25. so 64-25=39
-        pac_mack = self.createMask(self.va_bits, 54)
-        result = pac_mack | data
-        result = result | top_bit_ignore
+        result = kernel_pac_mask | data
         return result
 
     def load_phys_range(self, path):
@@ -962,23 +968,30 @@ class RamDump():
         if self.svm and not self.minidump:
             from extensions.hyp_trace import HypDump
             hyp_dump = HypDump(self)
-            hyp_dump.determine_kaslr()
-            self.gdbmi_hyp.kaslr_offset = hyp_dump.hyp_kaslr_addr_offset
-            hyp_dump.get_trace_phy()
-            if hyp_dump.ttbr1 is None:
-                print_out_str('!!! Could not find {}'.format(self.svm))
-                print_out_str('!!! Exiting now')
-                sys.exit(1)
-            self.ttbr = hyp_dump.ttbr1
-            self.vttbr = hyp_dump.vttbr
-            self.TTBR0_EL1 = hyp_dump.TTBR0_EL1
-            self.SCTLR_EL1 = hyp_dump.SCTLR_EL1
-            self.TCR_EL1 = hyp_dump.TCR_EL1
-            self.VTCR_EL2 = hyp_dump.VTCR_EL2
-            self.HCR_EL2 = hyp_dump.HCR_EL2
-            self.ttbr_data = hyp_dump.ttbr1_data_info
-            self.vttbr_data = hyp_dump.vttbr_el2_data
-            self.s2_walk = True
+            try:
+                hyp_dump.determine_kaslr()
+                self.gdbmi_hyp.kaslr_offset = hyp_dump.hyp_kaslr_addr_offset
+                hyp_dump.get_trace_phy()
+                self.ttbr = hyp_dump.ttbr1
+                self.vttbr = hyp_dump.vttbr
+                self.TTBR0_EL1 = hyp_dump.TTBR0_EL1
+                self.SCTLR_EL1 = hyp_dump.SCTLR_EL1
+                self.TCR_EL1 = hyp_dump.TCR_EL1
+                self.VTCR_EL2 = hyp_dump.VTCR_EL2
+                self.HCR_EL2 = hyp_dump.HCR_EL2
+                self.ttbr_data = hyp_dump.ttbr1_data_info
+                self.vttbr_data = hyp_dump.vttbr_el2_data
+                self.s2_walk = True
+                print_out_str("read vttbr from elf")
+            except:
+                pass
+            if self.vttbr is None:
+                ## read vttbr from cmm
+                self.read_from_cmm()
+                if self.vttbr is None:
+                    print_out_str('!!! Could not find {}'.format(self.svm))
+                    print_out_str('!!! Exiting now')
+                    sys.exit(1)
 
         self.config = []
         self.config_dict = {}
@@ -1015,6 +1028,9 @@ class RamDump():
             self.pgtable_levels = int(self.get_config_val("CONFIG_PGTABLE_LEVELS"))
         except:
             self.pgtable_levels = 3
+        self.vabits_actual = self.get_vabits_actual()
+        print_out_str(f"va_bits {self.va_bits}, vabits_actual {self.vabits_actual}, pgtable_levels {self.pgtable_levels}")
+
         self.pfn_range = None
         self.vmemmap = None
         ''' determine kaslr_offset, phys_offset and kimage_voffset @start '''
@@ -1137,7 +1153,6 @@ class RamDump():
 
         self.unwind = self.Unwinder(self)
         if self.module_table.sym_paths_exist():
-            print_out_str('Found module symbol paths')
             self.setup_module_symbols()
             self.gdbmi.setup_module_table(self.module_table)
             if self.dump_global_symbol_table:
@@ -1149,19 +1164,63 @@ class RamDump():
         mm_init(self)
         self.set_available_cores()
         self.arm_smmu_v12 = self.is_arm_smmu_v12()
+    def pgtable_l5_enabled(self):
+        return self.pgtable_levels == 5 and self.vabits_actual == self.va_bits
 
-        self.platform_config = []
-        self.platform_config_dict = {}
-        if not self.get_platform_config():
-            print_out_str('!!! Could not get platform configuration')
-            print_out_str('!!! Continue now')
-        
-        saved_platform_config = self.open_file('platform_kconfig.txt')
-        for l in self.platform_config:
-            saved_platform_config.write(l + '\n')
-        saved_platform_config.close()
+    def read_tcr(self):
+        '''
+        T1SZ, bits [21:16] The size offset of the memory region addressed by TTBR1_EL1.
+        The region size is 2(64-T1SZ) bytes.
+        '''
+        tcr_value = 16 << 16
+        try:
+            tcr_value = self.TCR_EL1
+        except:
+            pass
+        return tcr_value
 
+    def get_vabits_actual(self):
+        if self.va_bits > 48:
+            vabits_actual = (64 - ((self.read_tcr() >> 16) & 63))
+        else:
+            vabits_actual = self.va_bits
+        return vabits_actual
 
+    def for_cmm_file(self):
+        for regex_file in VCPU_CMM_FILES:
+            ## find in dump folder
+            cmm_files = glob.glob(os.path.join(self.autodump, regex_file))
+            for cf in cmm_files:
+                yield cf
+
+            cmm_files = glob.glob(os.path.join(self.outdir, "host", regex_file))
+            for cf in cmm_files:
+                yield cf
+
+    def read_from_cmm(self):
+        for cmm_file in self.for_cmm_file():
+            with open(cmm_file) as f:
+                for line in f.readlines():
+                    if "Data.Set SPR:0x30200" in line:
+                        self.TTBR0_EL1 = int(eval(line.split()[-1]))
+                    if "Data.Set SPR:0x30100" in line:
+                        self.SCTLR_EL1 = int(eval(line.split()[-1]))
+                    if "Data.Set SPR:0x30202" in line:
+                        self.TCR_EL1 = int(eval(line.split()[-1]))
+                    if "Data.Set SPR:0x34212" in line:
+                        self.VTCR_EL2 = int(eval(line.split()[-1]))
+                    if "Data.Set SPR:0x34110" in line:
+                        self.HCR_EL2 = int(eval(line.split()[-1]))
+                    if "Data.Set SPR:0x30201" in line:
+                        self.ttbr_data = int(eval(line.split()[-1]))
+                    if "Data.Set SPR:0x34210" in line:
+                        self.vttbr_data = int(eval(line.split()[-1]))
+
+                self.ttbr  = self.ttbr_data  & 0xffff_ffff_fff0
+                self.vttbr = self.vttbr_data & 0xffff_ffff_fff0
+                self.s2_walk = True
+            print_out_str("read vttbr from %s" % os.path.basename(cmm_file))
+            break
     def get_section_address(self,section):
         """
         Function to return address and size corresponding to the section name in elf files.
@@ -1245,7 +1304,6 @@ class RamDump():
         s = self.read_elf_memory(kconfig_addr, size, temp_file)
         temp_file.close()
         if s != 'IKCFG_ST':
-            print_out_str("kernel_config_data magic not found")
             return
         temp_file = open(zconfig, 'wb+')
         kconfig_addr = kconfig_addr + 8
@@ -1259,7 +1317,7 @@ class RamDump():
         except:
             return False
         zconfig_in.close()
-        #os.remove(zconfig)
+        os.remove(zconfig)
         for l in t:
             self.config.append(l.rstrip())
             if not l.startswith('#') and l.strip() != '':
@@ -1662,7 +1720,10 @@ class RamDump():
         kaslr_offset = self.get_kaslr_offset()
         if kaslr_offset != 0:
             where += ' 0x{0:x}'.format(kaslr_offset)
-        dloadelf = 'data.load.elf {} /nocode\n'.format(where)
+        if not self.minidump:
+            dloadelf = 'data.load.elf {} /nocode\n'.format(where)
+        else:
+            dloadelf = 'data.load.elf {}\n'.format(where)
         startup_script.write(dloadelf)
 
         if self.arm64 and not self.minidump:
@@ -2029,44 +2090,40 @@ class RamDump():
         Third step:
               check if linux_banner read from DDR == linux_banner from vmlinux
         '''
-        kimage_voffset = None
         ###********* First step, calculate kaslr_offset and kimage_voffset *********
-        if self.arm64:
-            if kaslr_offset != None:
-                ## kaslr_offset=0 means kaslr feature was disabled
-                ## kaslr_offset>0 means a given kaslr value provided, treat it as correct value
-                ## kaslr_offset=None need to be calculated
-                kimage_voffset = self.__kimage_vaddr_va   + kaslr_offset - phys_offset
-            if self.__kimage_voffset_var_va != None and kaslr_offset == None:
-                ## calculte depends on kimage_voffset variable which should exist
-                kimage_voffset_pa = phys_offset + self.__kimage_voffset_var_va - self.__kimage_vaddr_va
-                kimage_voffset_tmp = self.read_word(kimage_voffset_pa, False)
-                if kimage_voffset_tmp is not None:
-                    kimage_voffset = kimage_voffset_tmp
-                    kimage_voffset_va_kaslr = kimage_voffset_pa + kimage_voffset_tmp
-                    if kimage_voffset_va_kaslr >= self.__kimage_voffset_var_va:
-                        kaslr_offset = kimage_voffset_va_kaslr - self.__kimage_voffset_var_va
-            if self.__kimage_vaddr_var_va != None and kaslr_offset == None:
-                ## calculte depends on kimage_vaddr variable which should exist
-                kimage_vaddr_var_phy = phys_offset + self.__kimage_vaddr_var_va - self.__kimage_vaddr_va
-                kimage_vaddr_va_kaslr = self.read_word(kimage_vaddr_var_phy, False)
-                if kimage_vaddr_va_kaslr and kimage_vaddr_va_kaslr >= self.__kimage_vaddr_va:
-                    kaslr_offset = kimage_vaddr_va_kaslr - self.__kimage_vaddr_va
-                    kimage_voffset = kimage_vaddr_va_kaslr - phys_offset
-        else:
+        if not self.arm64:
             kimage_voffset = self.page_offset - phys_offset
             if not self.__kimage_voffset_var_va:
-                #print_out_str("!!!! Skip validate phys_offset for ARM32 with older kernel version")
+                print_out_str("!!!! Skip validate phys_offset for ARM32 with older kernel version")
                 return kaslr_offset, kimage_voffset
+
+        kimage_voffset = None
+        if kaslr_offset != None:
+            ## kaslr_offset=0 means kaslr feature was disabled
+            ## kaslr_offset>0 means a given kaslr value provided, treat it as correct value
+            ## kaslr_offset=None need to be calculated
+            if self.arm64:
+                kimage_voffset = self.__kimage_vaddr_va   + kaslr_offset - phys_offset
             else:
-                ## calculte depends on kimage_voffset variable which should exist
-                kimage_voffset_pa = phys_offset + self.__kimage_voffset_var_va - self.__kimage_vaddr_va
-                kimage_voffset_tmp = self.read_word(kimage_voffset_pa, False)
-                if kimage_voffset_tmp is not None:
-                    kimage_voffset = kimage_voffset_tmp
-                    kimage_voffset_va_kaslr = kimage_voffset_pa + kimage_voffset_tmp
-                    if kimage_voffset_va_kaslr >= self.__kimage_voffset_var_va:
-                        kaslr_offset = kimage_voffset_va_kaslr - self.__kimage_voffset_var_va
+                kimage_voffset = self.page_offset - phys_offset
+        ## calculate kaslr_offset via kimage_voffset
+        if self.__kimage_voffset_var_va != None and kaslr_offset == None:
+            ## calculte depends on kimage_voffset variable which should exist
+            kimage_voffset_pa = phys_offset + self.__kimage_voffset_var_va - self.__kimage_vaddr_va
+            kimage_voffset_tmp = self.read_word(kimage_voffset_pa, False)
+            if kimage_voffset_tmp is not None:
+                kimage_voffset = kimage_voffset_tmp
+                kimage_voffset_va_kaslr = kimage_voffset_pa + kimage_voffset_tmp
+                if kimage_voffset_va_kaslr >= self.__kimage_voffset_var_va:
+                    kaslr_offset = kimage_voffset_va_kaslr - self.__kimage_voffset_var_va
+        ## calculate kaslr_offset via kimage_vaddr
+        if self.__kimage_vaddr_var_va != None and kaslr_offset == None:
+            ## calculte depends on kimage_vaddr variable which should exist
+            kimage_vaddr_var_phy = phys_offset + self.__kimage_vaddr_var_va - self.__kimage_vaddr_va
+            kimage_vaddr_va_kaslr = self.read_word(kimage_vaddr_var_phy, False)
+            if kimage_vaddr_va_kaslr and kimage_vaddr_va_kaslr >= self.__kimage_vaddr_va:
+                kaslr_offset = kimage_vaddr_va_kaslr - self.__kimage_vaddr_va
+                kimage_voffset = kimage_vaddr_va_kaslr - phys_offset
 
         if kimage_voffset is None or kaslr_offset is None:
             raise Exception("!!! Determine kimage_voffset failed")

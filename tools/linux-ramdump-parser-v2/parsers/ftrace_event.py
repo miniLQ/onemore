@@ -1,5 +1,5 @@
 # Copyright (c) 2020-2022 The Linux Foundation. All rights reserved.
-# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -686,8 +686,78 @@ class FtraceParser_Event(object):
                 if not str_buffer.endswith("\n"):
                     temp_data += "\n"
                 self.ftrace_time_data[local_timestamp].append(temp_data)
+        elif event_name == "kernel_stack":
+                '''
+                  FTRACE_ENTRY(kernel_stack, stack_entry,
+
+                    TRACE_STACK,
+
+                    F_STRUCT(
+                        __field(	int,		size	)
+                        __stack_array(	unsigned long,	caller,	FTRACE_STACK_ENTRIES, size)
+                    ),
+
+                    F_printk("\t=> %ps\n\t=> %ps\n\t=> %ps\n"
+                        "\t=> %ps\n\t=> %ps\n\t=> %ps\n"
+                        "\t=> %ps\n\t=> %ps\n",
+                        (void *)__entry->caller[0], (void *)__entry->caller[1],
+                        (void *)__entry->caller[2], (void *)__entry->caller[3],
+                        (void *)__entry->caller[4], (void *)__entry->caller[5],
+                        (void *)__entry->caller[6], (void *)__entry->caller[7])
+                );
+                '''
+                size_offset = self.ramdump.field_offset('struct stack_entry' , "size")
+                caller_offset = self.ramdump.field_offset('struct stack_entry', "caller")
+                caller = self.ramdump.read_word(ftrace_raw_entry + caller_offset)
+                size = self.ramdump.read_int(ftrace_raw_entry + size_offset)
+                call_string_hex =''
+                if size != 0 and caller != 0:
+                    #print("v.v (struct stack_entry)0x%x"%(ftrace_raw_entry))
+                    for i in range(0, 8):
+                        caller = self.ramdump.read_word(ftrace_raw_entry + caller_offset + i * 8)
+                        function = "unknown"
+                        function_lookup = self.ramdump.unwind_lookup(caller)
+                        if function_lookup is not None:
+                            function, offset = function_lookup
+                        print_buffer = " 0x{0:x} {1} ".format(caller, function)
+                        call_string_hex +=print_buffer
+                    call_string_hex +="\n"
+                    temp_data = "{0} {1}: {2}".format(head_data_fmt, 'kernel_stack', call_string_hex)
+                    if not call_string_hex.endswith("\n"):
+                        temp_data += "\n"
+                    self.ftrace_time_data[local_timestamp].append(temp_data)
+                    #print(temp_data)
+        elif event_name == "user_stack":
+                '''
+                    crash> struct userstack_entry -o -x
+                    struct userstack_entry {
+                    [0x0] struct trace_entry ent;
+                    [0x8] unsigned int tgid;
+                    [0x10] unsigned long caller[8];
+                    }
+                    SIZE: 0x50
+                '''
+                ent_offset = self.ramdump.field_offset('struct userstack_entry' , "ent")
+                tgid_offset = self.ramdump.field_offset('struct userstack_entry', "tgid")
+                caller_offset = self.ramdump.field_offset('struct userstack_entry', "caller")
+                ent = self.ramdump.read_word(ftrace_raw_entry + ent_offset)
+                tgid = self.ramdump.read_word(ftrace_raw_entry + tgid_offset)
+                caller = self.ramdump.read_word(ftrace_raw_entry + caller_offset)
+                call_string_hex =''
+                if caller != 0:
+                    #print("v.v (struct userstack_entry)0x%x"%(ftrace_raw_entry))
+                    for i in range(0, 8):
+                        caller = self.ramdump.read_word(ftrace_raw_entry + caller_offset + i * 8)
+                        print_buffer = " 0x{0:x} ".format(caller)
+                        call_string_hex +=print_buffer
+                    call_string_hex +="\n"
+                    temp_data = "{0} {1}: {2}".format(head_data_fmt, tgid, call_string_hex)
+                    if not call_string_hex.endswith("\n"):
+                        temp_data += "\n"
+                    self.ftrace_time_data[local_timestamp].append(temp_data)
+                    #print(temp_data)
         else:
-            event_data = self.fromat_event_map[event_name]
+            event_data = self.format_event_map[event_name]
             fmt_str = event_data[1]
             if "rpmh" in event_name:
                 fmt_str =  fmt_str.replace('send-msg:','send-msg')

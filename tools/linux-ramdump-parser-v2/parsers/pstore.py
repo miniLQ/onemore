@@ -1,4 +1,5 @@
 # Copyright (c) 2018, 2020-2021 The Linux Foundation. All rights reserved.
+# Copyright (c) 2025, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -23,6 +24,20 @@ PERSISTENT_RAM_SIG_SIZE = 4
 @register_parser('--pstore', 'Extract event logs from pstore')
 class PStore(RamParser):
 
+    SIZEOF_LOG_ENTRY = 30
+    SIZEOF_HEADER_T = 4
+    SIZEOF_EVT_LIST_T = 2
+    SIZEOF_EVT_INT_T = 5
+    SIZEOF_EVT_LONG_T = 9
+    SIZEOF_EVT_FLOAT_T = 5
+    SIZEOF_EVT_STRING_T = 5
+
+    #event type
+    EVENT_TYPE_INT = 0  #/* int32_t */
+    EVENT_TYPE_LONG = 1 #/* int64_t */
+    EVENT_TYPE_STRING = 2
+    EVENT_TYPE_LIST = 3
+    EVENT_TYPE_FLOAT = 4
     def calculate_percpu_eventbuf_size(self, base_addr):
         try:
             event_zone_addr = self.ramdump.read_u64(base_addr +
@@ -170,31 +185,44 @@ class PStore(RamParser):
 
         next_addr = 4
         content_err = False
+        LOG_ID_EVENTS = 2
         while next_addr < (pmsg_size - 19):
-            magic, len, uid, pid, id, tid, tv_sec, tv_nsec, outtag = \
-                    struct.unpack('<c3HbH2Ib', pmsg[next_addr:next_addr + 19])
-            if magic == b'l' and 0 <= outtag < 9 and 0 <= id < 7 and len > 19 and \
+            magic, len, uid, pid, id, tid, tv_sec, tv_nsec, \
+                    = struct.unpack('<c3HbH2I', pmsg[next_addr:next_addr + 18])
+            if magic == b'l' and  0 <= id < 7 and len > 18 and \
                     (content_err or pmsg[next_addr-1:next_addr] == b'\x00'):
                 tv_nsec = str(tv_nsec // 1000)
                 tv_nsec = tv_nsec.zfill(6)
                 date = datetime.datetime.utcfromtimestamp(tv_sec)
                 timestamp = date.strftime("%y-%m-%d %H:%M:%S") + '.' + tv_nsec
-                msg = pmsg[next_addr + 19:next_addr + len].replace(b'\x0a', b'\x20')
-                msg = msg.replace(b'\x00', b'\x20')
                 pmsg_out.write(timestamp.ljust(26))
                 pmsg_out.write(str(uid).rjust(6))
                 pmsg_out.write(str(pid).rjust(6))
                 pmsg_out.write(str(tid).rjust(6))
                 pmsg_out.write("  ")
                 pmsg_out.write(str(log_type_list[id]).ljust(10))
-                pmsg_out.write(str(priority_list[outtag]).ljust(12))
+
                 if next_addr + len < pmsg_size:
-                    if pmsg[next_addr + len:next_addr + len + 1] != b'l':
-                        content_err = True
-                        next_addr += 19
-                        pmsg_out.write("Content Missing!\n")
+                        if pmsg[next_addr + len:next_addr + len + 1] != b'l':
+                            content_err = True
+                            next_addr += 19
+                            pmsg_out.write("Content Missing!\n")
+                            continue
+
+                if id == LOG_ID_EVENTS:
+                    tagidx, msg = self.process_event_log(pmsg[next_addr+18:next_addr+len])
+                    if tagidx:
+                        pmsg_out.write("{}: {}".format(tagidx, msg))
+                        pmsg_out.write("\n")
+                else:
+                    priority = struct.unpack('<b', pmsg[next_addr+18:next_addr + 19])[0]
+                    if priority < 0 or priority >= 9:
+                        next_addr += len
                         continue
-                pmsg_out.write(msg.decode("ascii","ignore"))
+                    pmsg_out.write(str(priority_list[priority]).ljust(12))
+                    msg = pmsg[next_addr + 19:next_addr + len].replace(b'\x0a', b'\x20')
+                    msg = msg.replace(b'\x00', b'\x20')
+                    pmsg_out.write(msg.decode("ascii","ignore"))
                 pmsg_out.write("\n")
                 content_err = False
                 next_addr += len
@@ -202,6 +230,70 @@ class PStore(RamParser):
                 next_addr += 1
         pmsg_out.close()
 
+    ### parse event
+    ## _data array that contains binary data
+    def process_event_log(self, _data):
+        pos = 0
+        if pos + self.SIZEOF_HEADER_T > len(_data):
+            return None, None
+        tagidx = struct.unpack('<I', _data[pos : pos + self.SIZEOF_HEADER_T])[0] #4 bytes
+        pos = pos + self.SIZEOF_HEADER_T
+        evt_type, tmpmsg, length = self.get_evt_data(_data, pos)
+        pos = pos + length
+        if evt_type == -1:
+            return None, None
+        if evt_type != self.EVENT_TYPE_LIST:
+            return tagidx, tmpmsg
+        if pos + self.SIZEOF_EVT_LIST_T > len(_data):
+            return None, None
+        list_t = struct.unpack('<BB', _data[pos : pos + self.SIZEOF_EVT_LIST_T])
+        pos = pos + self.SIZEOF_EVT_LIST_T
+        evt_type = list_t[0]
+        evt_cnt = list_t[1]
+        i = 0
+        msg = ""
+        while i < evt_cnt:
+            evt_type, tmpmsg, length = self.get_evt_data(_data,pos)
+            if evt_type == -1:
+                break
+            pos = pos + length
+            msg = msg + tmpmsg
+            if i < evt_cnt -1:
+                msg = msg + ","
+            i = i+1
+        return tagidx, "[" + msg + "]"
+
+    def get_evt_data(self, data_array, pos):
+        if (pos + 1) > len(data_array):
+            return -1, -1, -1
+        evt_type = struct.unpack('<B', data_array[pos : pos + 1])[0]
+        length = 0
+        msg=""
+        if evt_type == self.EVENT_TYPE_INT :
+            if (pos + self.SIZEOF_EVT_INT_T) > len(data_array):
+                return -1, -1, -1
+            msg = str(struct.unpack('<I', data_array[pos+1 : pos + self.SIZEOF_EVT_INT_T])[0])
+            length = self.SIZEOF_EVT_INT_T
+        elif evt_type == self.EVENT_TYPE_LONG:
+            if (pos + self.SIZEOF_EVT_LONG_T) > len(data_array):
+                return -1, -1, -1
+            msg = str(struct.unpack('<Q', data_array[pos+1 : pos + self.SIZEOF_EVT_LONG_T])[0])
+            length = self.SIZEOF_EVT_LONG_T
+        elif evt_type == self.EVENT_TYPE_FLOAT:
+            if (pos + self.SIZEOF_EVT_FLOAT_T) > len(data_array):
+                return -1, -1, -1
+            msg = str(struct.unpack('<f', data_array[pos+1 : pos + self.SIZEOF_EVT_FLOAT_T])[0])
+            length = self.SIZEOF_EVT_FLOAT_T
+        elif evt_type == self.EVENT_TYPE_STRING:
+            if (pos + self.SIZEOF_EVT_STRING_T) > len(data_array):
+                return -1, -1, -1
+            #for event log, msg_len may be 0 like "I 1397638484: [121035042,4294967295,]"
+            msg_len = struct.unpack('I', data_array[pos+1 : pos + self.SIZEOF_EVT_STRING_T])[0]
+            # last msg_len-1 bytes
+            tmpmsg = data_array[pos + self.SIZEOF_EVT_STRING_T : pos+self.SIZEOF_EVT_STRING_T+msg_len]
+            length = self.SIZEOF_EVT_STRING_T + msg_len
+            msg = tmpmsg.decode('ascii', 'ignore').strip()
+        return evt_type, msg, length
     def extract_pmsg_logs_fd(self, base_addr):
         size = self.ramdump.read_u64(base_addr +
                             self.ramdump.field_offset('struct ramoops_context', 'pmsg_size'))

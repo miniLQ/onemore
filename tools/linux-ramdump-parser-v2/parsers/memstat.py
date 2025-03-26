@@ -1,5 +1,5 @@
 # Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
-# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -24,56 +24,72 @@ class MemStats(RamParser):
             self.zram_dev_rtw = linux_radix_tree.RadixTreeWalker(self.ramdump)
             self.zram_mem_mb = 0
 
+        self.out_mem_stat = None
+
     def pages_to_mb(self, pages):
         val = 0
-        if pages != 0:
+        if pages != None and pages != 0:
             val = (pages * self.ramdump.get_page_size()) >> 20
+        return val
+
+    def pages_to_kb(self, pages):
+        val = 0
+        if pages != None and pages != 0:
+            val = (pages * self.ramdump.get_page_size()) >> 10
+        return val
+
+    def bytes_to_pages(self, bytes):
+        val = 0
+        if bytes != None and bytes != 0:
+            val = bytes >> self.ramdump.page_shift
         return val
 
     def bytes_to_mb(self, bytes):
         val = 0
-        if bytes != 0:
+        if bytes != None and bytes != 0:
             val = bytes >> 20
         return val
 
-    def calculate_vmalloc(self):
-        memstat_vmalloc = Vmalloc(self.ramdump)
-        vmalloc_pages = memstat_vmalloc.get_vmalloc_pages()
-        self.vmalloc_size = self.pages_to_mb(vmalloc_pages)
-        return
+    def calculate_totalmem_pages(self):
+        # Returns memory in pages
+        if(self.ramdump.kernel_version > (4, 20, 0)):
+            return self.ramdump.read_word('_totalram_pages')
 
-    def calculate_vm_stat(self):
+        return self.ramdump.read_word('totalram_pages')
+
+    def calculate_totalfree_pages(self):
+        # Returns memory in pages
+        if (self.ramdump.kernel_version < (4, 9, 0)):
+           # Free Memory
+           return self.ramdump.read_word('vm_stat[NR_FREE_PAGES]')
+
+        return self.ramdump.read_word('vm_zone_stat[NR_FREE_PAGES]')
+
+    def calculate_vm_stat_pages(self):
+        # Returns memory in pages
         # Other memory :  NR_ANON_PAGES + NR_FILE_PAGES + NR_PAGETABLE \
-        # + NR_KERNEL_STACK - NR_SWAPCACHE
+        #                 - NR_SWAPCACHE
         vmstat_anon_pages = self.ramdump.read_word(
                             'vm_stat[NR_ANON_PAGES]')
         vmstat_file_pages = self.ramdump.read_word(
                             'vm_stat[NR_FILE_PAGES]')
         vmstat_pagetbl = self.ramdump.read_word(
                                 'vm_stat[NR_PAGETABLE]')
-        vmstat_kernelstack = self.ramdump.read_word(
+        if self.ramdump.is_config_defined('CONFIG_VMAP_STACK'):
+            # vm_stat[NR_KERNEL_STACK] is already part of vmalloc. So no need to include it
+            vmstat_kernelstack = 0
+        else:
+            vmstat_kernelstack = self.ramdump.read_word(
                                 'vm_stat[NR_KERNEL_STACK]')
         vmstat_swapcache = self.ramdump.read_word(
                             'vm_stat[NR_SWAPCACHE]')
         other_mem = (vmstat_anon_pages + vmstat_file_pages + vmstat_pagetbl +
                      vmstat_kernelstack - vmstat_swapcache)
-        other_mem = self.pages_to_mb(other_mem)
+
         return other_mem
 
-    def calculate_cached(self):
-        if self.ramdump.kernel_version >= (4, 9):
-            vmstat_file_pages = self.ramdump.read_word(
-                            'vm_node_stat[NR_FILE_PAGES]')
-            cached = self.pages_to_mb(vmstat_file_pages)
-        else:
-            vmstat_file_pages = self.ramdump.read_word(
-                            'vm_stat[NR_FILE_PAGES]')
-            cached = self.pages_to_mb(vmstat_file_pages)
-        return cached
-
-    def calculate_vm_node_zone_stat(self):
-        # Other memory :  NR_ANON_MAPPED + NR_FILE_PAGES + NR_PAGETABLE \
-        # + NR_KERNEL_STACK_KB
+    def calculate_vm_node_zone_stat_pages(self):
+        # Other memory :  NR_ANON_MAPPED + NR_FILE_PAGES + NR_PAGETABLE
         vmstat_anon_pages = self.ramdump.read_word(
                             'vm_node_stat[NR_ANON_MAPPED]')
         vmstat_file_pages = self.ramdump.read_word(
@@ -81,19 +97,50 @@ class MemStats(RamParser):
         if self.ramdump.kernel_version >= (5, 15):
             vmstat_pagetbl = self.ramdump.read_word(
                                 'vm_node_stat[NR_PAGETABLE]')
-            vmstat_kernelstack = self.ramdump.read_word(
+            if self.ramdump.is_config_defined('CONFIG_VMAP_STACK'):
+                # vm_stat[NR_KERNEL_STACK] is already part of vmalloc. So no need to include it
+                vmstat_kernelstack = 0
+            else:
+                vmstat_kernelstack = self.ramdump.read_word(
                                 'vm_node_stat[NR_KERNEL_STACK_KB]')
         else:
             vmstat_pagetbl = self.ramdump.read_word(
                                 'vm_zone_stat[NR_PAGETABLE]')
-            vmstat_kernelstack = self.ramdump.read_word(
+            if self.ramdump.is_config_defined('CONFIG_VMAP_STACK'):
+                # vm_stat[NR_KERNEL_STACK] is already part of vmalloc. So no need to include it
+                vmstat_kernelstack = 0
+            else:
+                vmstat_kernelstack = self.ramdump.read_word(
                                 'vm_zone_stat[NR_KERNEL_STACK_KB]')
         other_mem = (vmstat_anon_pages + vmstat_file_pages + vmstat_pagetbl +
                      (vmstat_kernelstack // 4))
-        other_mem = self.pages_to_mb(other_mem)
+
         return other_mem
 
-    def calculate_ionmem(self):
+    def calculate_other_mem_pages(self):
+        # Returns memory in pages
+        if (self.ramdump.kernel_version < (4, 9, 0)):
+           return self.calculate_vm_stat_pages()
+
+        return self.calculate_vm_node_zone_stat_pages()
+
+    def calculate_vmalloc_pages(self):
+        memstat_vmalloc = Vmalloc(self.ramdump)
+        vmalloc_pages = memstat_vmalloc.get_vmalloc_pages()
+        self.vmalloc_size = self.pages_to_mb(vmalloc_pages)
+        return vmalloc_pages
+
+    def calculate_cached_pages(self):
+        # Returns memory in pages
+        if self.ramdump.kernel_version >= (4, 9):
+            return self.ramdump.read_word(
+                            'vm_node_stat[NR_FILE_PAGES]')
+
+        return self.ramdump.read_word(
+                        'vm_stat[NR_FILE_PAGES]')
+
+    def calculate_ionmem_pages(self):
+        # Returns memory in MB
         if self.ramdump.kernel_version >= (5, 10):
             grandtotal = 0
         elif self.ramdump.kernel_version >= (5, 4):
@@ -129,10 +176,10 @@ class MemStats(RamParser):
                     total_allocated = 0
                     break
                 grandtotal = grandtotal + total_allocated
-        grandtotal = self.bytes_to_mb(grandtotal)
+        grandtotal = self.bytes_to_pages(grandtotal)
         return grandtotal
 
-    def calculate_zram_dev_mem_allocated(self, zram):
+    def calculate_zram_dev_mem_allocated_MB(self, zram):
         mem_pool = zram + self.ramdump.field_offset('struct zram', 'mem_pool')
         mem_pool = self.ramdump.read_word(mem_pool)
 
@@ -147,73 +194,35 @@ class MemStats(RamParser):
 
         self.zram_mem_mb += stat_val
 
-    def print_mem_stats(self, out_mem_stat):
-        # Total memory
-        if(self.ramdump.kernel_version > (4, 20, 0)):
-            total_mem = self.ramdump.read_word('_totalram_pages')
+    def calculate_slab_mem_pages(self):
+        # Returns memory in pages
+        if self.ramdump.kernel_version >= (5, 10):
+            slab_rec = self.ramdump.read_word(
+                'vm_node_stat[NR_SLAB_RECLAIMABLE_B]')
+            slab_unrec = self.ramdump.read_word(
+                'vm_node_stat[NR_SLAB_UNRECLAIMABLE_B]')
+
+        elif (self.ramdump.kernel_version >= (4, 14)):
+            slab_rec = self.ramdump.read_word(
+                'vm_node_stat[NR_SLAB_RECLAIMABLE]')
+            slab_unrec = self.ramdump.read_word(
+                'vm_node_stat[NR_SLAB_UNRECLAIMABLE]')
+
+        elif self.ramdump.kernel_version >= (4, 9, 0):
+            slab_rec = self.ramdump.read_word(
+                    'vm_zone_stat[NR_SLAB_RECLAIMABLE]')
+            slab_unrec = self.ramdump.read_word(
+                    'vm_zone_stat[NR_SLAB_UNRECLAIMABLE]')
+
         else:
-            total_mem = self.ramdump.read_word('totalram_pages')
-
-        total_mem = self.pages_to_mb(total_mem)
-
-        if (self.ramdump.kernel_version < (4, 9, 0)):
-           # Free Memory
-           total_free = self.ramdump.read_word('vm_stat[NR_FREE_PAGES]')
-           total_free = self.pages_to_mb(total_free)
-
-           # slab Memory
            slab_rec = \
                self.ramdump.read_word('vm_stat[NR_SLAB_RECLAIMABLE]')
            slab_unrec = \
                self.ramdump.read_word('vm_stat[NR_SLAB_UNRECLAIMABLE]')
-           total_slab = self.pages_to_mb(slab_rec + slab_unrec)
 
-           #others
-           other_mem = self.calculate_vm_stat()
-        else:
-            # Free Memory
-            total_free = self.ramdump.read_word('vm_zone_stat[NR_FREE_PAGES]')
-            total_free = self.pages_to_mb(total_free)
+        return (slab_rec, slab_unrec)
 
-            # slab Memory
-            if self.ramdump.kernel_version >= (5, 10):
-                slab_rec = self.ramdump.read_word(
-                   'vm_node_stat[NR_SLAB_RECLAIMABLE_B]')
-                slab_unrec = self.ramdump.read_word(
-                   'vm_node_stat[NR_SLAB_UNRECLAIMABLE_B]')
-            elif (self.ramdump.kernel_version >= (4, 14)):
-                slab_rec = self.ramdump.read_word(
-                   'vm_node_stat[NR_SLAB_RECLAIMABLE]')
-                slab_unrec = self.ramdump.read_word(
-                   'vm_node_stat[NR_SLAB_UNRECLAIMABLE]')
-            else:
-                slab_rec = self.ramdump.read_word(
-                        'vm_zone_stat[NR_SLAB_RECLAIMABLE]')
-                slab_unrec = self.ramdump.read_word(
-                        'vm_zone_stat[NR_SLAB_UNRECLAIMABLE]')
-            total_slab = self.pages_to_mb(slab_rec + slab_unrec)
-            # others
-            other_mem = self.calculate_vm_node_zone_stat()
-        cached = self.calculate_cached()
-
-        # ion memory
-        ion_mem = self.calculate_ionmem()
-
-        # kgsl memory
-        # Duplicates gpuinfo_510.py@parse_kgsl_mem()'s 'KGSL Total'
-        try:
-            kgsl_memory = self.ramdump.read_word(
-                            'kgsl_driver.stats.page_alloc')
-            kgsl_memory += self.ramdump.read_word(
-                            'kgsl_driver.stats.coherent')
-            kgsl_memory += self.ramdump.read_word(
-                            'kgsl_driver.stats.secure')
-            kgsl_memory = self.bytes_to_mb(kgsl_memory)
-        except TypeError as e:
-            out_mem_stat.write("Failed to retrieve total kgsl memory\n")
-            kgsl_memory = 0
-
-        # zcompressed ram
+    def calculate_zram_compressed_pages(self):
         if self.ramdump.kernel_version >= (4, 4):
             if self.ramdump.kernel_version >= (4, 14):
                 zram_index_idr = self.ramdump.address_of('zram_index_idr')
@@ -225,7 +234,7 @@ class MemStats(RamParser):
                 #'struct radix_tree_root' was replaced by 'struct xarray' on kernel 5.4+
                 if self.ramdump.kernel_version >= (5, 4):
                     self.zram_dev_rtw.walk_radix_tree(zram_index_idr,
-                                          self.calculate_zram_dev_mem_allocated)
+                                          self.calculate_zram_dev_mem_allocated_MB)
                     stat_val = self.zram_mem_mb
                 else:
                     if self.ramdump.kernel_version >= (4, 14):
@@ -257,7 +266,6 @@ class MemStats(RamParser):
                         stat_val = self.ramdump.read_word(page_allocated)
                         if stat_val is None:
                             stat_val = 0
-                        stat_val = self.pages_to_mb(stat_val)
         else:
             zram_devices_word = self.ramdump.read_word('zram_devices')
             if zram_devices_word is not None:
@@ -265,15 +273,83 @@ class MemStats(RamParser):
                                         'struct zram', 'stats')
                 stat_addr = zram_devices_word + zram_devices_stat_offset
                 stat_val = self.ramdump.read_u64(stat_addr)
-                stat_val = self.bytes_to_mb(stat_val)
+                stat_val = self.bytes_to_pages(stat_val)
             else:
                 stat_val = 0
 
-        self.out_mem_stat = out_mem_stat
-        self.vmalloc_size = 0
-        # vmalloc area
-        self.calculate_vmalloc()
+        return stat_val
 
+    def read_dma_heap_mem_pages(self):
+        if self.ramdump.kernel_version >= (5, 10):
+            try:
+                dma_heap_file = os.path.join(self.ramdump.outdir, "total_dma_heap.txt")
+                if os.path.isfile(dma_heap_file):
+                    fin = open(dma_heap_file, 'r')
+                    fin_list = fin.readlines()
+                    fin.close()
+                    ion_bytes = int(fin_list[0].split("Bytes")[0].split()[-1])
+                    return self.bytes_to_pages(ion_bytes)
+                return -1
+            except Exception as e:
+                print(e)
+                return -2
+        else:
+            return 0
+
+    def calculate_kgsl_mem_pages(self):
+        # Returns memory in Pages
+        # Duplicates gpuinfo_510.py@parse_kgsl_mem()'s 'KGSL Total'
+        try:
+            kgsl_memory = self.ramdump.read_word(
+                            'kgsl_driver.stats.page_alloc')
+            kgsl_memory += self.ramdump.read_word(
+                            'kgsl_driver.stats.coherent')
+            kgsl_memory += self.ramdump.read_word(
+                            'kgsl_driver.stats.secure')
+            kgsl_memory = self.bytes_to_pages(kgsl_memory)
+            return kgsl_memory
+        except TypeError as e:
+            if self.out_mem_stat is not None:
+                self.out_mem_stat.write("Failed to retrieve total kgsl memory\n")
+            return 0
+
+    def calculate_kernel_misc_rec_pages(self):
+        if self.ramdump.kernel_version >= (6, 6):
+            return max(self.ramdump.read_s64('vm_node_stat[NR_KERNEL_MISC_RECLAIMABLE]'), 0)
+        else:
+            return max(self.ramdump.read_s64('vm_node_stat[NR_KERNEL_MISC_RECLAIMABLE]'), 0)
+
+
+    def print_mem_stats(self, out_mem_stat):
+        self.out_mem_stat = out_mem_stat
+        # Total memory
+        total_mem_pages = self.calculate_totalmem_pages()
+        total_mem = self.pages_to_mb(total_mem_pages)
+
+        total_free_pages = self.calculate_totalfree_pages()
+        total_free = self.pages_to_mb(total_free_pages)
+
+        other_mem_pages = self.calculate_other_mem_pages()
+        other_mem = self.pages_to_mb(other_mem_pages)
+
+        cached_pages = self.calculate_cached_pages()
+        cached = self.pages_to_mb(cached_pages)
+
+        slab_rec_pages, slab_unrec_pages = self.calculate_slab_mem_pages()
+        total_slab_pages = slab_rec_pages + slab_unrec_pages
+        total_slab = self.pages_to_mb(total_slab_pages)
+
+        # kgsl memory
+        kgsl_memory_pages = self.calculate_kgsl_mem_pages()
+        kgsl_memory = self.pages_to_mb(kgsl_memory_pages)
+
+        # zcompressed ram
+        stat_val_pages = self.calculate_zram_compressed_pages()
+        zram_mb = self.pages_to_mb(stat_val_pages)
+
+        # vmalloc area
+        self.vmalloc_size = 0
+        self.calculate_vmalloc_pages()
 
         # Output prints
         out_mem_stat.write('{0:30}: {1:8} MB'.format(
@@ -283,28 +359,24 @@ class MemStats(RamParser):
         out_mem_stat.write('\n{0:30}: {1:8} MB'.format(
                             "Total Slab memory:", total_slab))
         if self.ramdump.kernel_version >= (5, 10):
-            log_location = os.path.dirname(out_mem_stat.name)
-            try:
-                dma_heap_file = os.path.join(log_location, "total_dma_heap.txt")
-                if os.path.isfile(dma_heap_file):
-                    fin = open(dma_heap_file, 'r')
-                    fin_list = fin.readlines()
-                    fin.close()
-                    ion_mem = int(fin_list[0].split(" ")[-1].replace("MB", ""))
-                    out_mem_stat.write("\n{0:30}: {1:8} MB".format("Total DMA memory", ion_mem))
-                else:
-                    out_mem_stat.write("\n{0:30}: Please parse ionbuffer first, use --print-ionbuffer.".format(
-                            "Total DMA memory"))
-            except:
-                ion_mem = "Please refer total_dma_heap.txt"
+            ion_mem = self.read_dma_heap_mem_pages()
+            if ion_mem > 0:
+                ion_mem = self.pages_to_mb(ion_mem)
+                out_mem_stat.write("\n{0:30}: {1:8} MB".format("Total DMA memory", ion_mem))
+            elif ion_mem == -1:
+                out_mem_stat.write("\n{0:30}: Please parse ionbuffer first, use --print-ionbuffer.".format(
+                        "Total DMA memory"))
+            else:
                 out_mem_stat.write('\nTotal ion memory: Please refer total_dma_heap.txt')
         else:
+            ion_mem_pages = self.calculate_ionmem_pages()
+            ion_mem = self.pages_to_mb(ion_mem_pages)
             out_mem_stat.write('\n{0:30}: {1:8} MB'.format(
                             "Total ion memory:", ion_mem))
         out_mem_stat.write('\n{0:30}: {1:8} MB'.format(
                             "KGSL ", kgsl_memory))
         out_mem_stat.write('\n{0:30}: {1:8} MB'.format(
-                            "ZRAM compressed  ", stat_val))
+                            "ZRAM compressed  ", zram_mb))
         out_mem_stat.write('\n{0:30}: {1:8} MB'.format(
                             "vmalloc  ", self.vmalloc_size))
         out_mem_stat.write('\n{0:30}: {1:8} MB'.format(
@@ -312,12 +384,11 @@ class MemStats(RamParser):
         out_mem_stat.write('\n{0:30}: {1:8} MB'.format(
                             "Cached  ",cached))
 
-        if type(ion_mem) is str:
-            accounted_mem = total_free + total_slab + kgsl_memory + stat_val + \
-                            self.vmalloc_size + other_mem
-        else:
-            accounted_mem = total_free + total_slab + ion_mem + kgsl_memory + \
-                        stat_val + self.vmalloc_size + other_mem
+        accounted_mem = total_free + total_slab + kgsl_memory + zram_mb + \
+                        self.vmalloc_size + other_mem
+
+        if ion_mem > 0:
+            accounted_mem += ion_mem
 
         unaccounted_mem = total_mem - accounted_mem
 

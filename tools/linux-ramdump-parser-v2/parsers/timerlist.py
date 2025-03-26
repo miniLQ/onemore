@@ -1,6 +1,5 @@
-# Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
 # Copyright (c) 2015-2019, The Linux Foundation. All rights reserved.
-# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -27,6 +26,7 @@ class TimerList(RamParser) :
         self.output = []
         major, minor, patch = self.ramdump.kernel_version
         self.timer_42 = False
+        self.timer_69 = False
         self.timer_has_data = True
         self.timer_jiffies = 'timer_jiffies'
         self.tvec_base = 'struct tvec_base'
@@ -38,6 +38,12 @@ class TimerList(RamParser) :
         if (major, minor) >= (4, 15):
             self.timer_has_data = False
         HZ = self.ramdump.get_config_val("CONFIG_HZ")
+        self.CONFIG_NO_HZ_COMMON = self.ramdump.is_config_defined("CONFIG_NO_HZ_COMMON")
+        self.base_types = {
+            1: [""],
+            2: ["BASE_STD", "BASE_DEF"],
+            3: ["BASE_LOCAL", "BASE_GLOBAL", "BASE_DEF"]
+        }
 
         if HZ != None:
             self.HZ = float(HZ)
@@ -63,7 +69,8 @@ class TimerList(RamParser) :
         # Requires separate processing
         if (major, minor) >= (4, 2):
             self.timer_42 = True
-
+        if (major, minor) >= (6, 9):
+            self.timer_69 = True
 
     def timer_list_walker(self, node, type, index, base):
         if node == self.head:
@@ -150,6 +157,63 @@ class TimerList(RamParser) :
         else:
             self.output_file.write("+ No {0} Timers found\n\n".format(type))
 
+    def get_percpu_timer_data(self, no_hz):
+        tvec_bases_addr = self.ramdump.address_of(self.tvec_bases)
+        base_type = ""
+        base_addr = None
+        tvec_bases_size = 1
+
+        for cpu in self.ramdump.iter_cpus():
+            cpu_print_once = True
+            if no_hz and self.timer_42:
+                tvec_bases_size = len(self.base_types[2])
+            if no_hz and self.timer_69:
+                tvec_bases_size = len(self.base_types[3])
+
+            for i in range(tvec_bases_size):
+                title = ""
+                if tvec_bases_size in self.base_types and i < len(self.base_types[tvec_bases_size]):
+                    base_type = self.base_types[tvec_bases_size][i]
+                base_addr = self.ramdump.array_index(tvec_bases_addr, self.tvec_base, i) + self.ramdump.per_cpu_offset(cpu)
+
+                if self.timer_42:
+                    base = base_addr
+                else:
+                    base = self.ramdump.read_word(base_addr)
+
+                title += "{0:12} (tvec_base: {1:x} ".format(base_type, base)
+                timer_jiffies_addr = base + self.ramdump.field_offset(self.tvec_base, self.timer_jiffies)
+                next_timer_addr = base + self.ramdump.field_offset(self.tvec_base, self.next_timer)
+
+                timer_jiffies = self.ramdump.read_word(timer_jiffies_addr)
+                next_timer = self.ramdump.read_word(next_timer_addr)
+                active_timers_offset = self.ramdump.field_offset(self.tvec_base, 'active_timers')
+                if active_timers_offset is not None:
+                    active_timers_addr = base + self.ramdump.field_offset(self.tvec_base, 'active_timers')
+                    active_timers = self.ramdump.read_word(active_timers_addr)
+                else:
+                    active_timers = "NA"
+
+                timer_jiffies_s = (timer_jiffies-(0xFFFFFFFF - 300 * int(self.HZ)) )/(self.HZ)
+                next_timer_s = (next_timer-(0xFFFFFFFF - 300 * int(self.HZ)) )/(self.HZ)
+
+                title += "timer_jiffies: {0}({1}s) next_timer: {2}({3}s) active_timers: {4})\n".format(timer_jiffies, timer_jiffies_s, next_timer, next_timer_s, active_timers)
+                if cpu_print_once == True:
+                    self.output_file.write("-" * len(title) + "\n")
+                    self.output_file.write("CPU {0}".format(cpu) + "\n")
+                    self.output_file.write("-" * len(title) + "\n")
+                    cpu_print_once = False
+                self.output_file.write(title)
+
+                for vec in sorted(self.vectors):
+                    self.output = []
+                    if self.timer_42:
+                        self.iterate_vec_v2(vec, base)
+                    else:
+                        self.iterate_vec(vec, base)
+                    self.print_vec(vec)
+                self.output_file.write("\n")
+
     def get_timer_list(self):
         self.output_file.write("Timer List Dump\n\n")
 
@@ -181,45 +245,7 @@ class TimerList(RamParser) :
                      self.iterate_vec(vec, tvec_base_deferral_addr)
                 self.print_vec(vec)
 
-        tvec_bases_addr = self.ramdump.address_of(self.tvec_bases)
-        for cpu in self.ramdump.iter_cpus():
-            title = "CPU {0}".format(cpu)
-
-            base_addr = tvec_bases_addr + self.ramdump.per_cpu_offset(cpu)
-            if self.timer_42:
-                base = base_addr
-            else:
-                base = self.ramdump.read_word(base_addr)
-
-            title += "(tvec_base: {0:x} ".format(base)
-
-            timer_jiffies_addr = base + self.ramdump.field_offset(self.tvec_base, self.timer_jiffies)
-            next_timer_addr = base + self.ramdump.field_offset(self.tvec_base, self.next_timer)
-
-            timer_jiffies = self.ramdump.read_word(timer_jiffies_addr)
-            next_timer = self.ramdump.read_word(next_timer_addr)
-            active_timers_offset = self.ramdump.field_offset(self.tvec_base, 'active_timers')
-            if active_timers_offset is not None:
-                active_timers_addr = base + self.ramdump.field_offset(self.tvec_base, 'active_timers')
-                active_timers = self.ramdump.read_word(active_timers_addr)
-            else:
-                active_timers = "NA"
-
-            timer_jiffies_s = (timer_jiffies-(0xFFFFFFFF - 300 * int(self.HZ)) )/(self.HZ)
-            next_timer_s = (next_timer-(0xFFFFFFFF - 300 * int(self.HZ)) )/(self.HZ)
-
-            title += "timer_jiffies: {0}({1}s) next_timer: {2}({3}s) active_timers: {4})\n".format(timer_jiffies, timer_jiffies_s, next_timer, next_timer_s, active_timers)
-            self.output_file.write("-" * len(title) + "\n")
-            self.output_file.write(title)
-            self.output_file.write("-" * len(title) + "\n\n")
-
-            for vec in sorted(self.vectors):
-                self.output = []
-                if self.timer_42:
-                    self.iterate_vec_v2(vec, base)
-                else:
-                    self.iterate_vec(vec, base)
-                self.print_vec(vec)
+        self.get_percpu_timer_data(self.CONFIG_NO_HZ_COMMON)
 
         tick_do_timer_cpu_addr = self.ramdump.address_of('tick_do_timer_cpu')
         tick_do_timer_cpu_val = "tick_do_timer_cpu: {0}\n".format(self.ramdump.read_int(tick_do_timer_cpu_addr))

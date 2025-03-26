@@ -1,5 +1,5 @@
 #SPDX-License-Identifier: GPL-2.0-only
-#Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+#Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 from print_out import print_out_str
 from parser_util import cleanupString
@@ -313,5 +313,4 @@ class UTaskLib:
             vfsmnt = path_struct.mnt
             if (dentry_addr != 0x0):
                 file_name = self.__get_path_name(dentry_addr, vfsmnt)
-                if task_name in file_name:
-                    yield cmdline_obj(pid, task_name, file_name)
+                yield cmdline_obj(pid, task_name, file_name)

@@ -28,9 +28,15 @@ class RadixTreeWalker(object):
         self.RADIX_TREE_ENTRY_MASK = 3
         self.RADIX_TREE_INTERNAL_NODE = 1    # 1 for 4.19; 2 for 5.4
         self.RADIX_TREE_MAP_SHIFT = 6
-        if int(self.ramdump.get_config_val("CONFIG_BASE_SMALL")) == 1:
-            self.RADIX_TREE_MAP_SHIFT = 4
+
+        try:
+            if int(self.ramdump.get_config_val("CONFIG_BASE_SMALL")) == 1:
+                self.RADIX_TREE_MAP_SHIFT = 4
+        except:
+            # CONFIG_BASE_SMALL is not set
+            pass
         self.RADIX_TREE_MAP_SIZE = (1 << self.RADIX_TREE_MAP_SHIFT)
+
         if (self.ramdump.kernel_version == (0, 0, 0) or
            self.ramdump.kernel_version >= (5, 4, 0)):
             self.root_struct = 'xarray'

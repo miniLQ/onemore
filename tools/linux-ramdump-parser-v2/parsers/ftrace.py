@@ -1,5 +1,5 @@
 # Copyright (c) 2017-2022, The Linux Foundation. All rights reserved.
-# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -55,7 +55,10 @@ class FtraceParser(RamParser):
         offset = ram_dump.read_u32(common_list + field_offset)
         size = ram_dump.read_u32(common_list + size_offset)
         signed = ram_dump.read_u32(common_list + signed_offset)
-
+        if type_str == None or field_name == None:
+            str_error =  'v.v (struct ftrace_event_field)0x{0:x} type_str or field_name is None'.format(common_list)
+            print_out_str(str_error)
+            return
         if re.match('(.*)\[(.*)', type_str) and not (re.match('__data_loc', type_str)):
             s = re.split('\[', type_str)
             s[1] = '[' + s[1]

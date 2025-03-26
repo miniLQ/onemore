@@ -774,10 +774,13 @@ class Logcat_vma(Logcat_base):
         super().__init__(ramdump, taskinfo)
         self.HEAD_SIZE = 32
         self.vmas = []
-        if int(ramdump.get_config_val("CONFIG_BASE_SMALL")) == 0:
-            self.PID_MAX = 0x8000
-        else:
-            self.PID_MAX = 0x1000
+        self.PID_MAX = 0x8000
+        try:
+            if int(ramdump.get_config_val("CONFIG_BASE_SMALL")) == 1:
+                self.PID_MAX = 0x1000
+        except:
+            pass
+
         print_out_str("max pid = " + str(self.PID_MAX))
 
     def read_bytes(self, addr, len):

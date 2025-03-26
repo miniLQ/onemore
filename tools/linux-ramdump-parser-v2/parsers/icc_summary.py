@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-only
-# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 from parser_util import register_parser, RamParser
 
@@ -20,8 +20,10 @@ class IccSummary(RamParser):
         numlinks = node.num_links
         if node.links == 0x0:
             return
+
+        offset = self.ramdump.sizeof('void *')
         for i in range(numlinks):
-            dnode_addr = node.links + i * 8
+            dnode_addr = node.links + i * offset
             dnode = self.ramdump.read_pdatatype(dnode_addr, 'struct icc_node', attr_list=['name', 'id', 'provider'])
             did = dnode.id
             dname = self.ramdump.read_cstring(dnode.name)
@@ -35,14 +37,18 @@ class IccSummary(RamParser):
 
     def extract_icc_summary(self):
         icc_providers_addr = self.ramdump.address_of("icc_providers")
+        if icc_providers_addr is None:
+            return
+
         next_offset = self.ramdump.field_offset('struct list_head', 'next')
+        node_list_offset = self.ramdump.field_offset('struct icc_node', 'node_list')
         icc_providers = self.ramdump.read_pointer(icc_providers_addr + next_offset)
         self.fop_provider.write("[providers]\n")
         self.fop.write("{0:65} {1:12} {2:12} {3:12}\n".format("         node", "tag", "avg", "peak"))
         line = "-" * 150 + "\n"
         formatProvider = "    |    {0:5}:{1:40}\t\t\t   [label={0:5}:{1:40}| avg_bw={2:<10} kBps\t| peak_bw={3:<10} kBps ]\n"
         format_req_str = "      |   {0:90} \t\t\t\t\t\t\t {1:<12}\t\t\t\t  {2:<12}\n"
-        formatStr = "+ {0:5}:{1:40} \t\t\t\t{2:<12} {3:<12}\n"
+        formatStr = "+ {0:5}:{1:40} \t\t\t\t\t{2:<12} {3:<12}\n"
         reqStr = "\t| {0:35} \t\t\t   {1:<12} {2:<12} {3:<12} \n"
 
         self.fop.write(line)
@@ -57,7 +63,7 @@ class IccSummary(RamParser):
                                                attr_list=['kobj.name'])
             label_name = self.ramdump.read_cstring(label.kobj.name)
             self.fop_provider.write("  + label = {}\n".format(label_name))
-            node = provider[i].nodes.next - 0x28
+            node = provider[i].nodes.next - node_list_offset
             nodes = self.ramdump.read_linkedlist('struct icc_node',
                                                  'node_list.next', node)
             no_of_nodes = len(nodes)

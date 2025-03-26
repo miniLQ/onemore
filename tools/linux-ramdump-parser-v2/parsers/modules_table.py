@@ -20,7 +20,9 @@ class Modules_table(RamParser):
         list_offset = self.ramdump.field_offset('struct module', 'list')
         name_offset = self.ramdump.field_offset('struct module', 'name')
         scmversion_offset = self.ramdump.field_offset('struct module', 'scmversion')
-        if self.ramdump.kernel_version > (4, 9, 0):
+        if self.ramdump.kernel_version > (6, 3, 0):
+            module_core_offset = self.ramdump.field_offset('struct module', 'mem[0].base')
+        elif self.ramdump.kernel_version > (4, 9, 0):
             module_core_offset = self.ramdump.field_offset('struct module', 'core_layout.base')
         else:
             module_core_offset = self.ramdump.field_offset('struct module', 'module_core')

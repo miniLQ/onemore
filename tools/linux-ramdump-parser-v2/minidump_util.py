@@ -124,15 +124,13 @@ def get_strings(buf, length):
         return nlist
 
 def generate_elf(autodump, outdir, vm, kernel_version):
-        if "autogvm" in vm:
+        if "autogvm" in vm or "autoghgvm" in vm:
             if kernel_version >= (5, 15, 0):
                 vmid = str(vm.split("-")[-1]) + "_"
             else:
                 vmid = ""
         elif vm == "oemvm":
             vmid = "31_"
-        elif vm == "autoghgvm":
-            vmid = "34_"
         elif vm:
             vmid = "2d_"
         else:
@@ -161,7 +159,7 @@ def generate_elf(autodump, outdir, vm, kernel_version):
         for names in nlist:
             if vm:
                 for file in files:
-                    if "autogvm" in vm:
+                    if "autogvm" in vm or "autoghgvm" in vm:
                         if re.match(r'^[0-9]_', names) is None:
                             filepath = "md_" + vmid + names + ".BIN"
                             is_found = fnmatch(file, "md_" + vmid + names + "*.BIN")

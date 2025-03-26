@@ -1,5 +1,5 @@
 # Copyright (c) 2012-2013, 2015, 2017-2020,2021 The Linux Foundation. All rights reserved.
-# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -166,33 +166,46 @@ def dump_thread_group(ramdump, task_addr, task_out, taskhighlight_out, check_for
 
         task_last_enqueued_ts = 0
         task_last_sleep_ts = 0
+        next_thread_last_enqueued = None
+        next_thread_last_sleep_ts = None
         if offset_last_enqueued_ts is None and (ramdump.is_config_defined('CONFIG_SCHED_WALT') or 'sched_walt' in ramdump.ko_file_names):
             try:
                 offset_last_enqueued_ts = ramdump.field_offset('struct walt_task_struct', 'last_enqueued_ts')
-                if (ramdump.kernel_version >= (5, 10, 0)):
+                if (ramdump.kernel_version >= (6, 12, 0)):
+                    walt_task_struct_offset = ramdump.sizeof('struct task_struct')
+                    offset_last_enqueued_ts = offset_last_enqueued_ts + walt_task_struct_offset
+                elif (ramdump.kernel_version >= (5, 10, 0)):
                     walt_task_struct_offset = ramdump.field_offset('struct task_struct', 'android_vendor_data1')
+                    offset_last_enqueued_ts = offset_last_enqueued_ts + walt_task_struct_offset
                 else:
                     walt_task_struct_offset = ramdump.field_offset('struct task_struct', 'wts')
-                offset_last_enqueued_ts = offset_last_enqueued_ts + walt_task_struct_offset
+                    offset_last_enqueued_ts = offset_last_enqueued_ts + walt_task_struct_offset
             except:
                 pass
         if offset_last_enqueued_ts:
-            next_thread_last_enqueued = next_thread_start + offset_last_enqueued_ts
+            if next_thread_last_enqueued is None:
+                next_thread_last_enqueued = next_thread_start + offset_last_enqueued_ts
             task_last_enqueued_ts = ramdump.read_u64(next_thread_last_enqueued)
             if task_last_enqueued_ts is None:
                 task_last_enqueued_ts = 0
+
         if offset_last_sleep_ts is None and (ramdump.is_config_defined('CONFIG_SCHED_WALT') or 'sched_walt' in ramdump.ko_file_names):
             try:
                 offset_last_sleep_ts = ramdump.field_offset('struct walt_task_struct', 'last_sleep_ts ')
-                if (ramdump.kernel_version >= (5, 10, 0)):
+                if (ramdump.kernel_version >= (6, 12, 0)):
+                    walt_task_struct_offset = ramdump.sizeof('struct task_struct')
+                    offset_last_sleep_ts = offset_last_sleep_ts + walt_task_struct_offset
+                elif (ramdump.kernel_version >= (5, 10, 0)):
                     walt_task_struct_offset = ramdump.field_offset('struct task_struct', 'android_vendor_data1')
+                    offset_last_sleep_ts = offset_last_sleep_ts + walt_task_struct_offset
                 else:
                     walt_task_struct_offset = ramdump.field_offset('struct task_struct', 'wts')
-                offset_last_sleep_ts = offset_last_sleep_ts + walt_task_struct_offset
+                    offset_last_sleep_ts = offset_last_sleep_ts + walt_task_struct_offset
             except:
                 pass
         if offset_last_sleep_ts:
-            next_thread_last_sleep_ts = next_thread_start + offset_last_sleep_ts
+            if next_thread_last_sleep_ts is None:
+                next_thread_last_sleep_ts = next_thread_start + offset_last_sleep_ts
             task_last_sleep_ts = ramdump.read_u64(next_thread_last_sleep_ts)
             if task_last_sleep_ts is None:
                 task_last_sleep_ts = 0
@@ -343,7 +356,7 @@ def do_dump_stacks(ramdump, check_for_panic=0):
         seen_tasks.append(next_task)
 
         init_next_task = next_task
-        init_thread_addr = init_next_task - offset_tasks 
+        init_thread_addr = init_next_task - offset_tasks
         if init_next_task == orig_init_next_task:
             break
     if check_for_panic == 0:

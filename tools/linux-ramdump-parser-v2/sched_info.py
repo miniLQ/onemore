@@ -1,5 +1,5 @@
 # Copyright (c) 2019-2021, The Linux Foundation. All rights reserved.
-# Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2025, Qualcomm Innovation Center, Inc. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 and
@@ -13,6 +13,8 @@
 from parser_util import register_parser, RamParser
 from print_out import print_out_str
 from utils.anomalies import Anomaly
+import print_out
+import os
 
 DEFAULT_MIGRATION_NR=32
 DEFAULT_MIGRATION_COST=500000
@@ -191,14 +193,13 @@ def dump_cpufreq_data(ramdump):
         cur_freq = ramdump.read_structure_field(cpu_data_addr, 'struct cpufreq_policy', 'cur')
         min_freq = ramdump.read_structure_field(cpu_data_addr, 'struct cpufreq_policy', 'min')
         max_freq = ramdump.read_structure_field(cpu_data_addr, 'struct cpufreq_policy', 'max')
-
+        freq_table = ramdump.read_structure_field(cpu_data_addr, 'struct cpufreq_policy', 'freq_table')
         cpuinfo_min_freq = ramdump.read_int(cpu_data_addr + cpuinfo_off + ramdump.field_offset('struct cpufreq_cpuinfo', 'min_freq'))
         cpuinfo_max_freq = ramdump.read_int(cpu_data_addr + cpuinfo_off + ramdump.field_offset('struct cpufreq_cpuinfo', 'max_freq'))
 
         gov = ramdump.read_structure_field(cpu_data_addr, 'struct cpufreq_policy', 'governor')
         gov_name = ramdump.read_cstring(gov + ramdump.field_offset('struct cpufreq_governor', 'name'))
 
-        cap_orig = ramdump.read_structure_field(rq_addr, 'struct rq', 'cpu_capacity_orig')
         curr_cap = ramdump.read_structure_field(rq_addr, 'struct rq', 'cpu_capacity')
         # thermal_pressure is architecture(ARM/ARM64) and kconfig(CONFIG_ARM_CPU_TOPOLOGY) related
         if (ramdump.kernel_version >= (5, 10, 0)):
@@ -216,6 +217,17 @@ def dump_cpufreq_data(ramdump):
 
         print_out_str("CPU:{0}\tGovernor:{1}\t cur_freq:{2}, max_freq:{3}, min_freq{4}  cpuinfo: min_freq:{5}, max_freq:{6}"
                     .format(i, gov_name, cur_freq, max_freq, min_freq, cpuinfo_min_freq, cpuinfo_max_freq))
+                #print_out_str('v.v ((struct cpufreq_frequency_table*)0x{0:x})[0..10]'.format(freq_table))
+        try:
+            for j in range(0, 30):
+                freq_table_index = ramdump.array_index(freq_table, 'struct cpufreq_frequency_table', j)
+                frequency = ramdump.read_structure_field(freq_table_index, 'struct cpufreq_frequency_table', 'frequency')
+                print("%2d:%-10d" %(j, frequency), end= '', file = print_out.out_file)
+                if max_freq == frequency:
+                    break
+        except Exception as err:
+            print(err)
+        print_out_str("\n")
         anomaly = Anomaly()
         anomaly.setOutputDir(ramdump.outdir)
         if max_freq != cpuinfo_max_freq:
@@ -228,6 +240,12 @@ def dump_cpufreq_data(ramdump):
             anomaly.addWarning("HLOS", "dmesg_TZ.txt", anomaly_str)
         try:
             arch_scale = ramdump.read_int(ramdump.address_of('cpu_scale') + ramdump.per_cpu_offset(i))
+            cap_orig = ramdump.read_structure_field(rq_addr, 'struct rq', 'cpu_capacity_orig')
+            # INFO: Since kernel v6.7 merged the upstream kernel commit 7bc263840bc3 ("sched/topology: Consolidate
+            #       and clean up access to a CPU's max compute capacity"), cpu_capacity_orig has been removed from
+            #       rq and replaced by arch_scale_cpu_capacity.
+            if cap_orig is None:
+                cap_orig = arch_scale
             print_out_str("\tCapacity: capacity_orig:{0}, cur_cap:{1}, arch_scale:{2}\n".format(cap_orig, curr_cap, arch_scale))
         except Exception as err:
             print(err)
@@ -302,3 +320,5 @@ class Schedinfo(RamParser):
             print_out_str("\t\t sysctl_sched_uclamp_util_max Default:{0} and Value in dump:{1}\n".format(SCHED_CAPACITY_SCALE, sched_uclamp_util_max))
         dump_rq_lock_information(self.ramdump)
         dump_isolation_data(self.ramdump)
+        print_out.out_file.flush()
+        os.fsync(print_out.out_file.fileno())
