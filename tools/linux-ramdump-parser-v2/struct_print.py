@@ -125,7 +125,7 @@ class struct_print_class(object):
             func_name = Struct.get_address
         else:
             s1 = 'error: unknown data type {0:s} for field {1:s}\n'.format(data_type, name)
-            print(s1)
+            print_out_str(s1)
             assert(0)
         self.fields_dict[name] = func_name
         return node
@@ -138,7 +138,7 @@ class struct_print_class(object):
             try:
                 node.val = self.struct_inst.__getattr__(node.name)
             except:
-                print('key lookup exception [{0:s}] : [{1:s}]\n'.format(node.name, node.data_type))
+                print_out_str('key lookup exception [{0:s}] : [{1:s}]\n'.format(node.name, node.data_type))
                 node.name = node.name + " : not found"
                 node.val = 0x0
                 pass
