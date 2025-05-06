@@ -31,6 +31,7 @@ from .mtk_subinterface.NeKeAnalyze import NeKeAnalyzeCardsInfo
 from .qcom_subinterface.NocDecodeinterface import NocDecodeCardsInfo
 from .general_subinterface.Matinterface import MatCardsInfo
 from .general_subinterface.TombstoneParserInterface import TombstoneParserCardsInfo
+from .qcom_subinterface.TzErrorCodeDecodeInterface import TzErrorCodeDecodeCardsInfo
 
 class Widget(QFrame):
 
@@ -246,6 +247,9 @@ class MainWindow(MSFluentWindow):
         elif "Tombstone_Praser" in objectName:
             logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(TombstoneParserCardsInfo, objectName)))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TombstoneParserCardsInfo, objectName))
+        elif "TzLog_Parser" in objectName:
+            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(TzErrorCodeDecodeCardsInfo, objectName)))
+            self.showInterface.setCurrentWidget(self.showInterface.findChild(TzErrorCodeDecodeCardsInfo, objectName))       
         else:
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
 
