@@ -444,11 +444,6 @@ class SettinsCard(GroupHeaderCardWidget):
         logger.info("platform: {}".format(self.platformComboBox.currentText()))
         logger.info("extend parameters: {}".format(self.lineEdit.text()))
 
-        # 检查是否存在python环境
-        if sys.executable == None or sys.executable == "":
-            self.showNoPython()
-            return
-
         if self.comboBox.currentText() == "始终显示":
             shell = True
         else:
