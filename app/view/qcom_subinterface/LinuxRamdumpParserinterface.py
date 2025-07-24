@@ -500,7 +500,7 @@ class SettinsCard(GroupHeaderCardWidget):
                         self.vmlinuxfile, self.dumpdir, self.output_path, self.platformComboBox.currentText())
 
 
-            if self.lineEdit.text() == "" or self.lineEdit.text() == None or "-x" in self.lineEdit.text():
+            if self.lineEdit.text() == "" or self.lineEdit.text() == None:
                 command += " -x"
             else:
                 command += " {}".format(self.lineEdit.text())
