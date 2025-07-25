@@ -13,6 +13,8 @@ from qfluentwidgets import (NavigationItemPosition, MessageBox, MSFluentTitleBar
                             TransparentDropDownToolButton, TransparentToolButton, setTheme, Theme,
                             isDarkTheme)
 
+from plugins.plugin_loader import load_plugins
+
 from .setting_interface import SettingInterface
 from .mtk_interface import MtkInterface
 from .qcom_interface import QcomInterface
@@ -32,6 +34,8 @@ from .qcom_subinterface.NocDecodeinterface import NocDecodeCardsInfo
 from .general_subinterface.Matinterface import MatCardsInfo
 from .general_subinterface.TombstoneParserInterface import TombstoneParserCardsInfo
 from .qcom_subinterface.TzErrorCodeDecodeInterface import TzErrorCodeDecodeCardsInfo
+
+from plugins.plugin_market import PluginMarket
 
 class Widget(QFrame):
 
@@ -134,6 +138,7 @@ class MainWindow(MSFluentWindow):
         self.setTitleBar(CustomTitleBar(self))
         self.tabBar = self.titleBar.tabBar  # type: TabBar
         self.tabBar.tabCloseRequested.connect(self.removetab)
+        self.pluginOpenerMap = {}
 
                 
         #self.tabBar.currentChanged.connect(self.onTabChanged)
@@ -145,6 +150,8 @@ class MainWindow(MSFluentWindow):
         self.homeInterface = QStackedWidget(self, objectName='homeInterface')
         self.qcomInterface = QcomInterface(self)
         self.mtkInterface = MtkInterface(self)
+
+        load_plugins(self)# add interfaces to showInterface
 
         # 在homeinterface的正中央添加一个widget，显示ONEMORE字符串
         homewidget = Widget('ONEMORE', self.homeInterface)
@@ -180,6 +187,17 @@ class MainWindow(MSFluentWindow):
         self.addSubInterface(self.mtkInterface, FIF.APPLICATION, 'MTK')
         self.addSubInterface(self.qcomInterface, FIF.APPLICATION, '高通')
 
+        self.pluginMarketInterface = PluginMarket("plugins", self)
+        self.pluginMarketInterface.setObjectName("plugin-market")
+
+        self.addSubInterface(
+            self.pluginMarketInterface,
+            FIF.SHOPPING_CART,
+            '插件市场',
+            FIF.SHOPPING_CART,
+            NavigationItemPosition.BOTTOM
+        )
+
         # add custom widget to bottom
         self.addSubInterface(
             self.settingInterface, Icon.SETTINGS, self.tr('Settings'), Icon.SETTINGS_FILLED, NavigationItemPosition.BOTTOM)
@@ -188,6 +206,17 @@ class MainWindow(MSFluentWindow):
         #self.addTab('Heart', 'As long as you love me', icon='resource/Heart.png')
 
         self.tabBar.currentChanged.connect(self.onTabChanged)
+
+        # 遍歷pluginOpenerMap, 將這個UNIQUE_NAME添加到tabBar中的currentChanged.connect，也就是self.onTabChanged
+        # for uniqueName, openFunc in self.pluginOpenerMap.items():
+        #     # create a tab for each plugin
+        #     ramdomNum = cfg.get(cfg.randomNum)
+        #     routeKey = f"{uniqueName} {ramdomNum}"
+        #     self.addTab(routeKey, uniqueName, 'app/resource/images/Chicken.png')
+        #
+        #     # connect the tab to the open function
+        #     self.tabBar.currentChanged.connect(lambda index, func=openFunc: func())
+
 
         # 设置默认显示HOME界面
         self.homeInterface.show()
@@ -271,3 +300,6 @@ class MainWindow(MSFluentWindow):
         self.tabBar.removeTab(index)
         self.showInterface.removeWidget(self.showInterface.widget(index))
         self.showInterface.setCurrentIndex(0)
+
+    def registerPluginOpener(self, uniqueName: str, openFunc: callable):
+        self.pluginOpenerMap[uniqueName] = openFunc

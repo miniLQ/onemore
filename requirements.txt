@@ -1,3 +1,4 @@
 PyQt6-Fluent-Widgets>=1.5.5
 nuitka>=2.4.8
 loguru
+bcrypt

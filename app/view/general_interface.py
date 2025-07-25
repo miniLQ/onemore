@@ -180,8 +180,14 @@ class AppCard(CardWidget):
             self.TombstoneParserInterface = TombstoneParserInterface(mainWindow=self.mainWindow)
             self.TombstoneParserInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Basketball.png')
             pass
+
+        elif self.UniqueName in self.mainWindow.pluginOpenerMap:
+            self.mainWindow.pluginOpenerMap[self.UniqueName]()  # 调用插件注册的逻辑
+            return
         else:
             logger.info("Unknown tool")
+
+
     
 
 class GeneralInterface(ScrollArea):
@@ -228,10 +234,11 @@ class GeneralInterface(ScrollArea):
 
 
     def addCard(self, icon, title, content, UniqueName):
-        card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, mainWindow=self.parent)
+        logger.info("[LIUQI] Adding card: {}, {}, {}".format(icon, title, content))
+        self.card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, mainWindow=self.parent)
         
         # 将card组件加入到设置好的滚动布局中
-        self.expandLayout.addWidget(card)
+        self.expandLayout.addWidget(self.card)
 
         #self.flowlayout.addWidget(card)
 
