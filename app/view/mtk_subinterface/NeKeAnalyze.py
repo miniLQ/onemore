@@ -477,7 +477,7 @@ class NeKeAnalyzeInterface:
         #self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.homeInterface)
 
     def addTab(self, routeKey, text, icon):
-        logger.info('[LIUQI]add tab {} {}'.format(routeKey, text))
+        logger.info('[TAB ADD] {} '.format(routeKey))
         self.mainWindow.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐

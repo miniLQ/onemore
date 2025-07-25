@@ -576,12 +576,13 @@ class TzErrorCodeDecodeInterface:
     def __init__(self, parent=None, mainWindow=None):
         self.parent = parent
         self.mainWindow = mainWindow
-        
+        self.routeKey = ""
+
         #self.mainWindow.tabBar.currentChanged.connect(self.onTabChanged)
         #self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.showInterface)
 
     def addTab(self, routeKey, text, icon):
-        logger.info('[LIUQI] add tab {} {}'.format(routeKey, text))
+        logger.info('add tab {}'.format(routeKey))
         self.mainWindow.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
@@ -590,6 +591,8 @@ class TzErrorCodeDecodeInterface:
         self.mainWindow.stackedWidget.setCurrentWidget(self.mainWindow.showInterface)
         self.mainWindow.tabBar.setCurrentIndex(self.mainWindow.tabBar.count() - 1)
 
+        self.routeKey = routeKey
+        logger.info(self.routeKey)
         #logger.info("[LIUQI] CurrentWidget: ".format(self.mainWindow.showInterface.currentWidget()))
         #logger.info("[LIUQI] CurrentWidgetRoutekey: ".format(self.mainWindow.showInterface.currentWidget().objectName()))
 

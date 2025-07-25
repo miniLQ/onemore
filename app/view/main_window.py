@@ -111,7 +111,7 @@ class CustomTitleBar(MSFluentTitleBar):
         # 设置标签关闭的信号处理
         #self.tabBar.tabCloseRequested.connect(self.removetab)
         # 设置标签切换的信号处理
-        self.tabBar.currentChanged.connect(lambda i: print(self.tabBar.tabText(i)))
+        self.tabBar.currentChanged.connect(lambda i: self.tabBar.tabText(i))
         
         self.hBoxLayout.insertWidget(4, self.tabBar, 1)
         self.hBoxLayout.setStretch(5, 0)
@@ -139,6 +139,7 @@ class MainWindow(MSFluentWindow):
         self.tabBar = self.titleBar.tabBar  # type: TabBar
         self.tabBar.tabCloseRequested.connect(self.removetab)
         self.pluginOpenerMap = {}
+        self.tabChangedHandlers = {}
 
                 
         #self.tabBar.currentChanged.connect(self.onTabChanged)
@@ -250,34 +251,38 @@ class MainWindow(MSFluentWindow):
     
     def onTabChanged(self, index: int):
         objectName = self.tabBar.currentTab().routeKey()
-        logger.info("[LIUQI] onTabChanged: {}".format(objectName))
-        logger.info("[LIUQI] index: {}".format(index))
+        # 插件注册的处理逻辑
+        for keyword, handler in self.tabChangedHandlers.items():
+            if keyword in objectName:
+                handler(objectName)
+                return
+
         if "Linux Ramdump" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName)))
+            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
         elif "Aee Extractor" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(AeeExtractorCardsInfo, objectName)))
+            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(AeeExtractorCardsInfo, objectName))
         elif "Android Image Unpack" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName)))
+            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName))
         elif "NE/KE-Analyze" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName)))
+            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName))
         elif "StartGDB" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(StartGDBCardsInfo, objectName)))
+            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(StartGDBCardsInfo, objectName))
         elif "NOC Decode" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(NocDecodeCardsInfo, objectName)))
+            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(NocDecodeCardsInfo, objectName))
         elif "Memory Analyzer tool" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(MatCardsInfo, objectName)))
+            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(MatCardsInfo, objectName))
         elif "Tombstone_Praser" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(TombstoneParserCardsInfo, objectName)))
+            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TombstoneParserCardsInfo, objectName))
         elif "TzLog_Parser" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(TzErrorCodeDecodeCardsInfo, objectName)))
+            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TzErrorCodeDecodeCardsInfo, objectName))       
         else:
             self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
@@ -290,7 +295,7 @@ class MainWindow(MSFluentWindow):
         self.addTab(text, text, 'resource/Smiling_with_heart.png')
 
     def addTab(self, routeKey, text, icon):
-        logger.info('add tab {} {} {}'.format(routeKey, text, icon))
+        logger.info('[TAB ADD] {}'.format(routeKey))
         self.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
@@ -303,3 +308,6 @@ class MainWindow(MSFluentWindow):
 
     def registerPluginOpener(self, uniqueName: str, openFunc: callable):
         self.pluginOpenerMap[uniqueName] = openFunc
+
+    def registerTabChangedHandler(self, keyword: str, handler: callable):
+        self.tabChangedHandlers[keyword] = handler
