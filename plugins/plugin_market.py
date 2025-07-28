@@ -1,5 +1,7 @@
 import os
 import json
+import time
+
 import requests
 import zipfile
 import io
@@ -14,6 +16,7 @@ from qfluentwidgets import (
 
 from loguru import logger
 from app.common.config import ROOTPATH
+from plugins.download_thread import DownloadExtractThread
 
 CURRENT_DIR = os.path.dirname(__file__)
 
@@ -31,6 +34,8 @@ class PluginMarket(QWidget):
 
         layout.addWidget(SubtitleLabel("🛒 插件市场", self))
 
+        # 增加一行提示，提示内容为：安装插件后，必须重启软件才能生效！
+        layout.addWidget(BodyLabel("在这里你可以浏览和安装各种插件，提升软件功能！", self))
         self.search_bar = SearchLineEdit(self)
         self.search_bar.setPlaceholderText("搜索插件...")
         self.search_bar.textChanged.connect(self.filter_plugins)
@@ -129,8 +134,10 @@ class PluginMarket(QWidget):
             InfoBar.success(
                 parent=self,
                 title="成功",
-                content=f"插件『{name}』已卸载",
-                position=InfoBarPosition.TOP
+                content=f"插件『{name}』已卸载，请重启软件以生效",
+                position=InfoBarPosition.TOP,
+                duration=10000,
+                isClosable=True
             )
             button.setText("安装")
             button.clicked.disconnect()
@@ -140,18 +147,27 @@ class PluginMarket(QWidget):
                 parent=self,
                 title="卸载失败",
                 content=str(e),
-                position=InfoBarPosition.TOP
+                position=InfoBarPosition.TOP,
+                duration=10000,
+                isClosable=True
             )
 
     def install_plugin(self, plugin, button):
         name = plugin.get("name", "unknown")
         zip_url = plugin.get("zip_url", "")
 
+        button.setEnabled(False)
+
         try:
             if zip_url:
-                resp = requests.get(zip_url)
-                with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
-                    zf.extractall(os.path.join(self.plugin_dir, name))
+                thread = DownloadExtractThread(plugin, self.plugin_dir)
+                thread.progressChanged.connect(lambda p: button.setText(f"{p}%"))
+                thread.installSuccess.connect(lambda p: self._on_install_success(p, button))
+                thread.installFailed.connect(lambda err: self._on_install_failed(err, button))
+                thread.start()
+
+                self._thread = thread  # 防止线程被GC回收
+
             else:
                 os.makedirs(os.path.join(self.plugin_dir, name), exist_ok=True)
                 with open(os.path.join(self.plugin_dir, name, "metadata.json"), "w", encoding="utf-8") as f:
@@ -159,15 +175,8 @@ class PluginMarket(QWidget):
                 with open(os.path.join(self.plugin_dir, name, "plugin.py"), "w", encoding="utf-8") as f:
                     f.write("# TODO: implement register(main_window)\n")
 
-            InfoBar.success(
-                parent=self,
-                title="成功",
-                content=f"插件『{name}』已安装",
-                position=InfoBarPosition.TOP
-            )
-            button.setText("卸载")
-            button.clicked.disconnect()
-            button.clicked.connect(lambda _, p=name, b=button, r=None: self.uninstall_plugin(p, b, r))
+            # button.clicked.disconnect()
+            # button.clicked.connect(lambda _, p=name, b=button, r=None: self.uninstall_plugin(p, b, r))
         except Exception as e:
             InfoBar.error(
                 parent=self,
@@ -181,3 +190,29 @@ class PluginMarket(QWidget):
             if p.get("name") == name:
                 return p
         return None
+
+    def _on_install_success(self, plugin, button):
+        InfoBar.success(
+            parent=self,
+            title="安装成功",
+            content=f"插件『{plugin['name']}』安装成功，请重启软件以生效",
+            position=InfoBarPosition.TOP,
+            duration=10000,
+            isClosable=True
+        )
+        button.setText("卸载")
+        button.setEnabled(True)
+        button.clicked.disconnect()
+        button.clicked.connect(lambda _, p=plugin['name'], b=button, r=None: self.uninstall_plugin(p, b, r))
+
+    def _on_install_failed(self, error, button):
+        InfoBar.error(
+            parent=self,
+            title="安装失败",
+            content=error,
+            position=InfoBarPosition.TOP,
+            duration=10000,
+            isClosable=True
+        )
+        button.setText("安装")
+        button.setEnabled(True)
