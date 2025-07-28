@@ -16,6 +16,7 @@ args = [
     '--show-progress',
     '--windows-console-mode=disable',
     '--output-dir=./build',
+    '--nofollow-import-to=plugins',
     './main.py'
 ]
 
