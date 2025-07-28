@@ -1,6 +1,6 @@
 # coding: utf-8
 from pathlib import Path
-
+import time
 from PyQt6.QtCore import Qt, QSize, QUrl, QPoint
 from PyQt6.QtGui import QIcon, QColor
 from PyQt6.QtWidgets import QApplication
@@ -132,6 +132,10 @@ class MainWindow(MSFluentWindow):
         self.tabChangedHandlers = {}
         self.TabRouteKeys = []
 
+        # 检查自动更新按钮是否被启用
+        if cfg.get(cfg.checkUpdateAtStartUp):
+            # 如果启用，则连接到自动更新信号
+            signalBus.Update(auto=True)
                 
         #self.tabBar.currentChanged.connect(self.onTabChanged)
 
@@ -143,8 +147,6 @@ class MainWindow(MSFluentWindow):
         self.qcomInterface = QcomInterface(self)
         self.mtkInterface = MtkInterface(self)
 
-        load_plugins(self)# add interfaces to showInterface
-
         # 在homeinterface的正中央添加一个widget，显示ONEMORE字符串
         homewidget = Widget('ONEMORE', self.homeInterface)
         self.homeInterface.addWidget(homewidget)
@@ -155,7 +157,7 @@ class MainWindow(MSFluentWindow):
         #self.homeInterface.show()
 
 
-        self.connectSignalToSlot()
+        #self.connectSignalToSlot()
 
         # add items to navigation interface
         self.initNavigation()
@@ -163,8 +165,12 @@ class MainWindow(MSFluentWindow):
 
         self.splashScreen.finish()
 
+        load_plugins(self)# add interfaces to showInterface
+
     def connectSignalToSlot(self):
-        signalBus.micaEnableChanged.connect(self.setMicaEffectEnabled)
+        #signalBus.micaEnableChanged.connect(self.setMicaEffectEnabled)
+        #signalBus.checkUpdateSig.connect(signalBus.Update())
+        pass
 
     def initNavigation(self):
         # self.navigationInterface.setAcrylicEnabled(True)

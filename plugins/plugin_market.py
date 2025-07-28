@@ -20,6 +20,27 @@ from plugins.download_thread import DownloadExtractThread
 
 CURRENT_DIR = os.path.dirname(__file__)
 
+def compare_versions(v1, v2):
+    """Compare semantic versions. Return True if v1 != v2."""
+    return v1.strip().lower() != v2.strip().lower()
+
+def check_plugin_update_status(plugin_dir, plugin):
+    """Check if installed plugin is outdated."""
+    name = plugin.get("name")
+    latest_version = plugin.get("version", "")
+    plugin_path = os.path.join(plugin_dir, name, "metadata.json")
+
+    if not os.path.exists(plugin_path):
+        return False  # Not installed
+
+    try:
+        with open(plugin_path, "r", encoding="utf-8") as f:
+            local_meta = json.load(f)
+            local_version = local_meta.get("version", "")
+            return compare_versions(latest_version, local_version)
+    except Exception:
+        return False
+
 class PluginMarket(QWidget):
     def __init__(self, plugin_dir: str, parent=None):
         super().__init__(parent)
@@ -60,8 +81,10 @@ class PluginMarket(QWidget):
             InfoBar.error(
                 parent=self,
                 title="错误",
-                content="未找到 plugin_index.json",
-                position=InfoBarPosition.TOP
+                content="未找到 plugin_index.json，请前往设置界面点击更新按钮！",
+                position=InfoBarPosition.TOP,
+                duration=10000,
+                isClosable=True
             )
             return
 
@@ -82,6 +105,7 @@ class PluginMarket(QWidget):
         if logo_path == "":
             logo_path = os.path.join(ROOTPATH, "app", "resource", "images", "logo.png")
         is_installed = os.path.exists(plugin_path)
+        has_update = check_plugin_update_status(self.plugin_dir, plugin)
 
         # row frame
         row = QFrame(self.scrollContent)
@@ -113,7 +137,12 @@ class PluginMarket(QWidget):
         layout.addWidget(button)
 
         if is_installed:
-            button.clicked.connect(lambda _, p=name, b=button, r=row: self.uninstall_plugin(p, b, r))
+            if has_update:
+                button.setText("更新")
+                button.setStyleSheet("QPushButton { background-color: #ff9800; color: white; }")
+                button.clicked.connect(lambda _, p=plugin, b=button: self.install_plugin(p, b))
+            else:
+                button.clicked.connect(lambda _, p=name, b=button, r=row: self.uninstall_plugin(p, b, r))
         else:
             button.clicked.connect(lambda _, p=plugin, b=button: self.install_plugin(p, b))
 
