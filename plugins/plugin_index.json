@@ -1,26 +1,92 @@
 [
   {
-    "name": "Tombstone",
-    "description": "Test plugin demo",
-    "version": "1.0",
+    "name": "DTB2DTS",
+    "description": "将设备树二进制文件(DTB)转换为设备树源文件(DTS)的工具",
+    "version": "1.0.0",
     "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_DTB2DTS.png",
     "entry": "plugin.py",
-    "zip_url": "https://github.com/miniLQ/onemore/releases/download/v1.1.2/tz_log_parser.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/DTB2DTS.zip"
   },
   {
-    "name": "TZ_LOG_PARSER",
-    "description": "Test plugin demo 2",
-    "version": "1.1.2",
+    "name": "Android_Images_Unpack",
+    "description": "高通平台开发提供给研发人员进行TZ log解析的一个工具",
+    "version": "v15_r1",
     "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_Android_Images_Unpack.png",
     "entry": "plugin.py",
-    "zip_url": "https://github.com/miniLQ/onemore/releases/download/v1.1.2/tz_log_parser.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Android_Images_Unpack.zip"
   },
   {
-    "name": "Linux Ramdump Parser",
-    "description": "Test plugin demo 3",
-    "version": "2.0",
+    "name": "Memory_Analyzer_Tool",
+    "description": "内存分析工具，提供内存分配、泄漏检测等功能",
+    "version": "1.0.0",
     "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_Memory_Analyzer_Tool.png",
     "entry": "plugin.py",
-    "zip_url": "https://github.com/miniLQ/onemore/releases/download/v1.1.2/tz_log_parser.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Memory_Analyzer_Tool.zip"
+  },
+  {
+    "name": "Tombstone_Parser",
+    "description": "Android tombstone文件解析工具，提供崩溃日志分析功能",
+    "version": "1.0.0",
+    "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_Tombstone_Parser.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Tombstone_Parser.zip"
+  },
+  {
+    "name": "Start_GDB",
+    "description": "一键启动GDB调试器",
+    "version": "1.0.0",
+    "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_Start_GDB.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Start_GDB.zip"
+  },
+  {
+    "name": "Linux_Ramdump_Parser",
+    "description": "高通平台开发提供给研发人员进行fulldump/minidump的解析使用的一个工具",
+    "version": "opensource-tools.lnx.1.0.r297",
+    "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_Linux_Ramdump_Parser.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Linux_Ramdump_Parser.zip"
+  },
+  {
+    "name": "NOC_Debug",
+    "description": "高通平台开发提供给研发人员进行NOC code解析的一个工具",
+    "version": "1.0.0",
+    "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_NOC_Debug.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/NOC_Debug.zip"
+  },
+  {
+    "name": "TZ_Log_Parser",
+    "description": "高通平台开发提供给研发人员进行TZ log解析的一个工具",
+    "version": "1.0.0",
+    "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_TZ_Log_Parser.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/TZ_Log_Parser.zip"
+  },
+  {
+    "name": "AEE_DB_Extractor",
+    "description": "高通平台开发提供给研发人员进行AEE DB解析的一个工具",
+    "version": "1.0.0",
+    "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_AEE_DB_Extractor.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/AEE_DB_Extractor.zip"
+  },
+  {
+    "name": "MTK_NE_KE_Analyze",
+    "description": "MTK NE/KE分析工具，提供NE/KE日志解析功能",
+    "version": "1.0.0",
+    "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_MTK_NE_KE_Analyze.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/MTK_NE_KE_Analyze.zip"
   }
 ]

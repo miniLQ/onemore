@@ -12,6 +12,10 @@ from qfluentwidgets import (
     InfoBar, InfoBarPosition, FluentIcon as FIF, FluentIconBase
 )
 
+from loguru import logger
+from app.common.config import ROOTPATH
+
+CURRENT_DIR = os.path.dirname(__file__)
 
 class PluginMarket(QWidget):
     def __init__(self, plugin_dir: str, parent=None):
@@ -67,7 +71,11 @@ class PluginMarket(QWidget):
         desc = plugin.get("description", "")
         version = plugin.get("version", "未知")
         author = plugin.get("author", "匿名")
+
         plugin_path = os.path.join(self.plugin_dir, name)
+        logo_path = os.path.join(CURRENT_DIR, plugin.get("logo", ""))
+        if logo_path == "":
+            logo_path = os.path.join(ROOTPATH, "app", "resource", "images", "logo.png")
         is_installed = os.path.exists(plugin_path)
 
         # row frame
@@ -80,14 +88,14 @@ class PluginMarket(QWidget):
 
         # icon
         icon_label = QLabel()
-        icon_pix = QPixmap(":/qfluentwidgets/images/logo.png").scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio)
+        icon_pix = QPixmap(logo_path).scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio)
         icon_label.setPixmap(icon_pix)
         layout.addWidget(icon_label)
 
         # name & description
         text_container = QVBoxLayout()
         name_label = QLabel(f"<b>{name}</b>")
-        desc_label = BodyLabel(f"{desc}（作者：{author}，版本：{version}）")
+        desc_label = BodyLabel(f"{desc}\n作者：{author}，版本：{version}）")
         text_container.addWidget(name_label)
         text_container.addWidget(desc_label)
         layout.addLayout(text_container)

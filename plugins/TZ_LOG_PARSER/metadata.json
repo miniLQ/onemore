@@ -1,8 +1,0 @@
-{
-    "name": "TZ_LOG_PARSER",
-    "description": "Test plugin demo 2",
-    "version": "1.1.2",
-    "author": "iliuqi",
-    "entry": "plugin.py",
-    "zip_url": "https://github.com/miniLQ/onemore/releases/download/v1.1.2/tz_log_parser.zip"
-}

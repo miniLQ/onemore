@@ -25,16 +25,6 @@ from ..common.signal_bus import signalBus
 from ..common import resource
 from ..common.logging import logger
 
-from .qcom_subinterface.LinuxRamdumpParserinterface import LinuxRamdumpParserCardsInfo
-from .mtk_subinterface.AeeExtractorinterface import AeeExtractorCardsInfo
-from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorCardsInfo
-from .general_subinterface.StartGDBInterface import StartGDBCardsInfo
-from .mtk_subinterface.NeKeAnalyze import NeKeAnalyzeCardsInfo
-from .qcom_subinterface.NocDecodeinterface import NocDecodeCardsInfo
-from .general_subinterface.Matinterface import MatCardsInfo
-from .general_subinterface.TombstoneParserInterface import TombstoneParserCardsInfo
-from .qcom_subinterface.TzErrorCodeDecodeInterface import TzErrorCodeDecodeCardsInfo
-
 from plugins.plugin_market import PluginMarket
 
 class Widget(QFrame):
@@ -140,6 +130,7 @@ class MainWindow(MSFluentWindow):
         self.tabBar.tabCloseRequested.connect(self.removetab)
         self.pluginOpenerMap = {}
         self.tabChangedHandlers = {}
+        self.TabRouteKeys = []
 
                 
         #self.tabBar.currentChanged.connect(self.onTabChanged)
@@ -257,35 +248,35 @@ class MainWindow(MSFluentWindow):
                 handler(objectName)
                 return
 
-        if "Linux Ramdump" in objectName:
-            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
-        elif "Aee Extractor" in objectName:
-            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(AeeExtractorCardsInfo, objectName))
-        elif "Android Image Unpack" in objectName:
-            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName))
-        elif "NE/KE-Analyze" in objectName:
-            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName))
-        elif "StartGDB" in objectName:
-            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(StartGDBCardsInfo, objectName))
-        elif "NOC Decode" in objectName:
-            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(NocDecodeCardsInfo, objectName))
-        elif "Memory Analyzer tool" in objectName:
-            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(MatCardsInfo, objectName))
-        elif "Tombstone_Praser" in objectName:
-            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(TombstoneParserCardsInfo, objectName))
-        elif "TzLog_Parser" in objectName:
-            logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(TzErrorCodeDecodeCardsInfo, objectName))       
-        else:
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
+        # if "Linux Ramdump" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
+        # if "Aee Extractor" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(AeeExtractorCardsInfo, objectName))
+        # elif "Android Image Unpack" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName))
+        # elif "NE/KE-Analyze" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName))
+        # elif "StartGDB" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(StartGDBCardsInfo, objectName))
+        # elif "NOC Decode" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(NocDecodeCardsInfo, objectName))
+        # elif "Memory Analyzer tool" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(MatCardsInfo, objectName))
+        # elif "Tombstone_Praser" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(TombstoneParserCardsInfo, objectName))
+        # elif "TzLog_Parser" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(TzErrorCodeDecodeCardsInfo, objectName))
+        # else:
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
 
         self.stackedWidget.setCurrentWidget(self.showInterface)
         self.tabBar.setCurrentIndex(index)
@@ -302,9 +293,17 @@ class MainWindow(MSFluentWindow):
         self.showInterface.addWidget(TabInterface(text, icon, routeKey, self))
 
     def removetab(self, index: int):
+        # 獲取指定index的tab的routeKey
+        routekey = self.tabBar.items[index]._routeKey
+
+        logger.info('[TAB REMOVE] {}'.format(routekey))
         self.tabBar.removeTab(index)
         self.showInterface.removeWidget(self.showInterface.widget(index))
         self.showInterface.setCurrentIndex(0)
+
+        # 在移除tab時，刪除self.TabRouteKeys中的對應routeKey
+        if routekey in self.TabRouteKeys:
+            self.TabRouteKeys.remove(routekey)
 
     def registerPluginOpener(self, uniqueName: str, openFunc: callable):
         self.pluginOpenerMap[uniqueName] = openFunc

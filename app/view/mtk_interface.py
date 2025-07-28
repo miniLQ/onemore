@@ -49,18 +49,6 @@ from ..common.setting import HELP_URL, FEEDBACK_URL, AUTHOR, VERSION, YEAR
 from ..common.signal_bus import signalBus
 from ..common.style_sheet import StyleSheet
 from ..common.logging import logger
-from ..common.utils import generate_uuid
-
-from .mtk_subinterface.AeeExtractorinterface import AeeExtractorInterface
-from .mtk_subinterface.NeKeAnalyze import NeKeAnalyzeInterface
-
-TOOL1_UNIQUE_NAME = "AeeDBExtractor"
-TOOL2_UNIQUE_NAME = "NE/KE-Analyze"
-TOOL3_UNIQUE_NAME = "TOOL3"
-TOOL4_UNIQUE_NAME = "TOOL4"
-TOOL5_UNIQUE_NAME = "TOOL5"
-TOOL6_UNIQUE_NAME = "TOOL6"
-TOOL7_UNIQUE_NAME = "TOOL7"
 
 class TabInterface(QFrame):
     """ Tab interface """
@@ -137,47 +125,50 @@ class AppCard(CardWidget):
     def onOpenButtonClicked(self):
         #print('open button clicked')
         logger.info("{} button clicked!".format(self.UniqueName))
+        if self.UniqueName in self.mainWindow.pluginOpenerMap:
+            self.mainWindow.pluginOpenerMap[self.UniqueName]()  # 调用插件注册的逻辑
+            return
         # 根据self.UniqueName()来判断点击的是哪个按钮,然后执行相应函数
-        if self.UniqueName == TOOL1_UNIQUE_NAME:
-            # 打开AeeExtractor
-            # 创建一个标签页
-            # 生成一个7位的guid随机数
-            ramdomNum = generate_uuid()
-            routekey = "Aee Extractor {}".format(ramdomNum)
-            self.AeeExtractorInterface = AeeExtractorInterface(mainWindow=self.mainWindow)
-            self.AeeExtractorInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
-
-            # 切换到homeinterface
-            #self.mainWindow.switchTo(self.mainWindow.homeInterface)
-            # 切换到新建的tab
-            #print("routekey:{}".format(routekey))
-            #self.mainWindow.tabBar.setCurrentTab(routeKey=routekey)
-            #aeeextractorsubinterface = AeeExtractorSubinterface()
-            pass
-        elif self.UniqueName == TOOL2_UNIQUE_NAME:
-            # 打开NE/KE-Analyze
-            ramdomNum = generate_uuid()
-            routekey = "NE/KE-Analyze {}".format(ramdomNum)
-            self.NeKeAnalyzeInterface = NeKeAnalyzeInterface(mainWindow=self.mainWindow)
-            self.NeKeAnalyzeInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
-            pass
-        elif self.UniqueName == TOOL3_UNIQUE_NAME:
-            # 打开Tool3
-            pass
-        elif self.UniqueName == TOOL4_UNIQUE_NAME:
-            # 打开Tool4
-            pass
-        elif self.UniqueName == TOOL5_UNIQUE_NAME:
-            # 打开Tool5
-            pass
-        elif self.UniqueName == TOOL6_UNIQUE_NAME:
-            # 打开Tool6
-            pass
-        elif self.UniqueName == TOOL7_UNIQUE_NAME:
-            # 打开Tool7
-            pass
-        else:
-            logger.error("Unknown tool")
+        # if self.UniqueName == TOOL1_UNIQUE_NAME:
+        #     # 打开AeeExtractor
+        #     # 创建一个标签页
+        #     # 生成一个7位的guid随机数
+        #     ramdomNum = generate_uuid()
+        #     routekey = "Aee Extractor {}".format(ramdomNum)
+        #     self.AeeExtractorInterface = AeeExtractorInterface(mainWindow=self.mainWindow)
+        #     self.AeeExtractorInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+        #
+        #     # 切换到homeinterface
+        #     #self.mainWindow.switchTo(self.mainWindow.homeInterface)
+        #     # 切换到新建的tab
+        #     #print("routekey:{}".format(routekey))
+        #     #self.mainWindow.tabBar.setCurrentTab(routeKey=routekey)
+        #     #aeeextractorsubinterface = AeeExtractorSubinterface()
+        #     pass
+        # elif self.UniqueName == TOOL2_UNIQUE_NAME:
+        #     # 打开NE/KE-Analyze
+        #     ramdomNum = generate_uuid()
+        #     routekey = "NE/KE-Analyze {}".format(ramdomNum)
+        #     self.NeKeAnalyzeInterface = NeKeAnalyzeInterface(mainWindow=self.mainWindow)
+        #     self.NeKeAnalyzeInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+        #     pass
+        # elif self.UniqueName == TOOL3_UNIQUE_NAME:
+        #     # 打开Tool3
+        #     pass
+        # elif self.UniqueName == TOOL4_UNIQUE_NAME:
+        #     # 打开Tool4
+        #     pass
+        # elif self.UniqueName == TOOL5_UNIQUE_NAME:
+        #     # 打开Tool5
+        #     pass
+        # elif self.UniqueName == TOOL6_UNIQUE_NAME:
+        #     # 打开Tool6
+        #     pass
+        # elif self.UniqueName == TOOL7_UNIQUE_NAME:
+        #     # 打开Tool7
+        #     pass
+        # else:
+        #     logger.error("Unknown tool")
     
 
 class MtkInterface(ScrollArea):
@@ -213,9 +204,9 @@ class MtkInterface(ScrollArea):
 
 
 
-        suffix = ":/qfluentwidgets/images/controls"
-        self.addCard("{}/images/masterGo.svg".format(resource_path), "AEE DB Extract", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
-        self.addCard(f"{suffix}/RatingControl.png", "KE/NE-Analyze", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
+        #suffix = ":/qfluentwidgets/images/controls"
+        #self.addCard("{}/images/masterGo.svg".format(resource_path), "AEE DB Extract", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
+        #self.addCard(f"{suffix}/RatingControl.png", "KE/NE-Analyze", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
         #self.addCard(f"{suffix}/RatingControl.png", "Test Tool 3", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Checkbox.png", "Test Tool 4", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Pivot.png", "Test Tool 5", '@designed by iliuqi.', TOOL5_UNIQUE_NAME)
