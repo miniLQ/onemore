@@ -6,7 +6,7 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_DTB2DTS.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/DTB2DTS.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/DTB2DTS.zip"
   },
   {
     "name": "Android_Images_Unpack",
@@ -15,7 +15,7 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_Android_Images_Unpack.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Android_Images_Unpack.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Android_Images_Unpack.zip"
   },
   {
     "name": "Memory_Analyzer_Tool",
@@ -24,7 +24,7 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_Memory_Analyzer_Tool.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Memory_Analyzer_Tool.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Memory_Analyzer_Tool.zip"
   },
   {
     "name": "Tombstone_Parser",
@@ -33,7 +33,7 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_Tombstone_Parser.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Tombstone_Parser.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Tombstone_Parser.zip"
   },
   {
     "name": "Start_GDB",
@@ -42,7 +42,7 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_Start_GDB.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Start_GDB.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Start_GDB.zip"
   },
   {
     "name": "Linux_Ramdump_Parser",
@@ -51,7 +51,7 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_Linux_Ramdump_Parser.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Linux_Ramdump_Parser.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Linux_Ramdump_Parser.zip"
   },
   {
     "name": "NOC_Debug",
@@ -60,7 +60,7 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_NOC_Debug.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/NOC_Debug.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/NOC_Debug.zip"
   },
   {
     "name": "TZ_Log_Parser",
@@ -69,7 +69,7 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_TZ_Log_Parser.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/TZ_Log_Parser.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/TZ_Log_Parser.zip"
   },
   {
     "name": "AEE_DB_Extractor",
@@ -78,7 +78,7 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_AEE_DB_Extractor.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/AEE_DB_Extractor.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/AEE_DB_Extractor.zip"
   },
   {
     "name": "MTK_NE_KE_Analyze",
@@ -87,6 +87,6 @@
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_MTK_NE_KE_Analyze.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/MTK_NE_KE_Analyze.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/MTK_NE_KE_Analyze.zip"
   }
 ]
