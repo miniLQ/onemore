@@ -38,24 +38,7 @@ else:
     from qframelesswindow import FramelessWindow as Window
 
 
-from ..common.config import cfg, isWin11
-from ..common.setting import HELP_URL, FEEDBACK_URL, AUTHOR, VERSION, YEAR
-from ..common.signal_bus import signalBus
-from ..common.style_sheet import StyleSheet
 from ..common.logging import logger
-from ..common.utils import generate_uuid
-
-from .qcom_subinterface.LinuxRamdumpParserinterface import LinuxRamdumpParserInterface
-from .qcom_subinterface.NocDecodeinterface import NocDecodeInterface
-from .qcom_subinterface.TzErrorCodeDecodeInterface import TzErrorCodeDecodeInterface
-
-TOOL1_UNIQUE_NAME = "Linux Ramdump Parser"
-TOOL2_UNIQUE_NAME = "NOC Decode"
-TOOL3_UNIQUE_NAME = "TZ Error Code Decode"
-TOOL4_UNIQUE_NAME = "TOOL4"
-TOOL5_UNIQUE_NAME = "TOOL5"
-TOOL6_UNIQUE_NAME = "TOOL6"
-TOOL7_UNIQUE_NAME = "TOOL7"
 
 class TabInterface(QFrame):
     """ Tab interface """
@@ -132,51 +115,57 @@ class AppCard(CardWidget):
     def onOpenButtonClicked(self):
         #print('open button clicked')
         logger.info("{} button clicked!".format(self.UniqueName))
+        if self.UniqueName in self.mainWindow.pluginOpenerMap:
+            self.mainWindow.pluginOpenerMap[self.UniqueName]()  # 调用插件注册的逻辑
+            return
         # 根据self.UniqueName()来判断点击的是哪个按钮,然后执行相应函数
-        if self.UniqueName == TOOL1_UNIQUE_NAME:
-            # 打开Linux Ramdump Parser
-            # 创建一个标签页
-            # 生成一个7位的guid随机数
-            ramdomNum = generate_uuid()
-            routekey = "Linux Ramdump Parser {}".format(ramdomNum)
-            self.LinuxRamdumpParserInterface = LinuxRamdumpParserInterface(mainWindow=self.mainWindow)
-            self.LinuxRamdumpParserInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
-
-            # 切换到homeinterface
-            #self.mainWindow.switchTo(self.mainWindow.homeInterface)
-            # 切换到新建的tab
-            #print("routekey:{}".format(routekey))
-            #self.mainWindow.tabBar.setCurrentTab(routeKey=routekey)
-            #aeeextractorsubinterface = AeeExtractorSubinterface()
-            pass
-        elif self.UniqueName == TOOL2_UNIQUE_NAME:
-            ramdomNum = generate_uuid()
-            routekey = "NOC Decode {}".format(ramdomNum)
-            self.NocDecodeInterface = NocDecodeInterface(mainWindow=self.mainWindow)
-            self.NocDecodeInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
-
-            pass
-        elif self.UniqueName == TOOL3_UNIQUE_NAME:
-            ramdomNum = generate_uuid()
-            routekey = "TzLog_Parser {}".format(ramdomNum)
-            self.TzErrorCodeDecodeInterface = TzErrorCodeDecodeInterface(mainWindow=self.mainWindow)
-            self.TzErrorCodeDecodeInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
-
-            pass
-        elif self.UniqueName == TOOL4_UNIQUE_NAME:
-            # 打开Tool4
-            pass
-        elif self.UniqueName == TOOL5_UNIQUE_NAME:
-            # 打开Tool5
-            pass
-        elif self.UniqueName == TOOL6_UNIQUE_NAME:
-            # 打开Tool6
-            pass
-        elif self.UniqueName == TOOL7_UNIQUE_NAME:
-            # 打开Tool7
-            pass
-        else:
-            logger.error("Unknown tool")
+        # if self.UniqueName == TOOL1_UNIQUE_NAME:
+        #     # 打开Linux Ramdump Parser
+        #     # 创建一个标签页
+        #     # 生成一个7位的guid随机数
+        #     ramdomNum = generate_uuid()
+        #     routekey = "Linux Ramdump Parser {}".format(ramdomNum)
+        #     self.LinuxRamdumpParserInterface = LinuxRamdumpParserInterface(mainWindow=self.mainWindow)
+        #     self.LinuxRamdumpParserInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+        #
+        #     # 切换到homeinterface
+        #     #self.mainWindow.switchTo(self.mainWindow.homeInterface)
+        #     # 切换到新建的tab
+        #     #print("routekey:{}".format(routekey))
+        #     #self.mainWindow.tabBar.setCurrentTab(routeKey=routekey)
+        #     #aeeextractorsubinterface = AeeExtractorSubinterface()
+        #     pass
+        # if self.UniqueName == TOOL2_UNIQUE_NAME:
+        #     ramdomNum = generate_uuid()
+        #     routekey = "NOC Decode {}".format(ramdomNum)
+        #     self.NocDecodeInterface = NocDecodeInterface(mainWindow=self.mainWindow)
+        #     self.NocDecodeInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+        #
+        #     pass
+        # elif self.UniqueName == TOOL3_UNIQUE_NAME:
+        #     ramdomNum = generate_uuid()
+        #     routekey = "TzLog_Parser {}".format(ramdomNum)
+        #     self.TzErrorCodeDecodeInterface = TzErrorCodeDecodeInterface(mainWindow=self.mainWindow)
+        #     self.TzErrorCodeDecodeInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+        #
+        #     pass
+        # elif self.UniqueName in self.mainWindow.pluginOpenerMap:
+        #     self.mainWindow.pluginOpenerMap[self.UniqueName]()  # 调用插件注册的逻辑
+        #     return
+        # elif self.UniqueName == TOOL4_UNIQUE_NAME:
+        #     # 打开Tool4
+        #     pass
+        # elif self.UniqueName == TOOL5_UNIQUE_NAME:
+        #     # 打开Tool5
+        #     pass
+        # elif self.UniqueName == TOOL6_UNIQUE_NAME:
+        #     # 打开Tool6
+        #     pass
+        # elif self.UniqueName == TOOL7_UNIQUE_NAME:
+        #     # 打开Tool7
+        #     pass
+        # else:
+        #     logger.error("Unknown tool")
     
 
 class QcomInterface(ScrollArea):
@@ -212,10 +201,10 @@ class QcomInterface(ScrollArea):
 
         self.__initWidget()
 
-        suffix = ":/qfluentwidgets/images/controls"
-        self.addCard(f":/qfluentwidgets/images/logo.png", "Linux Ramdump parser", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
-        self.addCard(f"{suffix}/TitleBar.png", "NOC Decode", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
-        self.addCard(f"{suffix}/RatingControl.png", "TZ Log Decode", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
+        #suffix = ":/qfluentwidgets/images/controls"
+        #self.addCard(f":/qfluentwidgets/images/logo.png", "Linux Ramdump parser", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
+        #self.addCard(f"{suffix}/TitleBar.png", "NOC Decode", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
+        #self.addCard(f"{suffix}/RatingControl.png", "TZ Log Decode", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Checkbox.png", "Test Tool 4", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Pivot.png", "Test Tool 5", '@designed by iliuqi.', TOOL5_UNIQUE_NAME)
         #self.addCard(f"{suffix}/MediaPlayerElement.png", "Test Tool 6", '@designed by iliuqi.', TOOL6_UNIQUE_NAME)
@@ -224,7 +213,7 @@ class QcomInterface(ScrollArea):
 
     def addCard(self, icon, title, content, UniqueName):
         card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, mainWindow=self.parent)
-        
+        logger.info("[TOOL ADD] Adding Tool: {}".format(title))
         # 将card组件加入到设置好的滚动布局中
         self.expandLayout.addWidget(card)
 

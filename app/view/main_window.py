@@ -1,6 +1,6 @@
 # coding: utf-8
 from pathlib import Path
-
+import time
 from PyQt6.QtCore import Qt, QSize, QUrl, QPoint
 from PyQt6.QtGui import QIcon, QColor
 from PyQt6.QtWidgets import QApplication
@@ -13,6 +13,8 @@ from qfluentwidgets import (NavigationItemPosition, MessageBox, MSFluentTitleBar
                             TransparentDropDownToolButton, TransparentToolButton, setTheme, Theme,
                             isDarkTheme)
 
+from plugins.plugin_loader import load_plugins
+
 from .setting_interface import SettingInterface
 from .mtk_interface import MtkInterface
 from .qcom_interface import QcomInterface
@@ -23,15 +25,7 @@ from ..common.signal_bus import signalBus
 from ..common import resource
 from ..common.logging import logger
 
-from .qcom_subinterface.LinuxRamdumpParserinterface import LinuxRamdumpParserCardsInfo
-from .mtk_subinterface.AeeExtractorinterface import AeeExtractorCardsInfo
-from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorCardsInfo
-from .general_subinterface.StartGDBInterface import StartGDBCardsInfo
-from .mtk_subinterface.NeKeAnalyze import NeKeAnalyzeCardsInfo
-from .qcom_subinterface.NocDecodeinterface import NocDecodeCardsInfo
-from .general_subinterface.Matinterface import MatCardsInfo
-from .general_subinterface.TombstoneParserInterface import TombstoneParserCardsInfo
-from .qcom_subinterface.TzErrorCodeDecodeInterface import TzErrorCodeDecodeCardsInfo
+from plugins.plugin_market import PluginMarket
 
 class Widget(QFrame):
 
@@ -107,7 +101,7 @@ class CustomTitleBar(MSFluentTitleBar):
         # 设置标签关闭的信号处理
         #self.tabBar.tabCloseRequested.connect(self.removetab)
         # 设置标签切换的信号处理
-        self.tabBar.currentChanged.connect(lambda i: print(self.tabBar.tabText(i)))
+        self.tabBar.currentChanged.connect(lambda i: self.tabBar.tabText(i))
         
         self.hBoxLayout.insertWidget(4, self.tabBar, 1)
         self.hBoxLayout.setStretch(5, 0)
@@ -134,7 +128,14 @@ class MainWindow(MSFluentWindow):
         self.setTitleBar(CustomTitleBar(self))
         self.tabBar = self.titleBar.tabBar  # type: TabBar
         self.tabBar.tabCloseRequested.connect(self.removetab)
+        self.pluginOpenerMap = {}
+        self.tabChangedHandlers = {}
+        self.TabRouteKeys = []
 
+        # 检查自动更新按钮是否被启用
+        if cfg.get(cfg.checkUpdateAtStartUp):
+            # 如果启用，则连接到自动更新信号
+            signalBus.Update(auto=True)
                 
         #self.tabBar.currentChanged.connect(self.onTabChanged)
 
@@ -156,7 +157,7 @@ class MainWindow(MSFluentWindow):
         #self.homeInterface.show()
 
 
-        self.connectSignalToSlot()
+        #self.connectSignalToSlot()
 
         # add items to navigation interface
         self.initNavigation()
@@ -164,8 +165,12 @@ class MainWindow(MSFluentWindow):
 
         self.splashScreen.finish()
 
+        load_plugins(self)# add interfaces to showInterface
+
     def connectSignalToSlot(self):
-        signalBus.micaEnableChanged.connect(self.setMicaEffectEnabled)
+        #signalBus.micaEnableChanged.connect(self.setMicaEffectEnabled)
+        #signalBus.checkUpdateSig.connect(signalBus.Update())
+        pass
 
     def initNavigation(self):
         # self.navigationInterface.setAcrylicEnabled(True)
@@ -180,6 +185,17 @@ class MainWindow(MSFluentWindow):
         self.addSubInterface(self.mtkInterface, FIF.APPLICATION, 'MTK')
         self.addSubInterface(self.qcomInterface, FIF.APPLICATION, '高通')
 
+        self.pluginMarketInterface = PluginMarket("plugins", self)
+        self.pluginMarketInterface.setObjectName("plugin-market")
+
+        self.addSubInterface(
+            self.pluginMarketInterface,
+            FIF.SHOPPING_CART,
+            '插件市场',
+            FIF.SHOPPING_CART,
+            NavigationItemPosition.BOTTOM
+        )
+
         # add custom widget to bottom
         self.addSubInterface(
             self.settingInterface, Icon.SETTINGS, self.tr('Settings'), Icon.SETTINGS_FILLED, NavigationItemPosition.BOTTOM)
@@ -188,6 +204,17 @@ class MainWindow(MSFluentWindow):
         #self.addTab('Heart', 'As long as you love me', icon='resource/Heart.png')
 
         self.tabBar.currentChanged.connect(self.onTabChanged)
+
+        # 遍歷pluginOpenerMap, 將這個UNIQUE_NAME添加到tabBar中的currentChanged.connect，也就是self.onTabChanged
+        # for uniqueName, openFunc in self.pluginOpenerMap.items():
+        #     # create a tab for each plugin
+        #     ramdomNum = cfg.get(cfg.randomNum)
+        #     routeKey = f"{uniqueName} {ramdomNum}"
+        #     self.addTab(routeKey, uniqueName, 'app/resource/images/Chicken.png')
+        #
+        #     # connect the tab to the open function
+        #     self.tabBar.currentChanged.connect(lambda index, func=openFunc: func())
+
 
         # 设置默认显示HOME界面
         self.homeInterface.show()
@@ -221,37 +248,41 @@ class MainWindow(MSFluentWindow):
     
     def onTabChanged(self, index: int):
         objectName = self.tabBar.currentTab().routeKey()
-        logger.info("[LIUQI] onTabChanged: {}".format(objectName))
-        logger.info("[LIUQI] index: {}".format(index))
-        if "Linux Ramdump" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName)))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
-        elif "Aee Extractor" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(AeeExtractorCardsInfo, objectName)))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(AeeExtractorCardsInfo, objectName))
-        elif "Android Image Unpack" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName)))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName))
-        elif "NE/KE-Analyze" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName)))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName))
-        elif "StartGDB" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(StartGDBCardsInfo, objectName)))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(StartGDBCardsInfo, objectName))
-        elif "NOC Decode" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(NocDecodeCardsInfo, objectName)))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(NocDecodeCardsInfo, objectName))
-        elif "Memory Analyzer tool" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(MatCardsInfo, objectName)))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(MatCardsInfo, objectName))
-        elif "Tombstone_Praser" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(TombstoneParserCardsInfo, objectName)))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(TombstoneParserCardsInfo, objectName))
-        elif "TzLog_Parser" in objectName:
-            logger.info("[LIUQI] child find: {}".format(self.showInterface.findChild(TzErrorCodeDecodeCardsInfo, objectName)))
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(TzErrorCodeDecodeCardsInfo, objectName))       
-        else:
-            self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
+        # 插件注册的处理逻辑
+        for keyword, handler in self.tabChangedHandlers.items():
+            if keyword in objectName:
+                handler(objectName)
+                return
+
+        # if "Linux Ramdump" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(LinuxRamdumpParserCardsInfo, objectName))
+        # if "Aee Extractor" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(AeeExtractorCardsInfo, objectName))
+        # elif "Android Image Unpack" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(AndroidImagesEditorCardsInfo, objectName))
+        # elif "NE/KE-Analyze" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(NeKeAnalyzeCardsInfo, objectName))
+        # elif "StartGDB" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(StartGDBCardsInfo, objectName))
+        # elif "NOC Decode" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(NocDecodeCardsInfo, objectName))
+        # elif "Memory Analyzer tool" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(MatCardsInfo, objectName))
+        # elif "Tombstone_Praser" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(TombstoneParserCardsInfo, objectName))
+        # elif "TzLog_Parser" in objectName:
+        #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(TzErrorCodeDecodeCardsInfo, objectName))
+        # else:
+        #     self.showInterface.setCurrentWidget(self.showInterface.findChild(TabInterface, objectName))
 
         self.stackedWidget.setCurrentWidget(self.showInterface)
         self.tabBar.setCurrentIndex(index)
@@ -261,13 +292,27 @@ class MainWindow(MSFluentWindow):
         self.addTab(text, text, 'resource/Smiling_with_heart.png')
 
     def addTab(self, routeKey, text, icon):
-        logger.info('add tab {} {} {}'.format(routeKey, text, icon))
+        logger.info('[TAB ADD] {}'.format(routeKey))
         self.tabBar.addTab(routeKey, text, icon)
 
         # tab左对齐
         self.showInterface.addWidget(TabInterface(text, icon, routeKey, self))
 
     def removetab(self, index: int):
+        # 獲取指定index的tab的routeKey
+        routekey = self.tabBar.items[index]._routeKey
+
+        logger.info('[TAB REMOVE] {}'.format(routekey))
         self.tabBar.removeTab(index)
         self.showInterface.removeWidget(self.showInterface.widget(index))
         self.showInterface.setCurrentIndex(0)
+
+        # 在移除tab時，刪除self.TabRouteKeys中的對應routeKey
+        if routekey in self.TabRouteKeys:
+            self.TabRouteKeys.remove(routekey)
+
+    def registerPluginOpener(self, uniqueName: str, openFunc: callable):
+        self.pluginOpenerMap[uniqueName] = openFunc
+
+    def registerTabChangedHandler(self, keyword: str, handler: callable):
+        self.tabChangedHandlers[keyword] = handler

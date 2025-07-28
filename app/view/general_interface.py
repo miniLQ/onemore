@@ -48,23 +48,6 @@ from ..common.utils import generate_uuid
 
 from app.common.config import ROOTPATH
 
-from .general_subinterface.AndroidImagesEditorInterface import AndroidImagesEditorInterface
-from .general_subinterface.StartGDBInterface import StartGDBInterface
-from .general_subinterface.Matinterface import MatInterface
-from .general_subinterface.TombstoneParserInterface import TombstoneParserInterface
-
-TOOLS_PATH = os.path.join(ROOTPATH, 'tools')
-
-#from .mtk_subinterface.AeeExtractorinterface import AeeExtractorInterface
-
-TOOL1_UNIQUE_NAME = "DTB2DTS"
-TOOL2_UNIQUE_NAME = "Android Images Unpack"
-TOOL3_UNIQUE_NAME = "StartGDB"
-TOOL4_UNIQUE_NAME = "Memory Analyzer tool"
-TOOL5_UNIQUE_NAME = "TOOL5"
-TOOL6_UNIQUE_NAME = "TOOL6"
-TOOL7_UNIQUE_NAME = "Tombstone_Praser"
-
 class TabInterface(QFrame):
     """ Tab interface """
 
@@ -140,48 +123,57 @@ class AppCard(CardWidget):
     def onOpenButtonClicked(self):
         #print('open button clicked')
         logger.info("{} button clicked!".format(self.UniqueName))
+        if self.UniqueName in self.mainWindow.pluginOpenerMap:
+            self.mainWindow.pluginOpenerMap[self.UniqueName]()  # 调用插件注册的逻辑
+            return
         # 根据self.UniqueName()来判断点击的是哪个按钮,然后执行相应函数
-        if self.UniqueName == TOOL1_UNIQUE_NAME:
-            # dtb2dts为封装好的工具，直接调用os.system()执行
-            dtb2dts_path = os.path.join(TOOLS_PATH, 'dtb2dts.exe')
-            os.system(dtb2dts_path)
+        # if self.UniqueName == TOOL1_UNIQUE_NAME:
+        #     # dtb2dts为封装好的工具，直接调用os.system()执行
+        #     dtb2dts_path = os.path.join(TOOLS_PATH, 'dtb2dts.exe')
+        #     os.system(dtb2dts_path)
 
-        elif self.UniqueName == TOOL2_UNIQUE_NAME:
-            # 打开Tool2
-            ramdomNum = generate_uuid()
-            routekey = "Android Image Unpack {}".format(ramdomNum)
-            self.AndroidImagesEdiorInterface = AndroidImagesEditorInterface(mainWindow=self.mainWindow)
-            self.AndroidImagesEdiorInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+        # if self.UniqueName == TOOL2_UNIQUE_NAME:
+        #     # 打开Tool2
+        #     ramdomNum = generate_uuid()
+        #     routekey = "Android Image Unpack {}".format(ramdomNum)
+        #     self.AndroidImagesEdiorInterface = AndroidImagesEditorInterface(mainWindow=self.mainWindow)
+        #     self.AndroidImagesEdiorInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+        #
+        #     pass
+        # if self.UniqueName == TOOL3_UNIQUE_NAME:
+        #     # 打开Tool3
+        #     ramdomNum = generate_uuid()
+        #     routekey = "StartGDB {}".format(ramdomNum)
+        #     self.StartGDBInterface = StartGDBInterface(mainWindow=self.mainWindow)
+        #     self.StartGDBInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+        #
+        # elif self.UniqueName == TOOL4_UNIQUE_NAME:
+        #     # 打开Tool4
+        #     ramdomNum = generate_uuid()
+        #     routekey = "Memory Analyzer tool {}".format(ramdomNum)
+        #     self.MatInterface = MatInterface(mainWindow=self.mainWindow)
+        #     self.MatInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
+        # elif self.UniqueName == TOOL5_UNIQUE_NAME:
+        #     # 打开Tool5
+        #     pass
+        # elif self.UniqueName == TOOL6_UNIQUE_NAME:
+        #     # 打开Tool6
+        #     pass
+        # elif self.UniqueName == TOOL7_UNIQUE_NAME:
+        #     # 打开Tombstone_Praser
+        #     ramdomNum = generate_uuid()
+        #     routekey = "Tombstone_Praser {}".format(ramdomNum)
+        #     self.TombstoneParserInterface = TombstoneParserInterface(mainWindow=self.mainWindow)
+        #     self.TombstoneParserInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Basketball.png')
+        #     pass
+        #
+        # elif self.UniqueName in self.mainWindow.pluginOpenerMap:
+        #     self.mainWindow.pluginOpenerMap[self.UniqueName]()  # 调用插件注册的逻辑
+        #     return
+        # else:
+        #     logger.info("Unknown tool")
 
-            pass
-        elif self.UniqueName == TOOL3_UNIQUE_NAME:
-            # 打开Tool3
-            ramdomNum = generate_uuid()
-            routekey = "StartGDB {}".format(ramdomNum)
-            self.StartGDBInterface = StartGDBInterface(mainWindow=self.mainWindow)
-            self.StartGDBInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
 
-        elif self.UniqueName == TOOL4_UNIQUE_NAME:
-            # 打开Tool4
-            ramdomNum = generate_uuid()
-            routekey = "Memory Analyzer tool {}".format(ramdomNum)
-            self.MatInterface = MatInterface(mainWindow=self.mainWindow)
-            self.MatInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Smiling_with_heart.png')
-        elif self.UniqueName == TOOL5_UNIQUE_NAME:
-            # 打开Tool5
-            pass
-        elif self.UniqueName == TOOL6_UNIQUE_NAME:
-            # 打开Tool6
-            pass
-        elif self.UniqueName == TOOL7_UNIQUE_NAME:
-            # 打开Tombstone_Praser
-            ramdomNum = generate_uuid()
-            routekey = "Tombstone_Praser {}".format(ramdomNum)
-            self.TombstoneParserInterface = TombstoneParserInterface(mainWindow=self.mainWindow)
-            self.TombstoneParserInterface.addTab(routeKey=routekey, text=routekey, icon='resource/images/Basketball.png')
-            pass
-        else:
-            logger.info("Unknown tool")
     
 
 class GeneralInterface(ScrollArea):
@@ -215,23 +207,26 @@ class GeneralInterface(ScrollArea):
 
         self.__initWidget()
 
-        suffix = ":/qfluentwidgets/images/controls"
-        resource_image_path = os.path.join(ROOTPATH, 'app', 'resource', 'images')
+        #suffix = ":/qfluentwidgets/images/controls"
+        #resource_image_path = os.path.join(ROOTPATH, 'app', 'resource', 'images')
         #logger.info(resource_image_path)
-        self.addCard("{}".format(os.path.join(resource_image_path, "Chicken.png")), "DTB2DTS", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
-        self.addCard(f"{suffix}/TitleBar.png", "Android Image Unpack", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
-        self.addCard(f"{suffix}/RatingControl.png", "StartGDB", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
-        self.addCard(f"{suffix}/Checkbox.png", "Memory Analyzer tool", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
+        #self.addCard("{}".format(os.path.join(resource_image_path, "Chicken.png")), "DTB2DTS", '@designed by iliuqi.', TOOL1_UNIQUE_NAME)
+        #self.addCard(f"{suffix}/TitleBar.png", "Android Image Unpack", '@designed by iliuqi.', TOOL2_UNIQUE_NAME)
+        #self.addCard(f"{suffix}/RatingControl.png", "StartGDB", '@designed by iliuqi.', TOOL3_UNIQUE_NAME)
+        #self.addCard(f"{suffix}/Checkbox.png", "Memory Analyzer tool", '@designed by iliuqi.', TOOL4_UNIQUE_NAME)
         #self.addCard(f"{suffix}/Pivot.png", "Test Tool 5", '@designed by iliuqi.', TOOL5_UNIQUE_NAME)
         #self.addCard(f"{suffix}/MediaPlayerElement.png", "Test Tool 6", '@designed by iliuqi.', TOOL6_UNIQUE_NAME)
-        self.addCard(f"{resource_image_path}/Basketball.png", "Tombstone_Praser", '@designed by charter.', TOOL7_UNIQUE_NAME)
+        #self.addCard(f"{resource_image_path}/Basketball.png", "Tombstone_Praser", '@designed by charter.', TOOL7_UNIQUE_NAME)
 
 
     def addCard(self, icon, title, content, UniqueName):
-        card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, mainWindow=self.parent)
-        
+        #logger.info("[LIUQI] Adding card: {}, {}, {}".format(icon, title, content))
+        self.card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, mainWindow=self.parent)
+
+        logger.info("[TOOL ADD] Adding Tool: {}".format(title))
+
         # 将card组件加入到设置好的滚动布局中
-        self.expandLayout.addWidget(card)
+        self.expandLayout.addWidget(self.card)
 
         #self.flowlayout.addWidget(card)
 
