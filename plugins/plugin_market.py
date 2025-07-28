@@ -186,7 +186,7 @@ class PluginMarket(QWidget):
         zip_url = plugin.get("zip_url", "")
 
         button.setEnabled(False)
-
+        logger.info("开始安装插件: {}", name)
         try:
             if zip_url:
                 thread = DownloadExtractThread(plugin, self.plugin_dir)
@@ -213,6 +213,7 @@ class PluginMarket(QWidget):
                 content=str(e),
                 position=InfoBarPosition.TOP
             )
+            logger.error("插件 {} 安装失败: {}", name, e)
 
     def _get_plugin_by_name(self, name):
         for p in self.all_plugins:
@@ -229,6 +230,7 @@ class PluginMarket(QWidget):
             duration=10000,
             isClosable=True
         )
+        logger.success("插件 {} 安装成功", plugin['name'])
         button.setText("卸载")
         button.setEnabled(True)
         button.clicked.disconnect()
@@ -245,3 +247,4 @@ class PluginMarket(QWidget):
         )
         button.setText("安装")
         button.setEnabled(True)
+        logger.error("插件安装失败: {}", error)

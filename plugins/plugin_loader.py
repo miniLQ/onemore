@@ -2,9 +2,13 @@ import os
 import importlib.util
 import json
 from loguru import logger
+import sys
 
-# 根目录设置为项目根（你可以根据实际情况调整）
-PLUGIN_DIR = os.path.join(os.path.dirname(__file__), ".")
+
+BASE_DIR = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.dirname(__file__))
+PLUGIN_DIR = os.path.join(BASE_DIR, "plugins")
+
+logger.info(PLUGIN_DIR)
 
 def load_plugins(main_window):
     logger.info("Loading plugins")
@@ -14,8 +18,17 @@ def load_plugins(main_window):
 
     for name in os.listdir(plugin_root):
         plugin_path = os.path.join(plugin_root, name)
+        # 跳过插件资源目录
+        if "plugin_resources" in plugin_path:
+            continue
         if not os.path.isdir(plugin_path):
             continue
+
+        # 检查是否存在__init__.py 文件，如果不存在新建空文件
+        init_path = os.path.join(plugin_path, "__init__.py")
+        if not os.path.exists(init_path):
+            with open(init_path, "w", encoding="utf-8") as f:
+                f.write("# This is an empty __init__.py file for plugin {}".format(name))
 
         entry_path = os.path.join(plugin_path, "plugin.py")
         if not os.path.exists(entry_path):
