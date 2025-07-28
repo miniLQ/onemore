@@ -10,6 +10,8 @@ from qfluentwidgets import (
     InfoBar, InfoBarPosition, FluentIcon as FIF, FluentIconBase
 )
 
+PLUGIN_DIR = os.path.join(ROOTPATH, 'plugins')
+
 class SignalBus(QObject):
     """ Signal bus """
     # 定义一个信号，当checkUpdate被调用时会触发
@@ -28,9 +30,11 @@ class SignalBus(QObject):
         """ Check for updates """
         # 从这个地址下载https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/plugins/plugin_index.json
         logger.info("正在检查插件索引文件更新...")
-        logger.info("正在从 https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/plugins/plugin_index.json 下载插件索引文件")
+        logger.info("正在从 https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_index.json 下载插件索引文件")
+        if not os.path.exists(PLUGIN_DIR):
+            os.makedirs(PLUGIN_DIR)
         resp = requests.get(
-            "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/plugins/plugin_index.json")
+            "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_index.json")
         if resp.status_code == 200:
             with open(os.path.join(ROOTPATH, "plugins", "plugin_index.json"), "w", encoding="utf-8") as f:
                 f.write(resp.text)
