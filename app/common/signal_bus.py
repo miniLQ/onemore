@@ -33,14 +33,20 @@ class SignalBus(QObject):
         logger.info("正在从 https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_index.json 下载插件索引文件")
         if not os.path.exists(PLUGIN_DIR):
             os.makedirs(PLUGIN_DIR)
-        resp = requests.get(
-            "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_index.json")
-        if resp.status_code == 200:
-            with open(os.path.join(ROOTPATH, "plugins", "plugin_index.json"), "w", encoding="utf-8") as f:
-                f.write(resp.text)
-            logger.info("插件索引文件已更新")
-        else:
-            logger.error(f"插件索引文件更新失败，状态码: {resp.status_code}")
+        try:
+            # 下载插件索引文件, 设置超时时间2s，如果2s内无法下载索引文件，则抛出异常
+            resp = requests.get(
+                url="https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_index.json",
+                timeout=2
+            )
+            if resp.status_code == 200:
+                with open(os.path.join(ROOTPATH, "plugins", "plugin_index.json"), "w", encoding="utf-8") as f:
+                    f.write(resp.text)
+                logger.info("插件索引文件已更新")
+            else:
+                logger.error(f"插件索引文件更新失败，状态码: {resp.status_code}")
+        except Exception as e:
+            logger.error(e)
 
         if auto == False:
             InfoBar.success(
