@@ -60,11 +60,11 @@ jobs:
 
       - name: Compress files
         run: |
-          mkdir -p release/onemore_${{ env.tag }}
-          cp -r build/main.dist/* release/onemore_${{ env.tag }}/
-          cp -r app/resource release/onemore_${{ env.tag }}/app/resource
-          cp -r tools release/onemore_${{ env.tag }}/tools
-          Compress-Archive -Path release/onemore_${{ env.tag }} -DestinationPath release/onemore_${{ env.tag }}.zip
+          mkdir -p release/onemore
+          cp -r build/main.dist/* release/onemore/
+          cp -r app/resource release/onemore/app/resource
+          cp -r tools release/onemore/tools
+          Compress-Archive -Path release/onemore -DestinationPath release/onemore.zip
       
       - name: Create Release
         id: create_release
@@ -87,8 +87,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/onemore_${{ env.tag }}.zip
-          asset_name: onemore_${{ env.tag }}.zip
+          asset_path: release/onemore.zip
+          asset_name: onemore.zip
           asset_content_type: application/zip
 
       # - name: upload artifacts
