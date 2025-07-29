@@ -28,7 +28,11 @@ def check_plugin_update_status(plugin_dir, plugin):
     """Check if installed plugin is outdated."""
     name = plugin.get("name")
     latest_version = plugin.get("version", "")
-    plugin_path = os.path.join(plugin_dir, name, "metadata.json")
+
+    if name == "tools":
+        plugin_path = os.path.join(ROOTPATH, "tools", "metadata.json")
+    else:
+        plugin_path = os.path.join(plugin_dir, name, "metadata.json")
 
     if not os.path.exists(plugin_path):
         return False  # Not installed
@@ -111,7 +115,6 @@ class PluginMarket(QWidget):
         if plugin.get("name") == "tools":
             is_installed = os.path.exists(self.base_tools_dir)
             has_update = check_plugin_update_status(self.base_tools_dir, plugin)
-            self.plugin_dir = ROOTPATH # Base_Tools is a special case, we use the root directory
         else:
             is_installed = os.path.exists(plugin_path)
             has_update = check_plugin_update_status(self.plugin_dir, plugin)
@@ -133,7 +136,10 @@ class PluginMarket(QWidget):
 
         # name & description
         text_container = QVBoxLayout()
-        name_label = QLabel(f"<b>{name}</b>")
+        if name == "tools":
+            name_label = QLabel(f"<b>基础工具包</b>")
+        else:
+            name_label = QLabel(f"<b>{name}</b>")
         desc_label = BodyLabel(f"{desc}\n作者：{author}，版本：{version}）")
         text_container.addWidget(name_label)
         text_container.addWidget(desc_label)
@@ -169,7 +175,7 @@ class PluginMarket(QWidget):
     def uninstall_plugin(self, name, button, row):
         try:
             import shutil
-            if name == "Base_Tools":
+            if name == "tools":
                 # Base_Tools is a special case, we remove the base tools directory
                 shutil.rmtree(self.base_tools_dir)
             else:
@@ -205,7 +211,10 @@ class PluginMarket(QWidget):
         logger.info("开始安装插件: {}", name)
         try:
             if zip_url:
-                thread = DownloadExtractThread(plugin, self.plugin_dir)
+                if name == "tools":
+                    thread = DownloadExtractThread(plugin, ROOTPATH)
+                else:
+                    thread = DownloadExtractThread(plugin, self.plugin_dir)
                 thread.progressChanged.connect(lambda p: button.setText(f"{p}%"))
                 thread.installSuccess.connect(lambda p: self._on_install_success(p, button))
                 thread.installFailed.connect(lambda err: self._on_install_failed(err, button))

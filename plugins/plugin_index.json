@@ -37,7 +37,7 @@
   {
     "name": "Tombstone_Parser",
     "description": "Android tombstone文件解析工具，提供崩溃日志分析功能",
-    "version": "1.0.1",
+    "version": "1.0.0",
     "author": "nijiasheng",
     "logo": "plugin_resources/logo/logo_Tombstone_Parser.png",
     "entry": "plugin.py",
