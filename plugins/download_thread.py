@@ -1,6 +1,7 @@
 # download_thread.py
 from PyQt6.QtCore import QThread, pyqtSignal
 import requests, zipfile, os, io
+from loguru import logger
 
 
 class DownloadExtractThread(QThread):
@@ -17,7 +18,14 @@ class DownloadExtractThread(QThread):
         try:
             name = self.plugin["name"]
             zip_url = self.plugin["zip_url"]
+
+            # 当插件名为Base_Tools时，安装路径要变为根目录，此时传入的self.plugin_dir是plugins目录
+
             path = os.path.join(self.plugin_dir, name)
+
+            logger.info("开始安装插件: {}".format(name))
+            logger.info("插件下载地址: {}".format(zip_url))
+            logger.info("插件安装路径: {}".format(path))
 
             # 下载
             resp = requests.get(zip_url, stream=True)
@@ -35,6 +43,10 @@ class DownloadExtractThread(QThread):
             buf.seek(0)
             with zipfile.ZipFile(buf) as zf:
                 zf.extractall(path)
+
+            # # 如果安装的插件是Base_Tools，则更名为tool
+            # if name == "Base_Tools":
+            #     os.rename(path, os.path.join(self.plugin_dir, "tools"))
 
             self.installSuccess.emit(self.plugin)
         except Exception as e:

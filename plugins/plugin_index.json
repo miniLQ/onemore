@@ -1,5 +1,13 @@
 [
   {
+    "name": "Base_Tools",
+    "description": "一系列基础工具的集合，包括gnu-tools,python等",
+    "version": "1.0.0",
+    "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_Base_Tools.png",
+    "zip_url": "https://media.githubusercontent.com/media/miniLQ/onemore/refs/heads/master/release/Base_Tools.zip"
+  },
+  {
     "name": "DTB2DTS",
     "description": "将设备树二进制文件(DTB)转换为设备树源文件(DTS)的工具",
     "version": "1.0.0",
@@ -88,5 +96,14 @@
     "logo": "plugin_resources/logo/logo_MTK_NE_KE_Analyze.png",
     "entry": "plugin.py",
     "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/MTK_NE_KE_Analyze.zip"
+  },
+  {
+    "name": "Hansei_Tool",
+    "description": "高通平台开发提供给研发人员进行RPM/AOP log解析",
+    "version": "1.0.0",
+    "author": "iliuqi",
+    "logo": "plugin_resources/logo/logo_Hansei_Tool.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Hansei_Tool.zip"
   }
 ]

@@ -48,6 +48,8 @@ class PluginMarket(QWidget):
         self.plugin_dir = plugin_dir
         self.all_plugins = []
         self.plugin_rows = []
+        # Define the base tool directory if needed
+        self.base_tools_dir = os.path.join(ROOTPATH, "tools")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 20, 32, 20)
@@ -56,7 +58,7 @@ class PluginMarket(QWidget):
         layout.addWidget(SubtitleLabel("🛒 插件市场", self))
 
         # 增加一行提示，提示内容为：安装插件后，必须重启软件才能生效！
-        layout.addWidget(BodyLabel("在这里你可以浏览和安装各种插件，提升软件功能！", self))
+        layout.addWidget(BodyLabel("在这里你可以浏览和安装各种插件，提升软件功能！\n提醒：所有插件使用前必须先安装一下基础工具包Tools", self))
         self.search_bar = SearchLineEdit(self)
         self.search_bar.setPlaceholderText("搜索插件...")
         self.search_bar.textChanged.connect(self.filter_plugins)
@@ -92,6 +94,8 @@ class PluginMarket(QWidget):
             self.all_plugins = json.load(f)
 
         for plugin in self.all_plugins:
+            if plugin.get("name") == "Base_Tools":
+                plugin["name"] = "tools"  # Base_Tools is a special case, we use "tools" as the name
             self.add_plugin_row(plugin)
 
     def add_plugin_row(self, plugin: dict):
@@ -104,8 +108,14 @@ class PluginMarket(QWidget):
         logo_path = os.path.join(CURRENT_DIR, plugin.get("logo", ""))
         if logo_path == "":
             logo_path = os.path.join(ROOTPATH, "app", "resource", "images", "logo.png")
-        is_installed = os.path.exists(plugin_path)
-        has_update = check_plugin_update_status(self.plugin_dir, plugin)
+        if plugin.get("name") == "tools":
+            is_installed = os.path.exists(self.base_tools_dir)
+            has_update = check_plugin_update_status(self.base_tools_dir, plugin)
+            self.plugin_dir = ROOTPATH # Base_Tools is a special case, we use the root directory
+        else:
+            is_installed = os.path.exists(plugin_path)
+            has_update = check_plugin_update_status(self.plugin_dir, plugin)
+
 
         # row frame
         row = QFrame(self.scrollContent)
@@ -159,7 +169,11 @@ class PluginMarket(QWidget):
     def uninstall_plugin(self, name, button, row):
         try:
             import shutil
-            shutil.rmtree(os.path.join(self.plugin_dir, name))
+            if name == "Base_Tools":
+                # Base_Tools is a special case, we remove the base tools directory
+                shutil.rmtree(self.base_tools_dir)
+            else:
+                shutil.rmtree(os.path.join(self.plugin_dir, name))
             InfoBar.success(
                 parent=self,
                 title="成功",
@@ -171,6 +185,7 @@ class PluginMarket(QWidget):
             button.setText("安装")
             button.clicked.disconnect()
             button.clicked.connect(lambda _, p=self._get_plugin_by_name(name), b=button: self.install_plugin(p, b))
+            logger.success("插件 {} 卸载成功", name)
         except Exception as e:
             InfoBar.error(
                 parent=self,
@@ -180,6 +195,7 @@ class PluginMarket(QWidget):
                 duration=10000,
                 isClosable=True
             )
+            logger.error("插件 {} 卸载失败: {}", name, e)
 
     def install_plugin(self, plugin, button):
         name = plugin.get("name", "unknown")
