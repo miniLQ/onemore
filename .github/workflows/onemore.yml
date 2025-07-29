@@ -63,7 +63,6 @@ jobs:
           mkdir -p dist/onemore
           cp -r build/main.dist/* dist/onemore/
           cp -r app/resource dist/onemore/app/resource
-          cp -r tools dist/onemore/tools
           cp -r plugins dist/onemore/plugins
           Compress-Archive -Path dist/onemore -DestinationPath dist/onemore.zip
       
