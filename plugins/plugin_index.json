@@ -73,7 +73,7 @@
   },
   {
     "name": "AEE_DB_Extractor",
-    "description": "高通平台开发提供给研发人员进行AEE DB解析的一个工具",
+    "description": "MTK平台开发提供给研发人员进行AEE DB解析的一个工具",
     "version": "1.0.0",
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_AEE_DB_Extractor.png",
