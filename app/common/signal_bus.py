@@ -30,7 +30,7 @@ class SignalBus(QObject):
         """ Check for updates """
         # 从这个地址下载https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/plugins/plugin_index.json
         logger.info("正在检查插件索引文件更新...")
-        logger.info("正在从 https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_index.json 下载插件索引文件")
+        logger.info("正在从 https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_index.json 下载文件")
         if not os.path.exists(PLUGIN_DIR):
             os.makedirs(PLUGIN_DIR)
         try:
@@ -42,12 +42,57 @@ class SignalBus(QObject):
             if resp.status_code == 200:
                 with open(os.path.join(ROOTPATH, "plugins", "plugin_index.json"), "w", encoding="utf-8") as f:
                     f.write(resp.text)
-                logger.info("插件索引文件已更新")
+                logger.info("[插件管理器] 索引文件已更新")
             else:
-                logger.error(f"插件索引文件更新失败，状态码: {resp.status_code}")
+                logger.error(f"[插件管理器] 索引文件更新失败，状态码: {resp.status_code}")
         except Exception as e:
             logger.error(e)
 
+        logger.info("正在从https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/download_thread.py 下载文件")
+        try:
+            # 下载插件索引文件, 设置超时时间2s，如果2s内无法下载索引文件，则抛出异常
+            resp = requests.get(
+                url="https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/download_thread.py",
+                timeout=2
+            )
+            if resp.status_code == 200:
+                with open(os.path.join(ROOTPATH, "plugins", "download_thread.py"), "w", encoding="utf-8") as f:
+                    f.write(resp.text)
+                logger.info("[插件管理器] 下载模块已更新")
+            else:
+                logger.error(f"[插件管理器] 下载模块更新失败，状态码: {resp.status_code}")
+        except Exception as e:
+            logger.error(e)
+        logger.info("正在从https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_loader.py 下载文件")
+        try:
+            # 下载插件索引文件, 设置超时时间2s，如果2s内无法下载索引文件，则抛出异常
+            resp = requests.get(
+                url="https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_loader.py",
+                timeout=2
+            )
+            if resp.status_code == 200:
+                with open(os.path.join(ROOTPATH, "plugins", "plugin_loader.py"), "w", encoding="utf-8") as f:
+                    f.write(resp.text)
+                logger.info("[插件管理器] 加载模块已更新")
+            else:
+                logger.error(f"[插件管理器] 加载模块更新失败，状态码: {resp.status_code}")
+        except Exception as e:
+            logger.error(e)
+        logger.info("正在从https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_market.py 下载文件")
+        try:
+            # 下载插件文件, 设置超时时间2s，如果2s内无法下载文件，则抛出异常
+            resp = requests.get(
+                url="https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/plugins/plugin_market.py",
+                timeout=2
+            )
+            if resp.status_code == 200:
+                with open(os.path.join(ROOTPATH, "plugins", "plugin_market.py"), "w", encoding="utf-8") as f:
+                    f.write(resp.text)
+                logger.info("[插件管理器] 插件市场模块已更新")
+            else:
+                logger.error(f"[插件管理器] 插件市场模块更新失败，状态码: {resp.status_code}")
+        except Exception as e:
+            logger.error(e)
         if auto == False:
             InfoBar.success(
                 parent=None,
