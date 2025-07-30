@@ -100,7 +100,7 @@
   {
     "name": "Hansei_Tool",
     "description": "高通平台开发提供给研发人员进行RPM/AOP log解析",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "iliuqi",
     "logo": "plugin_resources/logo/logo_Hansei_Tool.png",
     "entry": "plugin.py",
