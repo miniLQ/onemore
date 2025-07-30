@@ -105,5 +105,14 @@
     "logo": "plugin_resources/logo/logo_Hansei_Tool.png",
     "entry": "plugin.py",
     "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Hansei_Tool.zip"
+  },
+  {
+    "name": "ADSP_Crash_Parser",
+    "description": "高通平台开发提供给研发人员进行ADSP crash解析的一个工具",
+    "version": "1.0.0",
+    "logo": "plugin_resources/logo/logo_ADSP_Crash_Parser.png",
+    "author": "iliuqi",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/ADSP_Crash_Parser.zip"
   }
 ]
