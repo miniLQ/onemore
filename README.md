@@ -17,3 +17,6 @@ A tool contains some useful tools. More than one!
 
 ## 工具界面
 ![image](https://github.com/user-attachments/assets/fcf6f851-38e6-4500-8755-1debb2057480)
+
+## 插件市场
+<img width="1101" height="751" alt="image" src="https://github.com/user-attachments/assets/7cc459cf-8092-43b1-819a-69ced2a18618" />
