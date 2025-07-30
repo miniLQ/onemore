@@ -113,6 +113,6 @@
     "logo": "plugin_resources/logo/logo_ADSP_Crash_Parser.png",
     "author": "iliuqi",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/ADSP_Crash_Parser.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/ADSP_Crash_Parser.zip"
   }
 ]
