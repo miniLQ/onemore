@@ -252,7 +252,7 @@ class MainWindow(MSFluentWindow):
         for keyword, handler in self.tabChangedHandlers.items():
             if keyword in objectName:
                 handler(objectName)
-                return
+                #return
 
         # if "Linux Ramdump" in objectName:
         #     logger.info('[TAB CHANGED] Tab change to {}'.format(objectName))
