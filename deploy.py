@@ -17,7 +17,7 @@ args = [
     '--windows-console-mode=disable',
     '--output-dir=./build',
     '--nofollow-import-to=plugins',
-    '--include-module=yaml',
+    '--include-package=yaml',
     './main.py'
 ]
 
