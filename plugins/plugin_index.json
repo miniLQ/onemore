@@ -116,12 +116,12 @@
     "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/ADSP_Crash_Parser.zip"
   },
   {
-  "name": "StabilityAI",
-  "description": "基于StabilityAI的AI驱动内核日志分析工具，帮助用户快速定位和解决内核问题。",
-  "version": "v0.2",
-  "logo": "plugin_resources/logo/logo_StabilityAI.png",
-  "author": "iliuqi",
-  "entry": "plugin.py",
-  "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/StabilityAI.zip"
+    "name": "StabilityAI",
+    "description": "基于StabilityAI的AI驱动内核日志分析工具，帮助用户快速定位和解决内核问题。",
+    "version": "v1.0.6",
+    "logo": "plugin_resources/logo/logo_StabilityAI.png",
+    "author": "iliuqi",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/StabilityAI.zip"
   }
 ]
