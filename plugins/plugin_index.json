@@ -38,7 +38,7 @@
     "name": "Tombstone_Parser",
     "description": "Android tombstone文件解析工具，提供崩溃日志分析功能",
     "version": "1.0.0",
-    "author": "nijiasheng",
+    "author": "charter",
     "logo": "plugin_resources/logo/logo_Tombstone_Parser.png",
     "entry": "plugin.py",
     "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Tombstone_Parser.zip"
@@ -131,6 +131,6 @@
     "author": "charter",
     "logo": "plugin_resources/logo/logo_Backtrace_Analyzer.png",
     "entry": "plugin.py",
-    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Backtrace_Analyzer.zip"
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Backtrace_Analyzer.zip"
   }
 ]
