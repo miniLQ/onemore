@@ -123,5 +123,14 @@
     "author": "iliuqi",
     "entry": "plugin.py",
     "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/StabilityAI.zip"
+  },
+  {
+    "name": "Backtrace_Analyzer",
+    "description": "展锐平台抓取进程backtrace，通过符号表和backtrace可以解析该进程存在的泄漏等问题",
+    "version": "1.0.0",
+    "author": "charter",
+    "logo": "plugin_resources/logo/logo_Backtrace_Analyzer.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/release/Backtrace_Analyzer.zip"
   }
 ]
