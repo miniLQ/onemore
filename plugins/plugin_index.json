@@ -132,5 +132,14 @@
     "logo": "plugin_resources/logo/logo_Backtrace_Analyzer.png",
     "entry": "plugin.py",
     "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/Backtrace_Analyzer.zip"
+  },
+  {
+    "name": "QXDM_Dumptime_Tool",
+    "description": "高通qxdm log、dump、ap log三者的时间对应与转换工具",
+    "version": "1.0.0",
+    "author": "charter",
+    "logo": "logo.png",
+    "entry": "plugin.py",
+    "zip_url": "https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/QXDM_Dumptime_Tool.zip"
   }
 ]
