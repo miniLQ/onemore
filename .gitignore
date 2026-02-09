@@ -5,3 +5,5 @@ __pycache__/
 AppData/
 tools
 build/
+.venv/
+dist/
