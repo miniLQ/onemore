@@ -1,7 +1,7 @@
 import os
+import sysconfig
 from pathlib import Path
 from shutil import copy, copytree
-from distutils.sysconfig import get_python_lib
 
 # https://blog.csdn.net/qq_25262697/article/details/129302819
 # https://www.cnblogs.com/happylee666/articles/16158458.html
@@ -14,10 +14,12 @@ args = [
     '--enable-plugins=pyqt6',
     '--show-memory',
     '--show-progress',
-    '--windows-console-mode=disable',
+    '--windows-console-mode=force',
     '--output-dir=./build',
-    '--nofollow-import-to=plugins',
+    # '--nofollow-import-to=plugins',
     '--include-package=yaml',
+    '--include-data-dir=app/resource=app/resource',
+    #'--include-data-dir=plugins=plugins',
     './main.py'
 ]
 
@@ -25,7 +27,7 @@ os.system(' '.join(args))
 
 # copy site-packages to dist folder
 dist_folder = Path("build/main.dist")
-site_packages = Path(get_python_lib())
+site_packages = Path(sysconfig.get_paths()["purelib"])
 
 copied_libs = []
 
