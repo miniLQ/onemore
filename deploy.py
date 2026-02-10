@@ -14,7 +14,7 @@ args = [
     '--enable-plugins=pyqt6',
     '--show-memory',
     '--show-progress',
-    '--windows-console-mode=force',
+    '--windows-console-mode=disable',
     '--output-dir=./build',
     '--nofollow-import-to=plugins',
     '--no-deployment-flag=excluded-module-usage',
