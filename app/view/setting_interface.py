@@ -176,8 +176,8 @@ class SettingInterface(ScrollArea):
         cfg.themeChanged.connect(setTheme)
         self.micaCard.checkedChanged.connect(signalBus.micaEnableChanged)
 
-        # check update
-        self.aboutCard.clicked.connect(signalBus.checkUpdateSig)
+        # check update - 修改为检查应用程序更新
+        self.aboutCard.clicked.connect(signalBus.checkAppUpdateSig)
 
         # about
         self.feedbackCard.clicked.connect(

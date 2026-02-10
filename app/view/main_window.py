@@ -19,11 +19,13 @@ from .setting_interface import SettingInterface
 from .mtk_interface import MtkInterface
 from .qcom_interface import QcomInterface
 from .general_interface import GeneralInterface
+from .update_dialog import CheckUpdateMessageBox, UpdateMessageBox
 from ..common.config import cfg
 from ..common.icon import Icon
 from ..common.signal_bus import signalBus
 from ..common import resource
 from ..common.logging import logger
+from ..common.app_updater import AppUpdater
 
 from plugins.plugin_market import PluginMarket
 
@@ -131,11 +133,14 @@ class MainWindow(MSFluentWindow):
         self.pluginOpenerMap = {}
         self.tabChangedHandlers = {}
         self.TabRouteKeys = []
+        self.appUpdater = AppUpdater()
 
         # 检查自动更新按钮是否被启用
         if cfg.get(cfg.checkUpdateAtStartUp):
             # 如果启用，则连接到自动更新信号
             signalBus.Update(auto=True)
+            # 启动时自动检查应用更新（静默）
+            self._check_app_update_on_startup()
                 
         #self.tabBar.currentChanged.connect(self.onTabChanged)
 
@@ -157,7 +162,7 @@ class MainWindow(MSFluentWindow):
         #self.homeInterface.show()
 
 
-        #self.connectSignalToSlot()
+        self.connectSignalToSlot()
 
         # add items to navigation interface
         self.initNavigation()
@@ -166,8 +171,31 @@ class MainWindow(MSFluentWindow):
         self.splashScreen.finish()
 
         load_plugins(self)# add interfaces to showInterface
+    
+    def _check_app_update_on_startup(self):
+        """启动时静默检查更新"""
+        def on_check_finished(success, *args):
+            if success:
+                has_update, version, download_url, release_notes = args
+                if has_update:
+                    logger.info(f"发现新版本: {version}")
+                    # 显示更新提示对话框
+                    update_dialog = UpdateMessageBox(version, download_url, release_notes, self)
+                    update_dialog.exec()
+            else:
+                error_msg = args[0]
+                logger.debug(f"启动时检查更新失败: {error_msg}")
+        
+        self.appUpdater.check_update(callback=on_check_finished)
+    
+    def _show_check_update_dialog(self):
+        """手动检查更新"""
+        dialog = CheckUpdateMessageBox(self)
+        dialog.exec()
 
     def connectSignalToSlot(self):
+        # 连接检查更新信号
+        signalBus.checkAppUpdateSig.connect(self._show_check_update_dialog)
         #signalBus.micaEnableChanged.connect(self.setMicaEffectEnabled)
         #signalBus.checkUpdateSig.connect(signalBus.Update())
         pass

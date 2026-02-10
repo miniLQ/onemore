@@ -18,6 +18,7 @@ class SignalBus(QObject):
     # 定义一个信号，当checkUpdate被调用时会触发
     # 这个信号可以在其他地方连接到槽函数
     checkUpdateSig = pyqtSignal()
+    checkAppUpdateSig = pyqtSignal()  # 检查应用程序更新信号
     micaEnableChanged = pyqtSignal(bool)
 
     def __init__(self):
