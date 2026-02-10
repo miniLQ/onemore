@@ -223,7 +223,7 @@ class GeneralInterface(ScrollArea):
         #logger.info("[LIUQI] Adding card: {}, {}, {}".format(icon, title, content))
         self.card = AppCard(icon=icon, title=title, content=content, parent=self.scrollAreaWidgetContents, UniqueName=UniqueName, mainWindow=self.parent)
 
-        logger.info("[TOOL ADD] Adding Tool: {}".format(title))
+        #logger.info("[TOOL ADD] Adding Tool: {}".format(title))
 
         # 将card组件加入到设置好的滚动布局中
         self.expandLayout.addWidget(self.card)
