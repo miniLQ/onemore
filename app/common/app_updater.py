@@ -284,146 +284,75 @@ class AppUpdater:
             raise FileNotFoundError(f"更新文件不存在: {update_path}")
 
         if update_path.suffix.lower() == '.zip':
-            # === 步骤1: 创建备份 ===
-            log_print("\n[1/5] 正在备份当前版本...")
+            # === 步骤1: 移动所有文件到备份目录 ===
+            log_print("\n[1/3] 正在移动所有文件到备份目录...")
             backup_dir.mkdir(parents=True, exist_ok=True)
 
-            items_to_backup = ["appData", "plugins", "tools"]
-            for item_name in items_to_backup:
-                item_path = app_dir / item_name
-                if item_path.exists():
-                    backup_item = backup_dir / item_name
-                    try:
-                        if item_path.is_file():
-                            backup_item.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copy2(item_path, backup_item)
-                            log_print(f"  ✓ 已备份文件: {item_name}")
-                        elif item_path.is_dir():
-                            shutil.copytree(item_path, backup_item)
-                            log_print(f"  ✓ 已备份目录: {item_name}")
-                    except Exception as e:
-                        log_print(f"  ✗ 备份失败 {item_name}: {e}")
-
-            # === 步骤2: 解压新版本到临时目录 ===
-            log_print("\n[2/5] 正在解压更新包...")
-            temp_extract = app_dir / "_update_temp"
-            if temp_extract.exists():
-                shutil.rmtree(temp_extract)
-            temp_extract.mkdir(exist_ok=True)
-
-            with zipfile.ZipFile(update_path, 'r') as zip_ref:
-                zip_ref.extractall(temp_extract)
-            log_print("  ✓ 更新包已解压到临时目录")
-
-            extract_dirs = list(temp_extract.iterdir())
-            if len(extract_dirs) == 1 and extract_dirs[0].is_dir():
-                source_dir = extract_dirs[0]
-            else:
-                source_dir = temp_extract
-
-            log_print(f"  ✓ 更新文件源目录: {source_dir.name}")
-
-            # === 步骤3: 清理旧版本文件（保留备份的目录）===
-            log_print("\n[3/5] 正在清理旧版本文件...")
-            protected_items = ["backup", "_update_temp", "appData", "plugins", "tools"]
-            failed_items = []
-            
-            for item in app_dir.iterdir():
-                if item.name not in protected_items:
-                    deleted = False
-                    # 尝试删除 3 次
-                    for attempt in range(3):
-                        try:
-                            if item.is_file():
-                                item.unlink()
-                                log_print(f"  ✓ 已删除文件: {item.name}")
-                                deleted = True
-                                break
-                            elif item.is_dir():
-                                shutil.rmtree(item)
-                                log_print(f"  ✓ 已删除目录: {item.name}")
-                                deleted = True
-                                break
-                        except PermissionError:
-                            if attempt < 2:
-                                time.sleep(1)  # 等待 1 秒后重试
-                                continue
-                            # 最后一次尝试失败，使用 Windows 延迟删除
-                            try:
-                                # 移动到临时目录，标记为待删除
-                                trash_dir = app_dir / "_to_delete"
-                                trash_dir.mkdir(exist_ok=True)
-                                dest = trash_dir / f"{item.name}_{int(time.time())}"
-                                item.rename(dest)
-                                log_print(f"  → 已移至待删除目录: {item.name}")
-                                failed_items.append(item.name)
-                            except Exception as e2:
-                                log_print(f"  ✗ 无法处理 {item.name}: {e2}")
-                                failed_items.append(item.name)
-                        except Exception as e:
-                            log_print(f"  ✗ 删除失败 {item.name}: {e}")
-                            failed_items.append(item.name)
-                            break
-            
-            if failed_items:
-                log_print(f"\n  ⚠️  部分文件无法立即删除，已移至 _to_delete 目录")
-                log_print(f"  这些文件将在下次启动时被清理")
-
-            # === 步骤4: 复制新版本文件 ===
-            log_print("\n[4/5] 正在安装新版本...")
-            for item in source_dir.iterdir():
-                dest = app_dir / item.name
-
-                if item.name in ["appData", "plugins", "tools"] and dest.exists():
-                    log_print(f"  → 跳过 {item.name} (保留现有版本)")
+            for item in list(app_dir.iterdir()):
+                # 跳过备份目录自身
+                if item.name == "backup":
                     continue
-
                 try:
-                    if item.is_file():
-                        # 如果目标文件存在且无法删除，先尝试删除 .old 文件
-                        if dest.exists():
-                            try:
-                                dest.unlink()
-                            except PermissionError:
-                                # 无法删除，尝试用新文件覆盖
-                                pass
-                        shutil.copy2(item, dest)
-                        log_print(f"  ✓ 已复制文件: {item.name}")
-                    elif item.is_dir():
-                        if dest.exists():
-                            try:
-                                shutil.rmtree(dest)
-                            except:
-                                # 目录无法删除，跳过
-                                log_print(f"  → 跳过 {item.name} (目录被占用)")
-                                continue
-                        shutil.copytree(item, dest)
-                        log_print(f"  ✓ 已复制目录: {item.name}")
+                    dest = backup_dir / item.name
+                    item.rename(dest)
+                    log_print(f"  ✓ 已移动: {item.name}")
                 except Exception as e:
-                    log_print(f"  ✗ 复制失败 {item.name}: {e}")
+                    log_print(f"  ✗ 移动失败 {item.name}: {e}")
 
-            # === 步骤5: 恢复配置文件 ===
-            log_print("\n[5/5] 正在恢复用户配置...")
-            backup_config = backup_dir / "appData" / "config.json"
-            if backup_config.exists():
-                dest_config = app_dir / "appData" / "config.json"
-                dest_config.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(backup_config, dest_config)
-                log_print("  ✓ 已恢复配置文件")
+            # === 步骤2: 解压更新包到应用目录 ===
+            log_print("\n[2/3] 正在解压更新包到应用目录...")
 
-            log_print("\n正在清理临时文件...")
-            shutil.rmtree(temp_extract, ignore_errors=True)
-            update_path.unlink(missing_ok=True)
-            
-            # 清理 _to_delete 目录（如果存在）
-            trash_dir = app_dir / "_to_delete"
-            if trash_dir.exists():
+            # 更新包已被移动到 backup 中，从 backup 路径读取
+            moved_update = backup_dir / update_path.name
+            if not moved_update.exists():
+                # 如果更新包不在 backup 中（比如在 temp 目录），用原路径
+                moved_update = update_path
+
+            with zipfile.ZipFile(moved_update, 'r') as zip_ref:
+                zip_ref.extractall(app_dir)
+            log_print("  ✓ 更新包已解压")
+
+            # 如果解压后只有一个子目录（如 main.dist），把内容提升到 app_dir
+            extracted_items = [p for p in app_dir.iterdir() if p.name != "backup"]
+            if len(extracted_items) == 1 and extracted_items[0].is_dir():
+                inner_dir = extracted_items[0]
+                log_print(f"  → 检测到单层目录 {inner_dir.name}，正在展开...")
+                for item in list(inner_dir.iterdir()):
+                    dest = app_dir / item.name
+                    try:
+                        item.rename(dest)
+                    except Exception as e:
+                        log_print(f"  ✗ 展开失败 {item.name}: {e}")
+                # 删除空的内层目录
                 try:
-                    shutil.rmtree(trash_dir)
-                    log_print("  ✓ 已清理待删除目录")
+                    inner_dir.rmdir()
                 except:
-                    log_print("  → 待删除目录将在下次启动时清理")
-            
+                    pass
+                log_print("  ✓ 目录已展开")
+
+            # === 步骤3: 从备份恢复用户数据目录 ===
+            log_print("\n[3/3] 正在从备份恢复用户数据...")
+            restore_dirs = ["app", "appData", "plugins", "tools"]
+            for dir_name in restore_dirs:
+                backup_item = backup_dir / dir_name
+                if not backup_item.exists():
+                    continue
+                dest_item = app_dir / dir_name
+                try:
+                    if backup_item.is_dir():
+                        if dest_item.exists():
+                            shutil.rmtree(dest_item)
+                        shutil.copytree(backup_item, dest_item)
+                    else:
+                        shutil.copy2(backup_item, dest_item)
+                    log_print(f"  ✓ 已恢复: {dir_name}")
+                except Exception as e:
+                    log_print(f"  ✗ 恢复失败 {dir_name}: {e}")
+
+            # 清理更新包
+            log_print("\n正在清理临时文件...")
+            moved_update.unlink(missing_ok=True)
+            update_path.unlink(missing_ok=True)
             log_print("  ✓ 临时文件已清理")
 
         elif update_path.suffix.lower() == '.exe':
@@ -446,6 +375,23 @@ class AppUpdater:
         log_print("\n" + "=" * 60)
         log_print("✓ 更新完成！")
         log_print("=" * 60)
+
+        # 清理旧备份，只保留最近 3 份
+        log_print("\n正在清理旧备份...")
+        backup_root = app_dir / "backup"
+        if backup_root.exists():
+            backups = sorted(
+                [d for d in backup_root.iterdir() if d.is_dir()],
+                key=lambda d: d.name
+            )
+            while len(backups) > 3:
+                oldest = backups.pop(0)
+                try:
+                    shutil.rmtree(oldest)
+                    log_print(f"  ✓ 已删除旧备份: {oldest.name}")
+                except Exception as e:
+                    log_print(f"  ✗ 删除旧备份失败 {oldest.name}: {e}")
+
         log_print("\n正在重启应用...")
         time.sleep(2)
 
@@ -457,208 +403,4 @@ class AppUpdater:
                 os.startfile(str(exe))
                 break
     
-    @staticmethod
-    def _create_update_helper(update_file: Path) -> Path:
-        """创建更新辅助脚本"""
-        
-        # 确定当前可执行文件路径和应用根目录
-        if _is_packaged():
-            # 打包后的 exe
-            current_exe = Path(sys.executable)
-            app_dir = current_exe.parent
-        else:
-            # 开发模式
-            app_dir = Path(ROOTPATH)
-            current_exe = app_dir / "main.exe"  # 假设打包后的名称
-        
-        # 辅助脚本内容
-        helper_content = f'''# coding: utf-8
-"""
-OneMore 自动更新助手
-此脚本负责备份、替换和恢复应用程序文件
-"""
-import os
-import sys
-import time
-import shutil
-import zipfile
-from pathlib import Path
-from datetime import datetime
 
-def main():
-    print("=" * 60)
-    print("OneMore 自动更新助手")
-    print("=" * 60)
-    print("\\n等待主程序完全退出...")
-    time.sleep(3)
-    
-    update_file = Path(r"{update_file}")
-    app_dir = Path(r"{app_dir}")
-    
-    # 生成带时间戳的备份目录
-    timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-    backup_dir = app_dir / "backup" / timestamp
-    
-    try:
-        print(f"\\n更新文件: {{update_file}}")
-        print(f"应用目录: {{app_dir}}")
-        print(f"备份目录: {{backup_dir}}")
-        
-        if not update_file.exists():
-            raise FileNotFoundError(f"更新文件不存在: {{update_file}}")
-        
-        if update_file.suffix.lower() == '.zip':
-            # === 步骤1: 创建备份 ===
-            print("\\n[1/5] 正在备份当前版本...")
-            backup_dir.mkdir(parents=True, exist_ok=True)
-            
-            # 需要备份的目录和文件
-            items_to_backup = [
-                "appData",      # 配置文件目录
-                "plugins",      # 插件目录
-                "tools"         # 工具目录（如果存在）
-            ]
-            
-            for item_name in items_to_backup:
-                item_path = app_dir / item_name
-                if item_path.exists():
-                    backup_item = backup_dir / item_name
-                    try:
-                        if item_path.is_file():
-                            backup_item.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copy2(item_path, backup_item)
-                            print(f"  ✓ 已备份文件: {{item_name}}")
-                        elif item_path.is_dir():
-                            shutil.copytree(item_path, backup_item)
-                            print(f"  ✓ 已备份目录: {{item_name}}")
-                    except Exception as e:
-                        print(f"  ✗ 备份失败 {{item_name}}: {{e}}")
-            
-            # === 步骤2: 解压新版本到临时目录 ===
-            print("\\n[2/5] 正在解压更新包...")
-            temp_extract = app_dir / "_update_temp"
-            if temp_extract.exists():
-                shutil.rmtree(temp_extract)
-            temp_extract.mkdir(exist_ok=True)
-            
-            with zipfile.ZipFile(update_file, 'r') as zip_ref:
-                zip_ref.extractall(temp_extract)
-            print(f"  ✓ 更新包已解压到临时目录")
-            
-            # 查找解压后的主目录（可能是 main.dist 或其他）
-            extract_dirs = list(temp_extract.iterdir())
-            if len(extract_dirs) == 1 and extract_dirs[0].is_dir():
-                source_dir = extract_dirs[0]
-            else:
-                source_dir = temp_extract
-            
-            print(f"  ✓ 更新文件源目录: {{source_dir.name}}")
-            
-            # === 步骤3: 删除旧版本文件（保留备份的目录）===
-            print("\\n[3/5] 正在清理旧版本文件...")
-            protected_items = ["backup", "_update_temp", "appData", "plugins", "tools"]
-            
-            for item in app_dir.iterdir():
-                if item.name not in protected_items:
-                    try:
-                        if item.is_file():
-                            item.unlink()
-                            print(f"  ✓ 已删除文件: {{item.name}}")
-                        elif item.is_dir():
-                            shutil.rmtree(item)
-                            print(f"  ✓ 已删除目录: {{item.name}}")
-                    except Exception as e:
-                        print(f"  ✗ 删除失败 {{item.name}}: {{e}}")
-            
-            # === 步骤4: 复制新版本文件 ===
-            print("\\n[4/5] 正在安装新版本...")
-            for item in source_dir.iterdir():
-                dest = app_dir / item.name
-                
-                # 跳过已存在的受保护目录
-                if item.name in ["appData", "plugins", "tools"] and dest.exists():
-                    print(f"  → 跳过 {{item.name}} (保留现有版本)")
-                    continue
-                
-                try:
-                    if item.is_file():
-                        shutil.copy2(item, dest)
-                        print(f"  ✓ 已复制文件: {{item.name}}")
-                    elif item.is_dir():
-                        if dest.exists():
-                            shutil.rmtree(dest)
-                        shutil.copytree(item, dest)
-                        print(f"  ✓ 已复制目录: {{item.name}}")
-                except Exception as e:
-                    print(f"  ✗ 复制失败 {{item.name}}: {{e}}")
-            
-            # === 步骤5: 恢复配置文件（如果新版本覆盖了）===
-            print("\\n[5/5] 正在恢复用户配置...")
-            
-            # 从备份恢复 appData/config.json
-            backup_config = backup_dir / "appData" / "config.json"
-            if backup_config.exists():
-                dest_config = app_dir / "appData" / "config.json"
-                dest_config.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(backup_config, dest_config)
-                print(f"  ✓ 已恢复配置文件")
-            
-            # 清理临时文件
-            print("\\n正在清理临时文件...")
-            shutil.rmtree(temp_extract, ignore_errors=True)
-            update_file.unlink(missing_ok=True)
-            print("  ✓ 临时文件已清理")
-            
-        elif update_file.suffix.lower() == '.exe':
-            # 单个 exe 文件的更新（简化版）
-            print("\\n[1/2] 正在备份当前可执行文件...")
-            backup_dir.mkdir(parents=True, exist_ok=True)
-            
-            current_exe = app_dir / "main.exe"
-            if current_exe.exists():
-                backup_exe = backup_dir / "main.exe"
-                shutil.copy2(current_exe, backup_exe)
-                print(f"  ✓ 已备份: {{current_exe.name}}")
-            
-            print("\\n[2/2] 正在替换可执行文件...")
-            shutil.copy2(update_file, current_exe)
-            print(f"  ✓ 已更新: {{current_exe.name}}")
-            
-            update_file.unlink(missing_ok=True)
-        
-        print("\\n" + "=" * 60)
-        print("✓ 更新完成！")
-        print("=" * 60)
-        print("\\n正在重启应用...")
-        time.sleep(2)
-        
-        # 重启应用
-        main_exe = app_dir / "main.exe"
-        if main_exe.exists():
-            os.startfile(str(main_exe))
-        else:
-            # 尝试查找其他可执行文件
-            for exe in app_dir.glob("*.exe"):
-                os.startfile(str(exe))
-                break
-        
-        print("\\n应用已重启，更新助手将在 3 秒后自动关闭...")
-        time.sleep(3)
-        
-    except Exception as e:
-        print(f"\\n✗ 更新失败: {{e}}")
-        print("\\n可以尝试从备份目录手动恢复:")
-        print(f"  {{backup_dir}}")
-        input("\\n按回车键退出...")
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
-'''
-        
-        # 保存辅助脚本
-        helper_path = Path(tempfile.gettempdir()) / "onemore_updater.py"
-        helper_path.write_text(helper_content, encoding='utf-8')
-        
-        logger.info(f"更新助手脚本已创建: {helper_path}")
-        return helper_path
