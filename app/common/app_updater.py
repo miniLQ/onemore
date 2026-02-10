@@ -257,6 +257,40 @@ class AppUpdater:
         log_dir.mkdir(parents=True, exist_ok=True)
         log_file = log_dir / f"update_{timestamp}.txt"
         
+        update_app = None
+        update_dialog = None
+        update_label = None
+        created_app = False
+
+        try:
+            from PyQt6.QtCore import Qt
+            from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QProgressBar
+
+            update_app = QApplication.instance()
+            if update_app is None:
+                update_app = QApplication([])
+                created_app = True
+
+            update_dialog = QWidget()
+            update_dialog.setWindowTitle("正在更新")
+            update_dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+            update_dialog.setMinimumWidth(360)
+
+            layout = QVBoxLayout(update_dialog)
+            update_label = QLabel("正在准备更新，请勿关闭窗口...", update_dialog)
+            progress = QProgressBar(update_dialog)
+            progress.setRange(0, 0)
+
+            layout.addWidget(update_label)
+            layout.addWidget(progress)
+            update_dialog.show()
+            update_app.processEvents()
+        except Exception:
+            update_app = None
+            update_dialog = None
+            update_label = None
+            created_app = False
+
         def log_print(msg):
             """同时输出到控制台和日志文件"""
             print(msg)
@@ -266,6 +300,12 @@ class AppUpdater:
             except:
                 pass
 
+        def set_status(msg):
+            """更新提示窗口文字"""
+            if update_label is not None and update_app is not None:
+                update_label.setText(msg)
+                update_app.processEvents()
+
         log_print("=" * 60)
         log_print("OneMore 自动更新助手")
         log_print("=" * 60)
@@ -273,6 +313,7 @@ class AppUpdater:
         log_print(f"更新文件: {update_path}")
         log_print(f"应用目录: {app_dir}")
         log_print(f"日志文件: {log_file}")
+        set_status("正在等待主程序退出...")
         log_print("\n等待主程序完全退出...")
         
         # 延长等待时间，确保主程序和所有子进程完全退出
@@ -285,6 +326,7 @@ class AppUpdater:
 
         if update_path.suffix.lower() == '.zip':
             # === 步骤1: 移动所有文件到备份目录 ===
+            set_status("正在备份当前版本...")
             log_print("\n[1/3] 正在移动所有文件到备份目录...")
             backup_dir.mkdir(parents=True, exist_ok=True)
 
@@ -299,8 +341,9 @@ class AppUpdater:
                 except Exception as e:
                     log_print(f"  ✗ 移动失败 {item.name}: {e}")
 
-            # === 步骤2: 解压更新包到应用目录 ===
-            log_print("\n[2/3] 正在解压更新包到应用目录...")
+            # === 步骤2: 解压更新包到临时目录，并按 main.exe 定位源目录 ===
+            set_status("正在解压更新包...")
+            log_print("\n[2/3] 正在解压更新包到临时目录...")
 
             # 更新包已被移动到 backup 中，从 backup 路径读取
             moved_update = backup_dir / update_path.name
@@ -308,29 +351,45 @@ class AppUpdater:
                 # 如果更新包不在 backup 中（比如在 temp 目录），用原路径
                 moved_update = update_path
 
-            with zipfile.ZipFile(moved_update, 'r') as zip_ref:
-                zip_ref.extractall(app_dir)
-            log_print("  ✓ 更新包已解压")
+            temp_extract = app_dir / "_update_temp"
+            if temp_extract.exists():
+                shutil.rmtree(temp_extract)
+            temp_extract.mkdir(exist_ok=True)
 
-            # 如果解压后只有一个子目录（如 main.dist），把内容提升到 app_dir
-            extracted_items = [p for p in app_dir.iterdir() if p.name != "backup"]
-            if len(extracted_items) == 1 and extracted_items[0].is_dir():
-                inner_dir = extracted_items[0]
-                log_print(f"  → 检测到单层目录 {inner_dir.name}，正在展开...")
-                for item in list(inner_dir.iterdir()):
-                    dest = app_dir / item.name
-                    try:
-                        item.rename(dest)
-                    except Exception as e:
-                        log_print(f"  ✗ 展开失败 {item.name}: {e}")
-                # 删除空的内层目录
+            with zipfile.ZipFile(moved_update, 'r') as zip_ref:
+                zip_ref.extractall(temp_extract)
+            log_print("  ✓ 更新包已解压到临时目录")
+
+            main_exe_candidates = sorted(
+                temp_extract.rglob("main.exe"),
+                key=lambda p: len(p.parts)
+            )
+            if not main_exe_candidates:
+                raise FileNotFoundError("更新包中未找到 main.exe")
+
+            source_dir = main_exe_candidates[0].parent
+            log_print(f"  ✓ 定位主程序目录: {source_dir}")
+
+            set_status("正在安装更新...")
+            log_print("  → 正在复制更新文件到应用目录...")
+            for item in source_dir.iterdir():
+                dest = app_dir / item.name
                 try:
-                    inner_dir.rmdir()
-                except:
-                    pass
-                log_print("  ✓ 目录已展开")
+                    if dest.exists():
+                        if dest.is_dir():
+                            shutil.rmtree(dest)
+                        else:
+                            dest.unlink()
+                    if item.is_dir():
+                        shutil.copytree(item, dest)
+                    else:
+                        shutil.copy2(item, dest)
+                    log_print(f"    ✓ 已复制: {item.name}")
+                except Exception as e:
+                    log_print(f"    ✗ 复制失败 {item.name}: {e}")
 
             # === 步骤3: 从备份恢复用户数据目录 ===
+            set_status("正在恢复用户数据...")
             log_print("\n[3/3] 正在从备份恢复用户数据...")
             restore_dirs = ["app", "appData", "plugins", "tools"]
             for dir_name in restore_dirs:
@@ -350,7 +409,9 @@ class AppUpdater:
                     log_print(f"  ✗ 恢复失败 {dir_name}: {e}")
 
             # 清理更新包
+            set_status("正在清理临时文件...")
             log_print("\n正在清理临时文件...")
+            shutil.rmtree(temp_extract, ignore_errors=True)
             moved_update.unlink(missing_ok=True)
             update_path.unlink(missing_ok=True)
             log_print("  ✓ 临时文件已清理")
@@ -377,6 +438,7 @@ class AppUpdater:
         log_print("=" * 60)
 
         # 清理旧备份，只保留最近 3 份
+        set_status("正在清理旧备份...")
         log_print("\n正在清理旧备份...")
         backup_root = app_dir / "backup"
         if backup_root.exists():
@@ -392,6 +454,7 @@ class AppUpdater:
                 except Exception as e:
                     log_print(f"  ✗ 删除旧备份失败 {oldest.name}: {e}")
 
+        set_status("更新完成，正在重启应用...")
         log_print("\n正在重启应用...")
         time.sleep(2)
 
@@ -402,5 +465,14 @@ class AppUpdater:
             for exe in app_dir.glob("*.exe"):
                 os.startfile(str(exe))
                 break
+
+        try:
+            if update_dialog is not None:
+                update_dialog.close()
+            if created_app and update_app is not None:
+                update_app.processEvents()
+                update_app.quit()
+        except Exception:
+            pass
     
 
