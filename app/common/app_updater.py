@@ -60,7 +60,7 @@ class UpdateChecker(QThread):
                 return
             
             data = response.json()
-            logger.info(data)
+            #logger.info(data)
             latest_version = data.get("tag_name", "")
             release_notes = data.get("body", "无更新说明")
             

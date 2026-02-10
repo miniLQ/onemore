@@ -102,7 +102,7 @@ class SignalBus(QObject):
         if not os.path.exists(PLUGIN_DIR):
             os.makedirs(PLUGIN_DIR)
         try:
-            resp = requests.get("https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/plugins.zip", stream=True)
+            resp = requests.get("https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/plugins.zip", stream=True, timeout=5)
             buf = io.BytesIO()
 
             for chunk in resp.iter_content(1024):
