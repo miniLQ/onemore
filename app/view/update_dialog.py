@@ -11,6 +11,8 @@ from qfluentwidgets import (
     TextEdit, ScrollArea
 )
 
+import markdown
+
 from ..common.app_updater import AppUpdater
 from loguru import logger
 
@@ -30,7 +32,10 @@ class UpdateMessageBox(MessageBoxBase):
         # 更新说明
         self.notesLabel = BodyLabel("更新内容：", self)
         self.notesText = TextEdit(self)
-        self.notesText.setPlainText(release_notes)
+        try:
+            self.notesText.setHtml(markdown.markdown(release_notes or ""))
+        except Exception:
+            self.notesText.setPlainText(release_notes)
         self.notesText.setReadOnly(True)
         self.notesText.setMaximumHeight(200)
         

@@ -5,3 +5,4 @@ bcrypt
 requests
 PyQt6
 PyYAML
+markdown
