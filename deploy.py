@@ -16,10 +16,10 @@ args = [
     '--show-progress',
     '--windows-console-mode=force',
     '--output-dir=./build',
-    # '--nofollow-import-to=plugins',
+    '--nofollow-import-to=plugins',
+    '--no-deployment-flag=excluded-module-usage',
     '--include-package=yaml',
     '--include-data-dir=app/resource=app/resource',
-    #'--include-data-dir=plugins=plugins',
     './main.py'
 ]
 
