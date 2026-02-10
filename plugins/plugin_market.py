@@ -191,7 +191,7 @@ class PluginMarket(QWidget):
             button.setText("安装")
             button.clicked.disconnect()
             button.clicked.connect(lambda _, p=self._get_plugin_by_name(name), b=button: self.install_plugin(p, b))
-            logger.success("插件 {} 卸载成功", name)
+            logger.success("[插件管理器] 插件 {} 卸载成功", name)
         except Exception as e:
             InfoBar.error(
                 parent=self,
@@ -201,14 +201,14 @@ class PluginMarket(QWidget):
                 duration=10000,
                 isClosable=True
             )
-            logger.error("插件 {} 卸载失败: {}", name, e)
+            logger.error("[插件管理器] 插件 {} 卸载失败: {}", name, e)
 
     def install_plugin(self, plugin, button):
         name = plugin.get("name", "unknown")
         zip_url = plugin.get("zip_url", "")
 
         button.setEnabled(False)
-        logger.info("开始安装插件: {}", name)
+        logger.info("[插件管理器] 开始安装插件: {}", name)
         try:
             if zip_url:
                 if name == "tools":
@@ -238,7 +238,7 @@ class PluginMarket(QWidget):
                 content=str(e),
                 position=InfoBarPosition.TOP
             )
-            logger.error("插件 {} 安装失败: {}", name, e)
+            logger.error("[插件管理器] 插件 {} 安装失败: {}", name, e)
 
     def _get_plugin_by_name(self, name):
         for p in self.all_plugins:
@@ -255,7 +255,7 @@ class PluginMarket(QWidget):
             duration=10000,
             isClosable=True
         )
-        logger.success("插件 {} 安装成功", plugin['name'])
+        logger.success("[插件管理器] 插件 {} 安装成功", plugin['name'])
         button.setText("卸载")
         button.setEnabled(True)
         button.clicked.disconnect()
@@ -272,4 +272,4 @@ class PluginMarket(QWidget):
         )
         button.setText("安装")
         button.setEnabled(True)
-        logger.error("插件安装失败: {}", error)
+        logger.error("[插件管理器] 插件安装失败: {}", error)

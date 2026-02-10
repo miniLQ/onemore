@@ -98,7 +98,7 @@ class SignalBus(QObject):
 
         logger.info("[插件管理器] 正在更新插件管理器...")
         # 从这个地址下载https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/dev/plugins/plugin_index.json
-        logger.info("正在从 https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/plugins.zip 下载文件")
+        logger.info("[插件管理器] 正在从 https://raw.githubusercontent.com/miniLQ/onemore/refs/heads/master/release/plugins.zip 下载文件")
         if not os.path.exists(PLUGIN_DIR):
             os.makedirs(PLUGIN_DIR)
         try:

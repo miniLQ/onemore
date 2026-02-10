@@ -8,10 +8,10 @@ import sys
 BASE_DIR = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.dirname(__file__))
 PLUGIN_DIR = os.path.join(BASE_DIR, "plugins")
 
-logger.info(PLUGIN_DIR)
+#logger.info(PLUGIN_DIR)
 
 def load_plugins(main_window):
-    logger.info("Loading plugins")
+    #logger.info("Loading plugins")
     plugin_root = os.path.join(PLUGIN_DIR)
     if not os.path.exists(plugin_root):
         return
@@ -44,6 +44,6 @@ def load_plugins(main_window):
             spec.loader.exec_module(module)
             if hasattr(module, "register"):
                 module.register(main_window)
-                logger.info(f"[PluginLoader] Loaded plugin: {name}")
+                logger.info(f"[插件管理器] 加载插件: {name}")
         except Exception as e:
-            logger.error(f"[PluginLoader] Failed to load plugin {name}: {e}")
+            logger.error(f"[插件管理器] 加载插件失败 {name}: {e}")

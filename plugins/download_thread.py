@@ -23,9 +23,9 @@ class DownloadExtractThread(QThread):
 
             path = os.path.join(self.plugin_dir, name)
 
-            logger.info("开始安装插件: {}".format(name))
-            logger.info("插件下载地址: {}".format(zip_url))
-            logger.info("插件安装路径: {}".format(path))
+            logger.info("[插件下载器] 开始安装插件: {}".format(name))
+            logger.info("[插件下载器] 插件下载地址: {}".format(zip_url))
+            logger.info("[插件下载器] 插件安装路径: {}".format(path))
 
             # 下载
             resp = requests.get(zip_url, stream=True)
