@@ -1,12 +1,14 @@
 # coding:utf-8
 import sys
 from enum import Enum
+from pathlib import Path
 import os
 from PyQt6.QtCore import QLocale
 from qfluentwidgets import (qconfig, QConfig, ConfigItem, OptionsConfigItem, BoolValidator,
                             OptionsValidator, Theme, FolderValidator, ConfigSerializer)
 
-from .setting import CONFIG_FILE
+CONFIG_FOLDER = Path('AppData').absolute()
+CONFIG_FILE = CONFIG_FOLDER / "config.json"
 
 class Language(Enum):
     """ Language enumeration """
@@ -58,7 +60,7 @@ class Config(QConfig):
 
 YEAR = 2024
 AUTHOR = "iliuqi"
-VERSION = "2.1.0"
+VERSION = "2.1.1"
 HELP_URL = "https://qfluentwidgets.com"
 REPO_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets"
 EXAMPLE_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets/tree/PyQt6/examples"
