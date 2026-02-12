@@ -136,7 +136,7 @@
   {
     "name": "QXDM_Dumptime_Tool",
     "description": "高通qxdm log、dump、ap log三者的时间对应与转换工具",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "charter",
     "logo": "plugin_resources/logo/logo_QXDM_Dumptime_Tool.png",
     "entry": "plugin.py",
