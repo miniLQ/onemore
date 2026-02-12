@@ -5,6 +5,10 @@ on:
       - master
     paths:
       - "plugins/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   zip-plugins:
@@ -15,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Create plugins.zip
         run: |
