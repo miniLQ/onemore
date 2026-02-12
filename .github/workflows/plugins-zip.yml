@@ -1,0 +1,35 @@
+name: Plugins Zip
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "plugins/**"
+
+jobs:
+  zip-plugins:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create plugins.zip
+        run: |
+          if (!(Test-Path -Path "release")) { New-Item -ItemType Directory -Path "release" | Out-Null }
+          if (Test-Path -Path "release/plugins.zip") { Remove-Item -Path "release/plugins.zip" -Force }
+          Compress-Archive -Path "plugins\*" -DestinationPath "release\plugins.zip" -Force
+
+      - name: Commit plugins.zip
+        run: |
+          git add release/plugins.zip
+          if (git diff --staged --quiet) {
+            Write-Host "No changes to commit."
+            exit 0
+          }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: update plugins.zip [skip ci]"
+          git push
