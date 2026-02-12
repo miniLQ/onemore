@@ -273,3 +273,4 @@ class PluginMarket(QWidget):
         button.setText("安装")
         button.setEnabled(True)
         logger.error("[插件管理器] 插件安装失败: {}", error)
+        
